@@ -1,8 +1,12 @@
 "use client";
 
+import { Check, Headphones, Landmark, Lock, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { KomunikatFormularza } from "@/components/KomunikatFormularza";
+import { cena, cenaZOkresem, NAZWY_OKRESOW, NAZWY_PLANOW, zlotePelne } from "@/content/cennik";
+import { KATEGORIE_USLUGODAWCOW, type KlasaCenowa, pobierzKategorie } from "@/content/kategorie";
+import { pobierzRodzajeLokali, RODZAJE_LOKALI } from "@/content/rodzaje-lokali";
 import { wyslijRejestracje } from "@/lib/akcje/formularze";
 import { STAN_POCZATKOWY } from "@/lib/formularze";
 
@@ -26,7 +30,7 @@ export function RejestracjaFirmyScreen() {
 
   // Step 1: Account & Type
   const [accountType, setAccountType] = useState<"lokal" | "usluga">("lokal");
-  const [category, setCategory] = useState("Sale weselne i obiekty");
+  const [category, setCategory] = useState<string>(RODZAJE_LOKALI[0]?.slug ?? "");
   const [email, setEmail] = useState("biuro@dworpodlipami.pl");
   const [password, setPassword] = useState("********");
 
@@ -51,12 +55,16 @@ export function RejestracjaFirmyScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState<"miesiac" | "pol_roku" | "rok">("rok");
   const [useTrial, setUseTrial] = useState(false);
 
-  const getStartingPrice = () => {
-    if (accountType === "lokal") return "od 189 zł / msc (Klasa A)";
-    if (category.includes("Foto") || category.includes("Wideo") || category.includes("Zespół"))
-      return "od 89 zł / msc (Klasa B)";
-    return "od 49 zł / msc (Klasa C)";
-  };
+  // Lista kategorii zalezy od tego, czy firma prowadzi lokal, czy dojezdza.
+  const wybor =
+    accountType === "lokal"
+      ? pobierzRodzajeLokali().map((r) => ({ slug: r.slug, nazwa: r.nazwa, klasa: r.klasa }))
+      : pobierzKategorie().map((k) => ({ slug: k.slug, nazwa: k.nazwa, klasa: k.klasa }));
+
+  const klasa: KlasaCenowa = wybor.find((pozycja) => pozycja.slug === category)?.klasa ?? "C";
+
+  const getStartingPrice = () =>
+    `od ${zlotePelne(cena(klasa, "miesiac", "start"))} / mies. (Klasa ${klasa})`;
 
   const handleNext = () => {
     if (step < KROKOW) setStep((prev) => (prev + 1) as Krok);
@@ -163,14 +171,17 @@ export function RejestracjaFirmyScreen() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                   <button
                     type="button"
-                    onClick={() => setAccountType("lokal")}
+                    onClick={() => {
+                      setAccountType("lokal");
+                      setCategory(RODZAJE_LOKALI[0]?.slug ?? "");
+                    }}
                     className={`text-left p-5 rounded-[16px] border-2 cursor-pointer transition-all ${
                       accountType === "lokal"
                         ? "border-[#241C2B] bg-[#FAF6F2]"
                         : "border-[#E2D5CA] bg-white hover:border-[#6A5C70]"
                     }`}
                   >
-                    <div className="text-[24px] mb-2">🏛️</div>
+                    <Landmark aria-hidden="true" size={26} className="mb-2 text-[#5E7360]" />
                     <div className="font-bold text-[16px] mb-1">Lokal stacjonarny</div>
                     <div className="text-[13px] text-[#6A5C70] leading-[1.4]">
                       Sala weselna, restauracja, dom weselny, hotel, agroturystyka, remiza, plener.
@@ -179,14 +190,17 @@ export function RejestracjaFirmyScreen() {
 
                   <button
                     type="button"
-                    onClick={() => setAccountType("usluga")}
+                    onClick={() => {
+                      setAccountType("usluga");
+                      setCategory(KATEGORIE_USLUGODAWCOW[0]?.slug ?? "");
+                    }}
                     className={`text-left p-5 rounded-[16px] border-2 cursor-pointer transition-all ${
                       accountType === "usluga"
                         ? "border-[#241C2B] bg-[#FAF6F2]"
                         : "border-[#E2D5CA] bg-white hover:border-[#6A5C70]"
                     }`}
                   >
-                    <div className="text-[24px] mb-2">🎧</div>
+                    <Headphones aria-hidden="true" size={26} className="mb-2 text-[#5E7360]" />
                     <div className="font-bold text-[16px] mb-1">Usługodawca mobilny</div>
                     <div className="text-[13px] text-[#6A5C70] leading-[1.4]">
                       DJ, fotograf, wideo, zespół muzyczny, catering, barman, dekorator, animator.
@@ -214,14 +228,11 @@ export function RejestracjaFirmyScreen() {
                       onChange={(e) => setCategory(e.target.value)}
                       className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] bg-white outline-none focus:border-[#241C2B]"
                     >
-                      <option>Sale weselne i obiekty</option>
-                      <option>Restauracje na uroczystości</option>
-                      <option>DJ i oprawa muzyczna</option>
-                      <option>Fotograf okolicznościowy</option>
-                      <option>Filmowanie / wideo</option>
-                      <option>Catering na imprezy</option>
-                      <option>Bar mobilny / barmani</option>
-                      <option>Dekoracje i florystyka</option>
+                      {wybor.map((pozycja) => (
+                        <option key={pozycja.slug} value={pozycja.slug}>
+                          {pozycja.nazwa}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -364,8 +375,9 @@ export function RejestracjaFirmyScreen() {
                     </div>
                     {isNipVerified && (
                       <div className="text-[12px] text-[#5E7360] font-semibold mt-1.5 flex items-center gap-1.5">
-                        ✓ NIP zweryfikowany w wykazie podatników VAT (podmiot czynny: Dwór pod
-                        Lipami Sp. z o.o.)
+                        <Check aria-hidden="true" size={15} className="inline mr-1" /> NIP
+                        zweryfikowany w wykazie podatników VAT (podmiot czynny: Dwór pod Lipami Sp.
+                        z o.o.)
                       </div>
                     )}
                   </div>
@@ -393,7 +405,8 @@ export function RejestracjaFirmyScreen() {
                     </div>
                     {isPhoneVerified && (
                       <div className="text-[12px] text-[#5E7360] font-semibold mt-1.5 flex items-center gap-1.5">
-                        ✓ Kod SMS potwierdzony
+                        <Check aria-hidden="true" size={15} className="inline mr-1" /> Kod SMS
+                        potwierdzony
                       </div>
                     )}
                   </div>
@@ -435,7 +448,10 @@ export function RejestracjaFirmyScreen() {
                                 : "border-[#E2D5CA] bg-white"
                             }`}
                           >
-                            <div className="capitalize">{p}</div>
+                            <div>{NAZWY_PLANOW[p]}</div>
+                            <div className="text-[12px] text-[#6A5C70] font-normal mt-0.5">
+                              {zlotePelne(cena(klasa, selectedPeriod, p))}
+                            </div>
                           </button>
                         ))}
                       </fieldset>
@@ -463,16 +479,23 @@ export function RejestracjaFirmyScreen() {
                                 : "border-[#E2D5CA] bg-white"
                             }`}
                           >
-                            <div>
-                              {pr === "rok"
-                                ? "Rok (baza)"
-                                : pr === "pol_roku"
-                                  ? "Pół roku"
-                                  : "Miesiąc"}
+                            <div>{NAZWY_OKRESOW[pr]}</div>
+                            <div className="text-[12px] text-[#6A5C70] font-normal mt-0.5">
+                              {zlotePelne(cena(klasa, pr, selectedPlan))}
                             </div>
                           </button>
                         ))}
                       </fieldset>
+                    </div>
+
+                    <div className="rounded-[12px] border border-[#E2D5CA] bg-[#F2E9E2] p-4 flex flex-wrap items-baseline justify-between gap-2">
+                      <span className="text-[14px] text-[#55485A]">
+                        {NAZWY_PLANOW[selectedPlan]}, {NAZWY_OKRESOW[selectedPeriod].toLowerCase()},
+                        klasa {klasa}
+                      </span>
+                      <strong className="font-fraunces text-[22px] text-[#241C2B]">
+                        {cenaZOkresem(klasa, selectedPeriod, selectedPlan)}
+                      </strong>
                     </div>
                   </div>
                 }
@@ -498,7 +521,8 @@ export function RejestracjaFirmyScreen() {
                 >
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="font-bold text-[16px] text-[#241C2B]">
-                      ★ Chcę najpierw 30 dni bezpłatnej próby
+                      <Sparkles aria-hidden="true" size={16} className="inline mr-1.5" />
+                      Chcę najpierw 30 dni bezpłatnej próby
                     </span>
                     <span className="text-[13px] font-bold text-[#5E7360] bg-white px-2.5 py-0.5 rounded-full border border-[#D9CCC2]">
                       0 zł / 30 dni
@@ -507,6 +531,10 @@ export function RejestracjaFirmyScreen() {
                   <p className="text-[13px] text-[#55485A] leading-[1.5] m-0">
                     Profil staje się natychmiast publiczny w katalogu. Nie wymagamy podawania karty
                     płatniczej.
+                  </p>
+                  <p className="text-[13px] font-semibold text-[#7A3B1E] leading-[1.5] mt-2 mb-0">
+                    Liczba miejsc w bezpłatnej próbie jest ograniczona. Gdy pula na dany miesiąc się
+                    wyczerpie, profil zakładasz od razu z abonamentem.
                   </p>
                 </button>
               </div>
@@ -571,8 +599,8 @@ export function RejestracjaFirmyScreen() {
               </div>
 
               <div className="mt-4 text-[12px] text-[#6A5C70] leading-[1.5]">
-                🔒 Dane firmy i NIP są bezpiecznie szyfrowane. Wszystkie ceny w cenniku podajemy
-                netto.
+                <Lock aria-hidden="true" size={13} className="inline mr-1" /> Dane firmy i NIP są
+                bezpiecznie szyfrowane. Wszystkie ceny w cenniku podajemy netto.
               </div>
             </div>
           </aside>

@@ -2,43 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { CENNIK, zlotePelne } from "@/content/cennik";
 
 export function CennikScreen() {
   const [selectedClass, setSelectedClass] = useState<"A" | "B" | "C">("A");
   const [period, setPeriod] = useState<"miesiac" | "pol_roku" | "rok">("rok");
 
-  // Pricing matrix from spec (Oct 3, 2026)
-  const prices = {
-    A: {
-      label: "Klasa A · Sale, hotele, dwory, catering pełny",
-      avgDeal: "15 000 – 60 000 zł",
-      miesiac: { start: 189, pelny: 379, wyrozniony: 739 },
-      pol_roku: { start: 890, pelny: 1790, wyrozniony: 3540 },
-      rok: { start: 1490, pelny: 2990, wyrozniony: 5900 },
-      categoryDesc:
-        "Dla obiektów i firm, gdzie jedno pozyskane wesele lub przyjęcie zwraca koszt rocznego abonamentu z kilkukrotną nawiązką.",
-    },
-    B: {
-      label: "Klasa B · Restauracje, agroturystyka, zespoły, foto, wideo, dekoracje",
-      avgDeal: "3 000 – 15 000 zł",
-      miesiac: { start: 89, pelny: 179, wyrozniony: 349 },
-      pol_roku: { start: 410, pelny: 830, wyrozniony: 1670 },
-      rok: { start: 690, pelny: 1390, wyrozniony: 2790 },
-      categoryDesc:
-        "Dla kluczowych twórców oprawy uroczystości szukających regularnych zleceń w wybranym regionie.",
-    },
-    C: {
-      label: "Klasa C · DJ, barman, animator, fotobudka, transport, florysta",
-      avgDeal: "500 – 3 000 zł",
-      miesiac: { start: 49, pelny: 99, wyrozniony: 189 },
-      pol_roku: { start: 230, pelny: 470, wyrozniony: 890 },
-      rok: { start: 390, pelny: 790, wyrozniony: 1490 },
-      categoryDesc:
-        "Dla mobilnych specjalistów i usługodawców z krótszym czasem realizacji i dużą częstotliwością imprez.",
-    },
-  };
-
-  const currentPrices = prices[selectedClass][period];
+  const currentPrices = CENNIK[selectedClass][period];
 
   const getPeriodLabel = () => {
     if (period === "miesiac") return "za miesiąc (odnawiany z karty)";
@@ -201,10 +171,10 @@ export function CennikScreen() {
         <div className="border border-[#E2D5CA] bg-white rounded-[14px] p-4.5 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
             <span className="font-semibold text-[15px] text-[#241C2B] mr-3">
-              {prices[selectedClass].label}
+              {CENNIK[selectedClass].etykieta}
             </span>
             <span className="text-[14px] text-[#6A5C70]">
-              Średnia wartość zlecenia: {prices[selectedClass].avgDeal}
+              Średnia wartość zlecenia: {CENNIK[selectedClass].typowaTransakcja}
             </span>
           </div>
           <span className="text-[13px] text-[#55485A] italic">
@@ -224,7 +194,7 @@ export function CennikScreen() {
 
             <div className="flex items-baseline gap-1.5 mb-1">
               <span className="font-fraunces text-[42px] font-medium text-[#241C2B]">
-                {currentPrices.start.toLocaleString("pl-PL")} zł
+                {zlotePelne(currentPrices.start)}
               </span>
               <span className="text-[14px] text-[#6A5C70]">netto</span>
             </div>
@@ -292,7 +262,7 @@ export function CennikScreen() {
 
             <div className="flex items-baseline gap-1.5 mb-1">
               <span className="font-fraunces text-[42px] font-medium text-[#241C2B]">
-                {currentPrices.pelny.toLocaleString("pl-PL")} zł
+                {zlotePelne(currentPrices.pelny)}
               </span>
               <span className="text-[14px] text-[#6A5C70]">netto</span>
             </div>
@@ -355,7 +325,7 @@ export function CennikScreen() {
 
             <div className="flex items-baseline gap-1.5 mb-1">
               <span className="font-fraunces text-[42px] font-medium text-[#241C2B]">
-                {currentPrices.wyrozniony.toLocaleString("pl-PL")} zł
+                {zlotePelne(currentPrices.wyrozniony)}
               </span>
               <span className="text-[14px] text-[#6A5C70]">netto</span>
             </div>

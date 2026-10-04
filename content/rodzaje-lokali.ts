@@ -1,3 +1,5 @@
+import type { KlasaCenowa } from "@/content/kategorie";
+
 /**
  * Rodzaje lokali: pierwsze pole wyszukiwarki.
  *
@@ -10,22 +12,33 @@
 export interface RodzajLokalu {
   slug: string;
   nazwa: string;
+  /**
+   * Klasa cenowa z content/cennik.ts. Cennik wymienia wprost sale, hotele,
+   * dwory i catering pełny (A) oraz restauracje i agroturystykę (B).
+   * Pozostałe rodzaje czekają na potwierdzenie przez właściciela.
+   */
+  klasa: KlasaCenowa;
   /** Liczba mnoga do nagłówków stron pod wyszukiwarkę. */
   nazwaMnoga: string;
 }
 
 export const RODZAJE_LOKALI: readonly RodzajLokalu[] = [
-  { slug: "sala-weselna", nazwa: "Sala weselna", nazwaMnoga: "Sale weselne" },
-  { slug: "sala-bankietowa", nazwa: "Sala bankietowa", nazwaMnoga: "Sale bankietowe" },
-  { slug: "restauracja", nazwa: "Restauracja", nazwaMnoga: "Restauracje" },
-  { slug: "dwor-palac", nazwa: "Dwór lub pałac", nazwaMnoga: "Dwory i pałace" },
-  { slug: "hotel", nazwa: "Hotel", nazwaMnoga: "Hotele" },
-  { slug: "dom-weselny", nazwa: "Dom weselny", nazwaMnoga: "Domy weselne" },
-  { slug: "stodola", nazwa: "Stodoła", nazwaMnoga: "Stodoły" },
-  { slug: "agroturystyka", nazwa: "Agroturystyka", nazwaMnoga: "Agroturystyki" },
-  { slug: "ogrod-plener", nazwa: "Ogród i plener", nazwaMnoga: "Ogrody i plenery" },
-  { slug: "klub", nazwa: "Klub", nazwaMnoga: "Kluby" },
-  { slug: "sala-konferencyjna", nazwa: "Sala konferencyjna", nazwaMnoga: "Sale konferencyjne" },
+  { slug: "sala-weselna", nazwa: "Sala weselna", nazwaMnoga: "Sale weselne", klasa: "A" },
+  { slug: "sala-bankietowa", nazwa: "Sala bankietowa", nazwaMnoga: "Sale bankietowe", klasa: "A" },
+  { slug: "restauracja", nazwa: "Restauracja", nazwaMnoga: "Restauracje", klasa: "B" },
+  { slug: "dwor-palac", nazwa: "Dwór lub pałac", nazwaMnoga: "Dwory i pałace", klasa: "A" },
+  { slug: "hotel", nazwa: "Hotel", nazwaMnoga: "Hotele", klasa: "A" },
+  { slug: "dom-weselny", nazwa: "Dom weselny", nazwaMnoga: "Domy weselne", klasa: "A" },
+  { slug: "stodola", nazwa: "Stodoła", nazwaMnoga: "Stodoły", klasa: "A" },
+  { slug: "agroturystyka", nazwa: "Agroturystyka", nazwaMnoga: "Agroturystyki", klasa: "B" },
+  { slug: "ogrod-plener", nazwa: "Ogród i plener", nazwaMnoga: "Ogrody i plenery", klasa: "B" },
+  { slug: "klub", nazwa: "Klub", nazwaMnoga: "Kluby", klasa: "B" },
+  {
+    slug: "sala-konferencyjna",
+    nazwa: "Sala konferencyjna",
+    nazwaMnoga: "Sale konferencyjne",
+    klasa: "B",
+  },
 ] as const;
 
 export function pobierzRodzajeLokali(): readonly RodzajLokalu[] {
