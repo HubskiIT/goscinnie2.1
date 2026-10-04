@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LokaleScreen } from "@/components/screens/LokaleScreen";
 import { pobierzRodzajLokalu } from "@/content/rodzaje-lokali";
-import { type KryteriaLokali, wyszukajLokale } from "@/lib/wyszukiwanie";
+import type { KryteriaLokali } from "@/lib/wyszukiwanie";
+import { wyszukajLokale } from "@/lib/wyszukiwanie-serwer";
 
 interface Props {
   params: Promise<{ rodzaj: string; miejscowosc: string }>;

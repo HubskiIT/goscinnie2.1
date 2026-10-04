@@ -10,6 +10,8 @@ pnpm dev                 # aplikacja na localhost:3000
 pnpm build               # budowanie produkcyjne
 pnpm lint                # Biome, format i lint
 pnpm check               # plik blokady + lint + tsc, to samo co CI
+pnpm dane:pobierz        # TERYT (GUS) i PRNG (GUGiK) do scripts/dane/
+pnpm dane:miejscowosci   # buduje content/miejscowosci.json.gz z pobranych danych
 ```
 
 Przed każdym commitem uruchamiam `pnpm check`. Jeśli nie przechodzi, nie commituję.

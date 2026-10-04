@@ -1,5 +1,3 @@
-import { type Lokal, pobierzLokale } from "@/content/ogloszenia";
-
 /**
  * Stan wyszukiwarki żyje w adresie, nie w pamięci komponentu.
  * Dzięki temu adres wklejony w nowej karcie daje ten sam wynik,
@@ -64,31 +62,6 @@ export function odczytajKryteria(parametry: Wejscie): KryteriaLokali {
     termin: jeden(parametry[PARAMETRY.termin]),
     udogodnienia: wiele(parametry[PARAMETRY.udogodnienie]),
   };
-}
-
-/**
- * Filtrowanie po stronie serwera. Do wejścia bazy pracuje na content/,
- * a odległość liczymy po polu `odlegloscOdCentrumKm`, bo do PostGIS
- * jeszcze daleko.
- */
-export function wyszukajLokale(kryteria: KryteriaLokali): readonly Lokal[] {
-  return pobierzLokale().filter((lokal) => {
-    if (kryteria.rodzaj !== null && lokal.rodzaj !== kryteria.rodzaj) return false;
-    if (kryteria.goscie !== null) {
-      if (lokal.pojemnoscMax !== null && lokal.pojemnoscMax < kryteria.goscie) return false;
-      if (lokal.pojemnoscMin !== null && lokal.pojemnoscMin > kryteria.goscie) return false;
-    }
-    if (
-      kryteria.udogodnienia.length > 0 &&
-      !kryteria.udogodnienia.every((u) => lokal.udogodnienia.includes(u))
-    ) {
-      return false;
-    }
-    if (kryteria.miejscowosc !== null && kryteria.promienKm === 0) {
-      return lokal.miejscowosc.nazwa.toLowerCase() === kryteria.miejscowosc.toLowerCase();
-    }
-    return true;
-  });
 }
 
 /** Buduje adres listy z przełączonym jednym udogodnieniem. Filtr to link, nie przycisk. */

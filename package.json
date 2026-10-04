@@ -14,7 +14,9 @@
     "check": "pnpm check:blokada && biome check . && tsc --noEmit",
     "format": "biome check --write .",
     "lint": "biome check .",
-    "check:blokada": "pnpm install --frozen-lockfile --ignore-scripts >/dev/null"
+    "check:blokada": "pnpm install --frozen-lockfile --ignore-scripts >/dev/null",
+    "dane:pobierz": "node scripts/pobierz-dane.mjs",
+    "dane:miejscowosci": "node scripts/miejscowosci.mjs"
   },
   "dependencies": {
     "clsx": "2.1.1",

@@ -16,6 +16,8 @@
 export type StatusFirmy = "draft" | "active" | "visitcard" | "suspended";
 
 export interface Miejscowosc {
+  /** Slug z rejestru TERYT, content/miejscowosci.json.gz. */
+  slug: string;
   nazwa: string;
   gmina: string;
   powiat: string;
@@ -87,6 +89,7 @@ export interface Impreza {
 }
 
 const KOBIERZYCE: Miejscowosc = {
+  slug: "kobierzyce",
   nazwa: "Kobierzyce",
   gmina: "Kobierzyce",
   powiat: "wrocławski",
@@ -95,6 +98,7 @@ const KOBIERZYCE: Miejscowosc = {
 };
 
 const TRZEBNICA: Miejscowosc = {
+  slug: "trzebnica",
   nazwa: "Trzebnica",
   gmina: "Trzebnica",
   powiat: "trzebnicki",
@@ -103,6 +107,7 @@ const TRZEBNICA: Miejscowosc = {
 };
 
 const WROCLAW: Miejscowosc = {
+  slug: "wroclaw",
   nazwa: "Wrocław",
   gmina: "Wrocław",
   powiat: "Wrocław",

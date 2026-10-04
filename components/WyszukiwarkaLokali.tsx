@@ -1,3 +1,4 @@
+import { PoleMiejscowosci } from "@/components/PoleMiejscowosci";
 import { pobierzRodzajeLokali } from "@/content/rodzaje-lokali";
 import { type KryteriaLokali, PARAMETRY, PROMIENIE_KM } from "@/lib/wyszukiwanie";
 
@@ -25,7 +26,7 @@ export function WyszukiwarkaLokali({ kryteria, wariant = "pasek" }: Wyszukiwarka
     <form
       action="/lokale"
       method="get"
-      className={`border-[1.5px] border-[#D9CCC2] rounded-[16px] bg-white flex flex-col lg:flex-row items-stretch overflow-hidden shadow-sm ${
+      className={`border-[1.5px] border-[#D9CCC2] rounded-[16px] bg-white flex flex-col lg:flex-row items-stretch shadow-sm ${
         duzy ? "max-w-[980px]" : ""
       }`}
     >
@@ -49,16 +50,11 @@ export function WyszukiwarkaLokali({ kryteria, wariant = "pasek" }: Wyszukiwarka
       </div>
 
       <div className="grow flex flex-col justify-center gap-1 px-5 py-3 border-b lg:border-b-0 lg:border-r border-[#EFE5DD]">
-        <label className={ETYKIETA} htmlFor="szukaj-miejscowosc">
-          Miejscowość
-        </label>
-        <input
-          id="szukaj-miejscowosc"
-          name={PARAMETRY.miejscowosc}
-          type="text"
-          defaultValue={kryteria.miejscowosc ?? ""}
-          placeholder="Wpisz miejscowość"
-          className={POLE}
+        <PoleMiejscowosci
+          nazwaPola={PARAMETRY.miejscowosc}
+          wartoscPoczatkowa={kryteria.miejscowosc ?? ""}
+          klasaEtykiety={ETYKIETA}
+          klasaPola={POLE}
         />
       </div>
 
@@ -111,7 +107,7 @@ export function WyszukiwarkaLokali({ kryteria, wariant = "pasek" }: Wyszukiwarka
 
       <button
         type="submit"
-        className={`shrink-0 text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 cursor-pointer ${
+        className={`shrink-0 text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 cursor-pointer rounded-b-[14px] lg:rounded-b-none lg:rounded-r-[14px] ${
           duzy ? "px-9 py-4" : "px-7 py-3.5"
         }`}
       >

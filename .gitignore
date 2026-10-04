@@ -57,3 +57,6 @@ CLAUDE.local.md
 
 # Wdrożenia
 .vercel
+
+# Dane źródłowe TERYT i PRNG: duże, publiczne, pobierane skryptem
+scripts/dane/

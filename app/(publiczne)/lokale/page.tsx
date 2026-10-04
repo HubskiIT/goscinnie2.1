@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LokaleScreen } from "@/components/screens/LokaleScreen";
-import { odczytajKryteria, wyszukajLokale } from "@/lib/wyszukiwanie";
+import { odczytajKryteria } from "@/lib/wyszukiwanie";
+import { wyszukajLokale } from "@/lib/wyszukiwanie-serwer";
 
 export const metadata: Metadata = {
   title: "Lokale i sale",
