@@ -1,33 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { EtykietaPrzykladu } from "@/components/EtykietaPrzykladu";
+import { WyszukiwarkaLokali } from "@/components/WyszukiwarkaLokali";
 import { zlote } from "@/content/format";
-import { pobierzLokale } from "@/content/ogloszenia";
+import type { Lokal } from "@/content/ogloszenia";
 import { useKrotkaLista } from "@/hooks/use-krotka-lista";
+import { adresZPrzelaczonym, type KryteriaLokali } from "@/lib/wyszukiwanie";
 
-export function LokaleScreen() {
+/** Filtry dodatkowe. Okazja dołącza tu po zmianie kierunku z punktu 3 planu. */
+const UDOGODNIENIA = ["ogród", "nocleg dla 40 osób", "sala na wyłączność", "parking"] as const;
+
+interface LokaleScreenProps {
+  lokale: readonly Lokal[];
+  kryteria: KryteriaLokali;
+}
+
+export function LokaleScreen({ lokale, kryteria }: LokaleScreenProps) {
   const { lista: shortlist, przelacz: toggleShortlist } = useKrotkaLista();
-  const [activeFilters, setActiveFilters] = useState<string[]>(["Ogród"]);
 
-  const filters = [
-    "Ogród",
-    "Nocleg",
-    "Sala na wyłączność",
-    "Parking",
-    "Własny alkohol",
-    "Bez korkowego",
-    "Dostęp dla wózka",
-  ];
-
-  const toggleFilter = (f: string) => {
-    setActiveFilters((prev) =>
-      prev.includes(f) ? prev.filter((item) => item !== f) : [...prev, f],
-    );
-  };
-
-  const venues = pobierzLokale().map((lokal) => ({
+  const venues = lokale.map((lokal) => ({
     slug: lokal.slug,
     name: lokal.nazwa,
     location: `${lokal.miejscowosc.nazwa} · ${lokal.miejscowosc.odlegloscOdCentrumKm} km od centrum`,
@@ -74,119 +66,16 @@ export function LokaleScreen() {
 
       {/* Filter Bar */}
       <section className="shrink-0 px-6 sm:px-12 md:px-[130px] pt-[30px]">
-        <div className="border-[1.5px] border-[#D9CCC2] rounded-[16px] bg-white flex flex-col lg:flex-row items-stretch overflow-hidden shadow-sm">
-          <div className="grow flex flex-col justify-center gap-1 px-5 py-3 border-b lg:border-b-0 lg:border-r border-[#EFE5DD]">
-            <span className="text-[12px] text-[#6A5C70]">Okazja</span>
-            <span className="flex items-center justify-between text-[15px] font-semibold text-[#241C2B]">
-              Komunia
-              <svg
-                aria-hidden="true"
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#6A5C70"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              >
-                <polyline points="5 9 12 16 19 9" />
-              </svg>
-            </span>
-          </div>
-
-          <div className="grow flex flex-col justify-center gap-1 px-5 py-3 border-b lg:border-b-0 lg:border-r border-[#EFE5DD]">
-            <span className="text-[12px] text-[#6A5C70]">Miejscowość</span>
-            <span className="flex items-center justify-between text-[15px] font-semibold text-[#241C2B]">
-              Wrocław
-              <svg
-                aria-hidden="true"
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#6A5C70"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              >
-                <polyline points="5 9 12 16 19 9" />
-              </svg>
-            </span>
-          </div>
-
-          <div className="grow flex flex-col justify-center gap-1 px-5 py-3 border-b lg:border-b-0 lg:border-r border-[#EFE5DD]">
-            <span className="text-[12px] text-[#6A5C70]">Termin</span>
-            <span className="flex items-center justify-between text-[15px] font-semibold text-[#241C2B]">
-              czerwiec 2027
-              <svg
-                aria-hidden="true"
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#6A5C70"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              >
-                <polyline points="5 9 12 16 19 9" />
-              </svg>
-            </span>
-          </div>
-
-          <div className="w-full lg:w-[150px] flex flex-col justify-center gap-1 px-5 py-3 border-b lg:border-b-0 lg:border-r border-[#EFE5DD]">
-            <span className="text-[12px] text-[#6A5C70]">Liczba osób</span>
-            <span className="flex items-center justify-between text-[15px] font-semibold text-[#241C2B]">
-              80
-              <svg
-                aria-hidden="true"
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#6A5C70"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              >
-                <polyline points="5 9 12 16 19 9" />
-              </svg>
-            </span>
-          </div>
-
-          <div className="w-full lg:w-[170px] flex flex-col justify-center gap-1 px-5 py-3 border-b lg:border-b-0 lg:border-r border-[#EFE5DD]">
-            <span className="text-[12px] text-[#6A5C70]">Cena do</span>
-            <span className="flex items-center justify-between text-[15px] font-semibold text-[#241C2B]">
-              250 zł / os.
-              <svg
-                aria-hidden="true"
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#6A5C70"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              >
-                <polyline points="5 9 12 16 19 9" />
-              </svg>
-            </span>
-          </div>
-
-          <button
-            type="button"
-            className="m-2 rounded-[10px] px-8 py-3.5 bg-[#F0A62E] hover:bg-[#e29922] transition-colors text-[16px] font-bold text-[#241C2B] border-0 cursor-pointer shrink-0"
-          >
-            Szukaj
-          </button>
-        </div>
+        <WyszukiwarkaLokali kryteria={kryteria} />
 
         {/* Filters pills */}
         <div className="mt-[18px] flex items-center gap-2.5 flex-wrap">
-          {filters.map((f) => {
-            const isSelected = activeFilters.includes(f);
+          {UDOGODNIENIA.map((f) => {
+            const isSelected = kryteria.udogodnienia.includes(f);
             return (
-              <button
+              <Link
                 key={f}
-                type="button"
-                onClick={() => toggleFilter(f)}
+                href={adresZPrzelaczonym(kryteria, f)}
                 className={`text-[14px] rounded-full px-4 py-2 cursor-pointer transition-all ${
                   isSelected
                     ? "font-semibold text-[#241C2B] bg-white border-[1.5px] border-[#241C2B] shadow-sm"
@@ -194,7 +83,7 @@ export function LokaleScreen() {
                 }`}
               >
                 {f}
-              </button>
+              </Link>
             );
           })}
           <span className="ml-auto text-[14px] text-[#6A5C70]">

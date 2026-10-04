@@ -7,7 +7,12 @@ import { zlote } from "@/content/format";
 import { pobierzKategorie } from "@/content/kategorie";
 import { pobierzUslugodawcow } from "@/content/ogloszenia";
 
-export function UslugodawcyScreen() {
+interface UslugodawcyScreenProps {
+  /** Slug kategorii z adresu /uslugodawcy/[kategoria]/[miejscowosc]. */
+  kategoria?: string;
+}
+
+export function UslugodawcyScreen({ kategoria: slugKategorii }: UslugodawcyScreenProps) {
   const [searchInput, setSearchInput] = useState("");
   const [locationInput, setLocationInput] = useState("");
 
@@ -17,6 +22,7 @@ export function UslugodawcyScreen() {
   const filteredProviders = useMemo(() => {
     const fraza = searchInput.trim().toLowerCase();
     return pobierzUslugodawcow()
+      .filter((u) => slugKategorii === undefined || u.kategoriaGlowna === slugKategorii)
       .map((u) => ({
         slug: u.slug,
         name: u.nazwa,
@@ -37,7 +43,7 @@ export function UslugodawcyScreen() {
           u.description.toLowerCase().includes(fraza)
         );
       });
-  }, [searchInput, kategorie]);
+  }, [searchInput, kategorie, slugKategorii]);
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen font-figtree">

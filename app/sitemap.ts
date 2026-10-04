@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
-import { firma, impreza, PRZYKLADY, TRASY } from "@/lib/trasy";
+import { OKAZJE } from "@/content/okazje";
+import { firma, impreza, okazja, PRZYKLADY, TRASY } from "@/lib/trasy";
 
 const ADRES = process.env.APP_URL ?? "http://localhost:3000";
 
@@ -19,6 +20,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     firma(PRZYKLADY.lokal),
     firma(PRZYKLADY.wpisBezProfilu),
     impreza(PRZYKLADY.impreza),
+    ...OKAZJE.map((o) => okazja(o.slug)),
   ];
 
   return sciezki.map((sciezka) => ({

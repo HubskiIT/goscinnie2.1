@@ -27,6 +27,8 @@ export interface Miejscowosc {
 export interface Lokal {
   slug: string;
   nazwa: string;
+  /** Slug z content/rodzaje-lokali.ts. Pierwsze pole wyszukiwarki. */
+  rodzaj: string;
   status: StatusFirmy;
   przykladowe: boolean;
   miejscowosc: Miejscowosc;
@@ -112,6 +114,7 @@ const LOKALE: readonly Lokal[] = [
   {
     slug: "dwor-pod-lipami",
     nazwa: "Dwór pod Lipami",
+    rodzaj: "dwor-palac",
     status: "active",
     przykladowe: true,
     miejscowosc: KOBIERZYCE,
@@ -128,6 +131,7 @@ const LOKALE: readonly Lokal[] = [
   {
     slug: "stary-spichlerz",
     nazwa: "Stary Spichlerz",
+    rodzaj: "sala-weselna",
     // Wpis z rejestru, którego firma jeszcze nie przejęła. Zgodnie z punktem 9.8
     // planu pokazujemy tylko nazwę, kategorię i miejscowość: bez adresu i telefonu.
     status: "visitcard",
