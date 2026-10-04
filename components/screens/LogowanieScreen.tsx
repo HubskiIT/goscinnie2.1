@@ -1,12 +1,11 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
-import { Footer } from "../Footer";
-import { Header } from "../Header";
-import type { ScreenProps } from "../types";
 
-export function LogowanieScreen({ navigate }: ScreenProps) {
+export function LogowanieScreen() {
+  const router = useRouter();
   const [accountType, setAccountType] = useState<"klient" | "firma">("klient");
   const [email, setEmail] = useState("anna.kowalska@example.com");
   const [password, setPassword] = useState("password");
@@ -19,17 +18,11 @@ export function LogowanieScreen({ navigate }: ScreenProps) {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (accountType === "klient") {
-      navigate("PanelKlienta");
-    } else {
-      navigate("PanelFirmy");
-    }
+    router.push(accountType === "klient" ? "/moje" : "/panel");
   };
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      <Header currentScreen="Logowanie" navigate={navigate} variant="simple" />
-
       {/* Main Login Area */}
       <section className="grow px-6 sm:px-12 md:px-[130px] pt-14 flex flex-col lg:flex-row gap-10 items-start">
         {/* Left Form */}
@@ -144,7 +137,7 @@ export function LogowanieScreen({ navigate }: ScreenProps) {
           <button
             type="button"
             onClick={() =>
-              accountType === "klient" ? navigate("NoweZlecenie") : navigate("RejestracjaFirmy")
+              router.push(accountType === "klient" ? "/dodaj-zlecenie" : "/rejestracja-firmy")
             }
             className="w-full text-center text-[16px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-[12px] p-3.5 hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-white"
           >
@@ -402,8 +395,6 @@ export function LogowanieScreen({ navigate }: ScreenProps) {
           </div>
         </div>
       </section>
-
-      <Footer navigate={navigate} />
     </div>
   );
 }

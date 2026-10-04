@@ -2,11 +2,8 @@
 
 import type React from "react";
 import { useState } from "react";
-import { Footer } from "../Footer";
-import { Header } from "../Header";
-import type { ScreenProps } from "../types";
 
-export function KontaktScreen({ navigate }: ScreenProps) {
+export function KontaktScreen() {
   const [topic, setTopic] = useState("Pytanie o abonament");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -29,8 +26,6 @@ export function KontaktScreen({ navigate }: ScreenProps) {
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      <Header currentScreen="Kontakt" navigate={navigate} />
-
       <section className="grow px-6 sm:px-12 md:px-[130px] pt-14 pb-16">
         <h1 className="m-0 mb-3 font-fraunces font-normal text-[36px] sm:text-[44px] tracking-tight">
           Kontakt
@@ -164,8 +159,6 @@ export function KontaktScreen({ navigate }: ScreenProps) {
           </div>
         </div>
       </section>
-
-      <Footer navigate={navigate} />
     </div>
   );
 }

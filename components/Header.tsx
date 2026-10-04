@@ -1,38 +1,44 @@
 "use client";
 
 import { Menu } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { MobileSidebar } from "./MobileSidebar";
-import type { ScreenId } from "./types";
 
 interface HeaderProps {
-  currentScreen: ScreenId;
-  navigate: (screen: ScreenId) => void;
   variant?: "public" | "dashboard-firm" | "dashboard-client" | "simple";
 }
 
-export function Header({ currentScreen, navigate, variant = "public" }: HeaderProps) {
+function wariantZeSciezki(sciezka: string): NonNullable<HeaderProps["variant"]> {
+  if (sciezka.startsWith("/panel")) return "dashboard-firm";
+  if (sciezka === "/moje" || sciezka === "/wiadomosci") return "dashboard-client";
+  if (sciezka === "/logowanie") return "simple";
+  return "public";
+}
+
+export function Header({ variant }: HeaderProps) {
+  const sciezka = usePathname();
+  const uzytyWariant = variant ?? wariantZeSciezki(sciezka);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  if (variant === "simple") {
+  if (uzytyWariant === "simple") {
     return (
       <>
         <header className="h-[84px] shrink-0 box-border px-6 sm:px-8 md:px-[130px] flex items-center justify-between border-b border-[#EADFD6] bg-[#FBF7F4]">
-          <button
-            type="button"
-            onClick={() => navigate("Main")}
+          <Link
+            href="/"
             className="font-fraunces text-[25px] sm:text-[27px] font-semibold text-[#241C2B] tracking-tight bg-transparent border-0 cursor-pointer p-0"
           >
             Gościnnie
-          </button>
+          </Link>
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate("Main")}
+            <Link
+              href="/"
               className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer hidden sm:inline"
             >
               Wróć na stronę główną
-            </button>
+            </Link>
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
@@ -59,95 +65,85 @@ export function Header({ currentScreen, navigate, variant = "public" }: HeaderPr
         <MobileSidebar
           isOpen={isMobileMenuOpen}
           onClose={() => setIsMobileMenuOpen(false)}
-          currentScreen={currentScreen}
-          navigate={navigate}
-          variant={variant}
+          variant={uzytyWariant}
         />
       </>
     );
   }
 
-  if (variant === "dashboard-firm") {
+  if (uzytyWariant === "dashboard-firm") {
     return (
       <>
         <header className="h-[84px] shrink-0 box-border px-4 sm:px-6 md:px-[60px] flex items-center justify-between gap-4 md:gap-11 border-b border-[#EADFD6] bg-white">
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate("Main")}
+            <Link
+              href="/"
               className="font-fraunces text-[23px] sm:text-[25px] font-semibold text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
             >
               Gościnnie
-            </button>
+            </Link>
             <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-[#E7EDE7] text-[#3F5142] text-[12px] font-bold">
               Panel firmy
             </span>
           </div>
 
           <nav className="hidden lg:flex gap-4 md:gap-7 grow items-center overflow-x-auto py-2">
-            <button
-              type="button"
-              onClick={() => navigate("PanelFirmy")}
+            <Link
+              href="/panel"
               className={`text-[15px] cursor-pointer bg-transparent border-0 pb-1 whitespace-nowrap ${
-                currentScreen === "PanelFirmy"
+                sciezka.startsWith("/panel")
                   ? "text-[#241C2B] font-bold border-b-2 border-[#241C2B]"
                   : "text-[#4A3D50] hover:text-[#241C2B]"
               }`}
             >
               Pulpit
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("Profil")}
+            </Link>
+            <Link
+              href="/f/dwor-pod-lipami"
               className={`text-[15px] cursor-pointer bg-transparent border-0 pb-1 whitespace-nowrap ${
-                currentScreen === "Profil"
+                sciezka.startsWith("/f/")
                   ? "text-[#241C2B] font-bold border-b-2 border-[#241C2B]"
                   : "text-[#4A3D50] hover:text-[#241C2B]"
               }`}
             >
               Profil
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("PanelFirmy")}
+            </Link>
+            <Link
+              href="/panel"
               className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] cursor-pointer bg-transparent border-0 pb-1 whitespace-nowrap"
             >
               Kalendarz
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("Zlecenia")}
+            </Link>
+            <Link
+              href="/zlecenia"
               className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] cursor-pointer bg-transparent border-0 pb-1 whitespace-nowrap"
             >
               Zlecenia
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("Wiadomosci")}
+            </Link>
+            <Link
+              href="/wiadomosci"
               className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] cursor-pointer bg-transparent border-0 pb-1 whitespace-nowrap"
             >
               Wiadomości
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("Cennik")}
+            </Link>
+            <Link
+              href="/cennik"
               className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] cursor-pointer bg-transparent border-0 pb-1 whitespace-nowrap"
             >
               Abonament
-            </button>
+            </Link>
           </nav>
 
           <div className="flex items-center gap-3 shrink-0">
             <span className="w-[38px] h-[38px] rounded-full bg-[#E7EDE7] text-[#3F5142] text-[14px] font-bold flex items-center justify-center">
               DL
             </span>
-            <button
-              type="button"
-              onClick={() => navigate("Main")}
+            <Link
+              href="/"
               className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer hidden sm:inline"
             >
               Wyloguj
-            </button>
+            </Link>
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
@@ -174,81 +170,73 @@ export function Header({ currentScreen, navigate, variant = "public" }: HeaderPr
         <MobileSidebar
           isOpen={isMobileMenuOpen}
           onClose={() => setIsMobileMenuOpen(false)}
-          currentScreen={currentScreen}
-          navigate={navigate}
-          variant={variant}
+          variant={uzytyWariant}
         />
       </>
     );
   }
 
-  if (variant === "dashboard-client") {
+  if (uzytyWariant === "dashboard-client") {
     return (
       <>
         <header className="h-[84px] shrink-0 box-border px-4 sm:px-6 md:px-[60px] flex items-center justify-between gap-4 md:gap-11 border-b border-[#EADFD6] bg-white">
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate("Main")}
+            <Link
+              href="/"
               className="font-fraunces text-[23px] sm:text-[25px] font-semibold text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
             >
               Gościnnie
-            </button>
+            </Link>
             <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-[#EFE5DD] text-[#6A5C70] text-[12px] font-bold">
               Panel klienta
             </span>
           </div>
 
           <nav className="hidden lg:flex gap-4 md:gap-7 grow items-center overflow-x-auto py-2">
-            <button
-              type="button"
-              onClick={() => navigate("PanelKlienta")}
+            <Link
+              href="/moje"
               className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] cursor-pointer bg-transparent border-0 pb-1 whitespace-nowrap"
             >
               Moje zlecenia
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("PanelKlienta")}
+            </Link>
+            <Link
+              href="/moje"
               className={`text-[15px] cursor-pointer bg-transparent border-0 pb-1 whitespace-nowrap ${
-                currentScreen === "PanelKlienta"
+                sciezka === "/moje"
                   ? "text-[#241C2B] font-bold border-b-2 border-[#241C2B]"
                   : "text-[#4A3D50] hover:text-[#241C2B]"
               }`}
             >
               Otrzymane oferty
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("PanelKlienta")}
+            </Link>
+            <Link
+              href="/moje"
               className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] cursor-pointer bg-transparent border-0 pb-1 whitespace-nowrap"
             >
               Krótka lista
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("Wiadomosci")}
+            </Link>
+            <Link
+              href="/wiadomosci"
               className={`text-[15px] cursor-pointer bg-transparent border-0 pb-1 whitespace-nowrap ${
-                currentScreen === "Wiadomosci"
+                sciezka === "/wiadomosci"
                   ? "text-[#241C2B] font-bold border-b-2 border-[#241C2B]"
                   : "text-[#4A3D50] hover:text-[#241C2B]"
               }`}
             >
               Wiadomości
-            </button>
+            </Link>
           </nav>
 
           <div className="flex items-center gap-3 shrink-0">
             <span className="w-[38px] h-[38px] rounded-full bg-[#E7EDE7] text-[#3F5142] text-[14px] font-bold flex items-center justify-center">
               AK
             </span>
-            <button
-              type="button"
-              onClick={() => navigate("Main")}
+            <Link
+              href="/"
               className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer hidden sm:inline"
             >
               Wyloguj
-            </button>
+            </Link>
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
@@ -275,9 +263,7 @@ export function Header({ currentScreen, navigate, variant = "public" }: HeaderPr
         <MobileSidebar
           isOpen={isMobileMenuOpen}
           onClose={() => setIsMobileMenuOpen(false)}
-          currentScreen={currentScreen}
-          navigate={navigate}
-          variant={variant}
+          variant={uzytyWariant}
         />
       </>
     );
@@ -287,31 +273,28 @@ export function Header({ currentScreen, navigate, variant = "public" }: HeaderPr
   return (
     <>
       <header className="h-[84px] shrink-0 box-border px-4 sm:px-6 md:px-[130px] flex items-center justify-between gap-4 md:gap-12 border-b border-[#EADFD6] bg-[#FBF7F4]">
-        <button
-          type="button"
-          onClick={() => navigate("Main")}
+        <Link
+          href="/"
           className="font-fraunces text-[25px] sm:text-[27px] font-semibold text-[#241C2B] tracking-tight bg-transparent border-0 cursor-pointer p-0"
         >
           Gościnnie
-        </button>
+        </Link>
 
         <nav className="hidden lg:flex gap-[30px] grow items-center">
-          <button
-            type="button"
-            onClick={() => navigate("Lokale")}
+          <Link
+            href="/lokale"
             className={`text-[15px] cursor-pointer bg-transparent border-0 pb-1 ${
-              currentScreen === "Lokale"
+              sciezka.startsWith("/lokale")
                 ? "text-[#241C2B] font-bold border-b-2 border-[#241C2B]"
                 : "text-[#4A3D50] hover:text-[#241C2B]"
             }`}
           >
             Lokale
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("Uslugodawcy")}
+          </Link>
+          <Link
+            href="/uslugodawcy"
             className={`text-[15px] cursor-pointer bg-transparent border-0 pb-1 flex items-center gap-1 ${
-              currentScreen === "Uslugodawcy"
+              sciezka.startsWith("/uslugodawcy")
                 ? "text-[#241C2B] font-bold border-b-2 border-[#241C2B]"
                 : "text-[#4A3D50] hover:text-[#241C2B]"
             }`}
@@ -327,61 +310,58 @@ export function Header({ currentScreen, navigate, variant = "public" }: HeaderPr
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className={currentScreen === "Uslugodawcy" ? "rotate-180 transition-transform" : ""}
+              className={
+                sciezka.startsWith("/uslugodawcy") ? "rotate-180 transition-transform" : ""
+              }
             >
               <polyline points="6 9 12 15 18 9" />
             </svg>
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("Zlecenia")}
+          </Link>
+          <Link
+            href="/zlecenia"
             className={`text-[15px] cursor-pointer bg-transparent border-0 pb-1 ${
-              currentScreen === "Zlecenia"
+              sciezka.startsWith("/zlecenia")
                 ? "text-[#241C2B] font-bold border-b-2 border-[#241C2B]"
                 : "text-[#4A3D50] hover:text-[#241C2B]"
             }`}
           >
             Zlecenia
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("Imprezy")}
+          </Link>
+          <Link
+            href="/imprezy"
             className={`text-[15px] cursor-pointer bg-transparent border-0 pb-1 ${
-              currentScreen === "Imprezy"
+              sciezka.startsWith("/imprezy")
                 ? "text-[#241C2B] font-bold border-b-2 border-[#241C2B]"
                 : "text-[#4A3D50] hover:text-[#241C2B]"
             }`}
           >
             Imprezy
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("Cennik")}
+          </Link>
+          <Link
+            href="/cennik"
             className={`text-[15px] cursor-pointer bg-transparent border-0 pb-1 ${
-              currentScreen === "Cennik"
+              sciezka === "/cennik"
                 ? "text-[#241C2B] font-bold border-b-2 border-[#241C2B]"
                 : "text-[#4A3D50] hover:text-[#241C2B]"
             }`}
           >
             Dla firm
-          </button>
+          </Link>
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-          <button
-            type="button"
-            onClick={() => navigate("Logowanie")}
+          <Link
+            href="/logowanie"
             className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] cursor-pointer bg-transparent border-0 hidden sm:inline"
           >
             Zaloguj się
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("RejestracjaFirmy")}
+          </Link>
+          <Link
+            href="/rejestracja-firmy"
             className="text-[14px] sm:text-[15px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-full px-4 sm:px-5 py-2 sm:py-[10px] hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-transparent hidden md:inline"
           >
             Dodaj swój lokal
-          </button>
+          </Link>
 
           {/* Mobile Hamburger Button to slide out the sidebar */}
           <button
@@ -410,9 +390,7 @@ export function Header({ currentScreen, navigate, variant = "public" }: HeaderPr
       <MobileSidebar
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
-        currentScreen={currentScreen}
-        navigate={navigate}
-        variant={variant}
+        variant={uzytyWariant}
       />
     </>
   );

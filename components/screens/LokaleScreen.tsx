@@ -1,11 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { Footer } from "../Footer";
-import { Header } from "../Header";
-import type { ScreenProps } from "../types";
+import { useKrotkaLista } from "@/hooks/use-krotka-lista";
 
-export function LokaleScreen({ navigate, shortlist, toggleShortlist }: ScreenProps) {
+export function LokaleScreen() {
+  const { lista: shortlist, przelacz: toggleShortlist } = useKrotkaLista();
   const [activeFilters, setActiveFilters] = useState<string[]>(["Ogród"]);
   const [selectedPin, setSelectedPin] = useState<number>(1);
 
@@ -87,18 +87,15 @@ export function LokaleScreen({ navigate, shortlist, toggleShortlist }: ScreenPro
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      <Header currentScreen="Lokale" navigate={navigate} />
-
       {/* Breadcrumbs & Title */}
       <section className="shrink-0 px-6 sm:px-12 md:px-[130px] pt-10">
         <p className="m-0 mb-4 text-[14px] text-[#6A5C70]">
-          <button
-            type="button"
-            onClick={() => navigate("Main")}
+          <Link
+            href="/"
             className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
           >
             Gościnnie
-          </button>{" "}
+          </Link>{" "}
           &nbsp;›&nbsp; Sale i lokale &nbsp;›&nbsp; Wrocław i okolice
         </p>
 
@@ -276,13 +273,12 @@ export function LokaleScreen({ navigate, shortlist, toggleShortlist }: ScreenPro
                   <div className="flex items-start justify-between gap-5">
                     <div>
                       <h3 className="m-0 mb-1.5 font-fraunces font-medium text-[23px]">
-                        <button
-                          type="button"
-                          onClick={() => navigate(venue.isImported ? "WpisBezProfilu" : "Profil")}
+                        <Link
+                          href={venue.isImported ? "/f/stary-spichlerz" : "/f/dwor-pod-lipami"}
                           className="text-[#241C2B] hover:text-[#8A5405] text-left bg-transparent border-0 cursor-pointer p-0 font-inherit"
                         >
                           {venue.name}
-                        </button>
+                        </Link>
                       </h3>
                       <p className="m-0 text-[14px] text-[#6A5C70]">{venue.location}</p>
                     </div>
@@ -305,21 +301,19 @@ export function LokaleScreen({ navigate, shortlist, toggleShortlist }: ScreenPro
 
                   <div className="mt-auto pt-3 flex flex-wrap items-center gap-3.5 border-t border-[#EFE5DD]">
                     {venue.isImported ? (
-                      <button
-                        type="button"
-                        onClick={() => navigate("WpisBezProfilu")}
+                      <Link
+                        href="/f/stary-spichlerz"
                         className="text-[15px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-[10px] px-5 py-2.5 hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-transparent"
                       >
                         Zobacz wpis / Przejmij profil
-                      </button>
+                      </Link>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => navigate("Profil")}
+                      <Link
+                        href="/f/dwor-pod-lipami"
                         className="text-[15px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-[10px] px-5 py-2.5 hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-transparent"
                       >
                         Zapytaj o ofertę
-                      </button>
+                      </Link>
                     )}
                     <button
                       type="button"
@@ -485,13 +479,12 @@ export function LokaleScreen({ navigate, shortlist, toggleShortlist }: ScreenPro
               ))}
             </div>
             {shortlist.length > 0 && (
-              <button
-                type="button"
-                onClick={() => navigate("Zapytanie")}
+              <Link
+                href="/f/dwor-pod-lipami/zapytanie"
                 className="mt-3.5 w-full text-[14px] font-semibold text-[#241C2B] bg-white border border-[#241C2B] rounded-[8px] py-2 cursor-pointer hover:bg-[#241C2B] hover:text-white transition-colors"
               >
                 Wyślij zapytanie do listy ({shortlist.length})
-              </button>
+              </Link>
             )}
           </div>
         </aside>
@@ -508,13 +501,12 @@ export function LokaleScreen({ navigate, shortlist, toggleShortlist }: ScreenPro
             Twoją liczbę gości. Odpowiedzi dostajesz na skrzynkę, bez podawania numeru telefonu.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate("NoweZlecenie")}
+        <Link
+          href="/dodaj-zlecenie"
           className="shrink-0 text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-4 cursor-pointer"
         >
           Wystaw zlecenie
-        </button>
+        </Link>
       </section>
 
       {/* Przeglądaj dalej */}
@@ -537,19 +529,16 @@ export function LokaleScreen({ navigate, shortlist, toggleShortlist }: ScreenPro
             "Sale weselne Warszawa",
             "Sale weselne Gdańsk",
           ].map((tag) => (
-            <button
-              type="button"
+            <Link
+              href="/lokale"
               key={tag}
-              onClick={() => navigate("Lokale")}
               className="text-left text-[15px] text-[#3E3344] hover:text-[#8A5405] py-2 border-b border-[#EFE5DD] bg-transparent border-t-0 border-x-0 cursor-pointer"
             >
               {tag}
-            </button>
+            </Link>
           ))}
         </div>
       </section>
-
-      <Footer navigate={navigate} />
     </div>
   );
 }

@@ -1,24 +1,17 @@
-"use client";
+import Link from "next/link";
 
-import { Footer } from "../Footer";
-import { Header } from "../Header";
-import type { ScreenProps } from "../types";
-
-export function WpisBezProfiluScreen({ navigate }: ScreenProps) {
+export function WpisBezProfiluScreen() {
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      <Header currentScreen="WpisBezProfilu" navigate={navigate} />
-
       <main className="grow px-6 sm:px-12 md:px-[130px] pt-10 pb-16">
         {/* Breadcrumb */}
         <p className="m-0 mb-5 text-[14px] text-[#6A5C70]">
-          <button
-            type="button"
-            onClick={() => navigate("Lokale")}
+          <Link
+            href="/lokale"
             className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
           >
             Lokale
-          </button>{" "}
+          </Link>{" "}
           &nbsp;›&nbsp; Powiat trzebnicki &nbsp;›&nbsp; Stary Spichlerz (Wpis z rejestru)
         </p>
 
@@ -37,13 +30,12 @@ export function WpisBezProfiluScreen({ navigate }: ScreenProps) {
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => navigate("RejestracjaFirmy")}
+          <Link
+            href="/rejestracja-firmy"
             className="text-[14px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[10px] px-5 py-2.5 cursor-pointer shrink-0 shadow-xs"
           >
             Przejmij profil za 0 zł (30 dni próby)
-          </button>
+          </Link>
         </div>
 
         {/* Basic Header */}
@@ -84,13 +76,12 @@ export function WpisBezProfiluScreen({ navigate }: ScreenProps) {
                 uroczystość — sprawdzimy lokale w powiecie trzebnickim i otrzymasz gotowe oferty z
                 cenami wprost do porównania.
               </p>
-              <button
-                type="button"
-                onClick={() => navigate("NoweZlecenie")}
+              <Link
+                href="/dodaj-zlecenie"
                 className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-7 py-3.5 cursor-pointer shadow-xs"
               >
                 Dodaj bezpłatne zlecenie
-              </button>
+              </Link>
             </div>
 
             <div className="border border-[#D9CCC2] rounded-[16px] bg-[#FAF6F2] p-6">
@@ -108,13 +99,12 @@ export function WpisBezProfiluScreen({ navigate }: ScreenProps) {
                   ✓ <strong>30 dni bezpłatnego testu</strong> bez konieczności podawania karty
                 </li>
               </ul>
-              <button
-                type="button"
-                onClick={() => navigate("RejestracjaFirmy")}
+              <Link
+                href="/rejestracja-firmy"
                 className="w-full text-center text-[15px] font-bold text-[#241C2B] bg-white border-2 border-[#241C2B] hover:bg-[#241C2B] hover:text-white transition-colors rounded-[12px] py-3 cursor-pointer"
               >
                 Przejmij ten profil (krok 1 z 4)
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -129,25 +119,21 @@ export function WpisBezProfiluScreen({ navigate }: ScreenProps) {
             katalogu.
           </p>
           <div className="flex flex-wrap gap-4">
-            <button
-              type="button"
-              onClick={() => navigate("Profil")}
+            <Link
+              href="/f/dwor-pod-lipami"
               className="text-[14px] font-semibold text-[#241C2B] bg-[#F2E9E2] hover:bg-[#EADFD6] transition-colors border-0 rounded-[10px] px-5 py-2.5 cursor-pointer"
             >
               Zobacz przykładowy profil: Dwór pod Lipami →
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("Cennik")}
+            </Link>
+            <Link
+              href="/cennik"
               className="text-[14px] font-semibold text-[#6A5C70] hover:text-[#241C2B] bg-transparent border border-[#D9CCC2] rounded-[10px] px-5 py-2.5 cursor-pointer"
             >
               Sprawdź cennik abonamentów dla sal
-            </button>
+            </Link>
           </div>
         </div>
       </main>
-
-      <Footer navigate={navigate} />
     </div>
   );
 }

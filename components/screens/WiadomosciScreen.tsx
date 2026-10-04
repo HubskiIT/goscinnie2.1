@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Header } from "../Header";
-import type { ScreenProps } from "../types";
 
-export function WiadomosciScreen({ navigate }: ScreenProps) {
+export function WiadomosciScreen() {
   const [selectedChat, setSelectedChat] = useState("Dwór pod Lipami");
   const [messages, setMessages] = useState([
     {
@@ -66,8 +64,6 @@ export function WiadomosciScreen({ navigate }: ScreenProps) {
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      <Header currentScreen="Wiadomosci" navigate={navigate} variant="dashboard-client" />
-
       <section className="grow px-6 sm:px-12 md:px-[60px] pt-8 pb-12 flex flex-col lg:flex-row gap-6 items-stretch">
         {/* Left conversations list */}
         <div className="w-full lg:w-[360px] shrink-0 border border-[#E2D5CA] rounded-[18px] bg-white overflow-hidden shadow-sm flex flex-col">

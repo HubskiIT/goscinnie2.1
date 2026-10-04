@@ -1,36 +1,30 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { Footer } from "../Footer";
-import { Header } from "../Header";
-import type { ScreenProps } from "../types";
 
-export function ImprezaScreen({ navigate }: ScreenProps) {
+export function ImprezaScreen() {
   const [ticketCount, setTicketCount] = useState(2);
   const [tableType, setTableType] = useState("wspólny");
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      <Header currentScreen="Impreza" navigate={navigate} />
-
       {/* Breadcrumb & Gallery */}
       <section className="shrink-0 px-6 sm:px-12 md:px-[130px] pt-8">
         <p className="m-0 mb-4 text-[14px] text-[#6A5C70]">
-          <button
-            type="button"
-            onClick={() => navigate("Imprezy")}
+          <Link
+            href="/imprezy"
             className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
           >
             Imprezy
-          </button>{" "}
+          </Link>{" "}
           &nbsp;›&nbsp;{" "}
-          <button
-            type="button"
-            onClick={() => navigate("Imprezy")}
+          <Link
+            href="/imprezy"
             className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
           >
             Andrzejki
-          </button>{" "}
+          </Link>{" "}
           &nbsp;›&nbsp; Wrocław i okolice
         </p>
 
@@ -63,13 +57,12 @@ export function ImprezaScreen({ navigate }: ScreenProps) {
           </h1>
           <p className="m-0 mb-8 text-[17px] text-[#6A5C70]">
             29 listopada 2026, 19:00 do 3:00 &nbsp;·&nbsp;{" "}
-            <button
-              type="button"
-              onClick={() => navigate("Profil")}
+            <Link
+              href="/f/dwor-pod-lipami"
               className="text-[#8A5405] hover:text-[#241C2B] underline bg-transparent border-0 cursor-pointer p-0 font-inherit"
             >
               Dwór pod Lipami
-            </button>
+            </Link>
             , Kobierzyce, 18 km od centrum Wrocławia
           </p>
 
@@ -285,7 +278,6 @@ export function ImprezaScreen({ navigate }: ScreenProps) {
 
             <button
               type="button"
-              onClick={() => navigate("PotwierdzenieRezerwacji")}
               className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-4 cursor-pointer shadow-sm text-center"
             >
               Zarezerwuj miejsca
@@ -299,32 +291,27 @@ export function ImprezaScreen({ navigate }: ScreenProps) {
 
           <div className="mt-[18px] border border-[#E2D5CA] rounded-[20px] bg-[#F2E9E2] p-[22px]">
             <div className="text-[15px] font-bold mb-2.5">Inne terminy tego miejsca</div>
-            <button
-              type="button"
-              onClick={() => navigate("Imprezy")}
+            <Link
+              href="/imprezy"
               className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] py-2 border-b border-[#E2D5CA] bg-transparent border-0 border-b cursor-pointer w-full"
             >
               Mikołajki, 6 grudnia
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("Imprezy")}
+            </Link>
+            <Link
+              href="/imprezy"
               className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] py-2 border-b border-[#E2D5CA] bg-transparent border-0 border-b cursor-pointer w-full"
             >
               Sylwester w ogrodzie, 31 grudnia
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("Profil")}
+            </Link>
+            <Link
+              href="/f/dwor-pod-lipami"
               className="block text-left text-[14px] text-[#8A5405] hover:text-[#241C2B] pt-2.5 bg-transparent border-0 cursor-pointer font-semibold"
             >
               Zobacz cały profil lokalu
-            </button>
+            </Link>
           </div>
         </aside>
       </section>
-
-      <Footer navigate={navigate} />
     </div>
   );
 }

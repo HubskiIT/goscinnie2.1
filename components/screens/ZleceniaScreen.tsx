@@ -1,12 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import type React from "react";
 import { useState } from "react";
-import { Footer } from "../Footer";
-import { Header } from "../Header";
-import type { ScreenProps } from "../types";
 
-export function ZleceniaScreen({ navigate }: ScreenProps) {
+export function ZleceniaScreen() {
   const [isSubscriber, setIsSubscriber] = useState(true);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [offerPrice, setOfferPrice] = useState("14 400 zł");
@@ -25,8 +23,6 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      <Header currentScreen="Zlecenia" navigate={navigate} />
-
       {/* Role Toggle Bar */}
       <div className="bg-[#F2E9E2] border-b border-[#E2D5CA] px-6 sm:px-12 md:px-[130px] py-2.5 flex flex-wrap items-center justify-between gap-3 text-[13px]">
         <div className="flex items-center gap-2 text-[#55485A]">
@@ -256,13 +252,12 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
                       abonamentem.
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => navigate("Cennik")}
+                  <Link
+                    href="/cennik"
                     className="shrink-0 text-[14px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[10px] px-5 py-2.5 border-0 cursor-pointer shadow-2xs"
                   >
                     Odblokuj w abonamencie (Cennik)
-                  </button>
+                  </Link>
                 </div>
               </>
             )}
@@ -334,13 +329,12 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
               <span className="shrink-0 text-[13px] font-semibold text-[#3F5142] bg-[#E7EDE7] rounded-[8px] px-3.5 py-2">
                 ✓ Oferta złożona
               </span>
-              <button
-                type="button"
-                onClick={() => navigate("PanelKlienta")}
+              <Link
+                href="/moje"
                 className="shrink-0 text-[14px] font-semibold text-[#241C2B] border border-[#241C2B] rounded-[8px] px-4 py-2 hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-transparent"
               >
                 Podejrzyj
-              </button>
+              </Link>
             </div>
           </article>
         </div>
@@ -379,13 +373,12 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
               Jako właściciel lokalu możesz potrzebować DJ-a, fotografa lub dekoratora na własne
               wydarzenie.
             </p>
-            <button
-              type="button"
-              onClick={() => navigate("NoweZlecenie")}
+            <Link
+              href="/dodaj-zlecenie"
               className="w-full text-center text-[14px] font-bold text-[#241C2B] bg-white border border-[#241C2B] hover:bg-[#241C2B] hover:text-white transition-colors rounded-[10px] py-2.5 cursor-pointer"
             >
               Wystaw zlecenie bezpłatnie →
-            </button>
+            </Link>
           </div>
         </aside>
       </section>
@@ -502,8 +495,6 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
           </div>
         </div>
       )}
-
-      <Footer navigate={navigate} />
     </div>
   );
 }

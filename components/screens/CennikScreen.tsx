@@ -1,11 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { Footer } from "../Footer";
-import { Header } from "../Header";
-import type { ScreenProps } from "../types";
 
-export function CennikScreen({ navigate }: ScreenProps) {
+export function CennikScreen() {
   const [selectedClass, setSelectedClass] = useState<"A" | "B" | "C">("A");
   const [period, setPeriod] = useState<"miesiac" | "pol_roku" | "rok">("rok");
 
@@ -67,8 +65,6 @@ export function CennikScreen({ navigate }: ScreenProps) {
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      <Header currentScreen="Cennik" navigate={navigate} />
-
       {/* Hero */}
       <section className="shrink-0 px-6 sm:px-12 md:px-[130px] pt-14">
         <div className="flex items-center gap-2 mb-3">
@@ -267,20 +263,18 @@ export function CennikScreen({ navigate }: ScreenProps) {
             </div>
 
             <div className="space-y-2.5">
-              <button
-                type="button"
-                onClick={() => navigate("ZamowienieAbonamentu")}
+              <Link
+                href="/panel/abonament"
                 className="w-full text-[15px] font-bold text-[#241C2B] bg-white border-2 border-[#241C2B] rounded-[12px] p-3.5 cursor-pointer hover:bg-[#241C2B] hover:text-white transition-colors"
               >
                 Wybierz Start
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("RejestracjaFirmy")}
+              </Link>
+              <Link
+                href="/rejestracja-firmy"
                 className="w-full text-[13px] text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 py-1.5 cursor-pointer text-center"
               >
                 lub wypróbuj 30 dni za darmo →
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -337,20 +331,18 @@ export function CennikScreen({ navigate }: ScreenProps) {
             </div>
 
             <div className="space-y-2.5">
-              <button
-                type="button"
-                onClick={() => navigate("ZamowienieAbonamentu")}
+              <Link
+                href="/panel/abonament"
                 className="w-full text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-3.5 cursor-pointer shadow-xs"
               >
                 Wybierz Pełny
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("RejestracjaFirmy")}
+              </Link>
+              <Link
+                href="/rejestracja-firmy"
                 className="w-full text-[13px] text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 py-1.5 cursor-pointer text-center"
               >
                 lub wypróbuj 30 dni za darmo →
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -398,20 +390,18 @@ export function CennikScreen({ navigate }: ScreenProps) {
             </div>
 
             <div className="space-y-2.5">
-              <button
-                type="button"
-                onClick={() => navigate("ZamowienieAbonamentu")}
+              <Link
+                href="/panel/abonament"
                 className="w-full text-[15px] font-bold text-[#241C2B] bg-white border-2 border-[#241C2B] rounded-[12px] p-3.5 cursor-pointer hover:bg-[#241C2B] hover:text-white transition-colors"
               >
                 Wybierz Wyróżniony
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("RejestracjaFirmy")}
+              </Link>
+              <Link
+                href="/rejestracja-firmy"
                 className="w-full text-[13px] text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 py-1.5 cursor-pointer text-center"
               >
                 lub wypróbuj 30 dni za darmo →
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -545,8 +535,6 @@ export function CennikScreen({ navigate }: ScreenProps) {
           </div>
         </div>
       </section>
-
-      <Footer navigate={navigate} />
     </div>
   );
 }

@@ -1,11 +1,11 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Footer } from "../Footer";
-import { Header } from "../Header";
-import type { ScreenProps } from "../types";
 
-export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
+export function RejestracjaFirmyScreen() {
+  const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Step 1: Account & Type
@@ -45,24 +45,21 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
   const handleNext = () => {
     if (step < 4) setStep((prev) => (prev + 1) as 1 | 2 | 3 | 4);
     else {
-      navigate("PanelFirmy");
+      router.push("/panel");
     }
   };
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      <Header currentScreen="RejestracjaFirmy" navigate={navigate} />
-
       <main className="grow px-6 sm:px-12 md:px-[130px] pt-10 pb-16">
         {/* Breadcrumb */}
         <p className="m-0 mb-4 text-[14px] text-[#6A5C70]">
-          <button
-            type="button"
-            onClick={() => navigate("Cennik")}
+          <Link
+            href="/cennik"
             className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
           >
             Dla firm
-          </button>{" "}
+          </Link>{" "}
           &nbsp;›&nbsp; Rejestracja profilu i kreator
         </p>
 
@@ -568,8 +565,6 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
           </aside>
         </div>
       </main>
-
-      <Footer navigate={navigate} />
     </div>
   );
 }

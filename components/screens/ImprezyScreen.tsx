@@ -1,11 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { Footer } from "../Footer";
-import { Header } from "../Header";
-import type { ScreenProps } from "../types";
 
-export function ImprezyScreen({ navigate }: ScreenProps) {
+export function ImprezyScreen() {
   const [selectedTag, setSelectedTag] = useState("Andrzejki");
 
   const occasionTags = [
@@ -108,8 +106,6 @@ export function ImprezyScreen({ navigate }: ScreenProps) {
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      <Header currentScreen="Imprezy" navigate={navigate} />
-
       {/* Hero / Header */}
       <section className="shrink-0 px-6 sm:px-12 md:px-[130px] pt-11">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-10 mb-8">
@@ -213,13 +209,12 @@ export function ImprezyScreen({ navigate }: ScreenProps) {
 
               <div className="p-5 sm:p-[22px] flex flex-col grow">
                 <h3 className="m-0 mb-1.5 font-fraunces font-medium text-[21px]">
-                  <button
-                    type="button"
-                    onClick={() => navigate("Impreza")}
+                  <Link
+                    href="/imprezy/andrzejki-pod-lipami"
                     className="text-[#241C2B] hover:text-[#8A5405] text-left bg-transparent border-0 cursor-pointer p-0 font-inherit"
                   >
                     {e.title}
-                  </button>
+                  </Link>
                 </h3>
                 <p className="m-0 mb-3.5 text-[14px] leading-[1.6] text-[#6A5C70]">
                   {e.place}
@@ -257,13 +252,12 @@ export function ImprezyScreen({ navigate }: ScreenProps) {
                       Brak miejsc
                     </span>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => navigate("Impreza")}
+                    <Link
+                      href="/imprezy/andrzejki-pod-lipami"
                       className="text-[15px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-[10px] px-4 py-2 hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-transparent"
                     >
                       Zobacz szczegóły
-                    </button>
+                    </Link>
                   )}
                 </div>
               </div>
@@ -366,16 +360,13 @@ export function ImprezyScreen({ navigate }: ScreenProps) {
             sprzedanych miejsc. Wpis żyje do dnia imprezy, potem sam schodzi z listy.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate("Cennik")}
+        <Link
+          href="/cennik"
           className="shrink-0 text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-4 cursor-pointer"
         >
           Dodaj swoją imprezę
-        </button>
+        </Link>
       </section>
-
-      <Footer navigate={navigate} />
     </div>
   );
 }

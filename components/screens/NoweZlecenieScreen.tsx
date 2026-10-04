@@ -1,11 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { Footer } from "../Footer";
-import { Header } from "../Header";
-import type { ScreenProps } from "../types";
 
-export function NoweZlecenieScreen({ navigate }: ScreenProps) {
+export function NoweZlecenieScreen() {
   const [currentStep, setCurrentStep] = useState(2);
   const [date, setDate] = useState("12.06.2027");
   const [guests, setGuests] = useState("80");
@@ -27,8 +25,6 @@ export function NoweZlecenieScreen({ navigate }: ScreenProps) {
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      <Header currentScreen="NoweZlecenie" navigate={navigate} />
-
       <section className="grow px-6 sm:px-12 md:px-[130px] pt-12 flex flex-col lg:flex-row gap-11 items-start pb-16">
         <div className="grow w-full">
           <h1 className="m-0 mb-2.5 font-fraunces font-normal text-[36px] sm:text-[44px] tracking-tight">
@@ -339,13 +335,12 @@ export function NoweZlecenieScreen({ navigate }: ScreenProps) {
                       : "Dalej, kontakt"}
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => navigate("PanelKlienta")}
+                <Link
+                  href="/moje"
                   className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-4 cursor-pointer shadow-sm"
                 >
                   Opublikuj zlecenie
-                </button>
+                </Link>
               )}
 
               {currentStep > 1 && (
@@ -410,8 +405,6 @@ export function NoweZlecenieScreen({ navigate }: ScreenProps) {
           </div>
         </aside>
       </section>
-
-      <Footer navigate={navigate} />
     </div>
   );
 }

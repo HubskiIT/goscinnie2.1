@@ -1,14 +1,17 @@
 "use client";
 
-import type { ScreenId } from "./types";
+import Link from "next/link";
+
+import { usePathname } from "next/navigation";
 
 interface FooterProps {
-  navigate: (screen: ScreenId) => void;
   dark?: boolean;
 }
 
-export function Footer({ navigate, dark = false }: FooterProps) {
-  if (dark) {
+export function Footer({ dark }: FooterProps) {
+  const sciezka = usePathname();
+  const ciemna = dark ?? sciezka === "/";
+  if (ciemna) {
     return (
       <footer className="grow shrink-0 box-border px-8 md:px-[130px] py-[62px] bg-[#241C2B] text-[#D5C7D0] flex flex-col md:flex-row gap-12 md:gap-[90px]">
         <div className="w-full md:w-[300px] shrink-0">
@@ -23,91 +26,80 @@ export function Footer({ navigate, dark = false }: FooterProps) {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 md:gap-10 grow">
           <div className="flex flex-col gap-2.5">
             <span className="text-[15px] font-bold text-[#FBF7F4]">Szukam</span>
-            <button
-              type="button"
-              onClick={() => navigate("Lokale")}
+            <Link
+              href="/lokale"
               className="text-left text-[14px] text-[#D5C7D0] hover:text-white bg-transparent border-0 cursor-pointer p-0"
             >
               Sale weselne
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("Lokale")}
+            </Link>
+            <Link
+              href="/lokale"
               className="text-left text-[14px] text-[#D5C7D0] hover:text-white bg-transparent border-0 cursor-pointer p-0"
             >
               Lokale na komunię
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("Uslugodawcy")}
+            </Link>
+            <Link
+              href="/uslugodawcy"
               className="text-left text-[14px] text-[#D5C7D0] hover:text-white bg-transparent border-0 cursor-pointer p-0"
             >
               DJ i zespoły
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("Uslugodawcy")}
+            </Link>
+            <Link
+              href="/uslugodawcy"
               className="text-left text-[14px] text-[#D5C7D0] hover:text-white bg-transparent border-0 cursor-pointer p-0"
             >
               Catering
-            </button>
+            </Link>
           </div>
 
           <div className="flex flex-col gap-2.5">
             <span className="text-[15px] font-bold text-[#FBF7F4]">Dla firm</span>
-            <button
-              type="button"
-              onClick={() => navigate("Cennik")}
+            <Link
+              href="/cennik"
               className="text-left text-[14px] text-[#D5C7D0] hover:text-white bg-transparent border-0 cursor-pointer p-0"
             >
               Cennik abonamentu
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("RejestracjaFirmy")}
+            </Link>
+            <Link
+              href="/rejestracja-firmy"
               className="text-left text-[14px] text-[#D5C7D0] hover:text-white bg-transparent border-0 cursor-pointer p-0"
             >
               Przejmij swój profil
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("Cennik")}
+            </Link>
+            <Link
+              href="/cennik"
               className="text-left text-[14px] text-[#D5C7D0] hover:text-white bg-transparent border-0 cursor-pointer p-0"
             >
               Promowanie
-            </button>
+            </Link>
           </div>
 
           <div className="flex flex-col gap-2.5">
             <span className="text-[15px] font-bold text-[#FBF7F4]">Serwis</span>
-            <button
-              type="button"
-              onClick={() => navigate("Kontakt")}
+            <Link
+              href="/kontakt"
               className="text-left text-[14px] text-[#D5C7D0] hover:text-white bg-transparent border-0 cursor-pointer p-0"
             >
               Jak weryfikujemy opinie
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("Kontakt")}
+            </Link>
+            <Link
+              href="/kontakt"
               className="text-left text-[14px] text-[#D5C7D0] hover:text-white bg-transparent border-0 cursor-pointer p-0"
             >
               Regulamin
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("Kontakt")}
+            </Link>
+            <Link
+              href="/kontakt"
               className="text-left text-[14px] text-[#D5C7D0] hover:text-white bg-transparent border-0 cursor-pointer p-0"
             >
               Prywatność
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("Kontakt")}
+            </Link>
+            <Link
+              href="/kontakt"
               className="text-left text-[14px] text-[#D5C7D0] hover:text-white bg-transparent border-0 cursor-pointer p-0"
             >
               Zgłoś treść
-            </button>
+            </Link>
           </div>
         </div>
       </footer>
@@ -130,122 +122,108 @@ export function Footer({ navigate, dark = false }: FooterProps) {
           <div className="text-[13px] font-bold tracking-wider uppercase text-[#55485A] mb-4">
             Dla klientów
           </div>
-          <button
-            type="button"
-            onClick={() => navigate("Lokale")}
+          <Link
+            href="/lokale"
             className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
           >
             Sale i lokale
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("Uslugodawcy")}
+          </Link>
+          <Link
+            href="/uslugodawcy"
             className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
           >
             Usługodawcy
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("Imprezy")}
+          </Link>
+          <Link
+            href="/imprezy"
             className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
           >
             Imprezy
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("NoweZlecenie")}
+          </Link>
+          <Link
+            href="/dodaj-zlecenie"
             className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
           >
             Wystaw zlecenie
-          </button>
+          </Link>
         </div>
 
         <div>
           <div className="text-[13px] font-bold tracking-wider uppercase text-[#55485A] mb-4">
             Dla firm
           </div>
-          <button
-            type="button"
-            onClick={() => navigate("Cennik")}
+          <Link
+            href="/cennik"
             className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
           >
             Cennik abonamentu
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("RejestracjaFirmy")}
+          </Link>
+          <Link
+            href="/rejestracja-firmy"
             className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
           >
             Dodaj swój lokal
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("Zlecenia")}
+          </Link>
+          <Link
+            href="/zlecenia"
             className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
           >
             Giełda zleceń
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("Logowanie")}
+          </Link>
+          <Link
+            href="/logowanie"
             className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
           >
             Zaloguj się
-          </button>
+          </Link>
         </div>
 
         <div>
           <div className="text-[13px] font-bold tracking-wider uppercase text-[#55485A] mb-4">
             Popularne
           </div>
-          <button
-            type="button"
-            onClick={() => navigate("Lokale")}
+          <Link
+            href="/lokale"
             className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
           >
             Sale weselne Wrocław
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("Lokale")}
+          </Link>
+          <Link
+            href="/lokale"
             className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
           >
             Sale na komunię Kraków
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("Uslugodawcy")}
+          </Link>
+          <Link
+            href="/uslugodawcy"
             className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
           >
             Fotografowie Poznań
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("Imprezy")}
+          </Link>
+          <Link
+            href="/imprezy"
             className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
           >
             Andrzejki Warszawa
-          </button>
+          </Link>
         </div>
 
         <div>
           <div className="text-[13px] font-bold tracking-wider uppercase text-[#55485A] mb-4">
             Serwis
           </div>
-          <button
-            type="button"
-            onClick={() => navigate("Kontakt")}
+          <Link
+            href="/kontakt"
             className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
           >
             Kontakt
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("Kontakt")}
+          </Link>
+          <Link
+            href="/kontakt"
             className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
           >
             Zgłoś treść
-          </button>
+          </Link>
           <span className="block text-[14px] text-[#8B7F91] mb-2.5">Regulamin</span>
           <span className="block text-[14px] text-[#8B7F91]">Polityka prywatności</span>
         </div>

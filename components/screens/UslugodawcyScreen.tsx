@@ -1,10 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import type React from "react";
 import { useMemo, useState } from "react";
-import { Footer } from "../Footer";
-import { Header } from "../Header";
-import type { ScreenProps } from "../types";
 
 interface SubCategoryItem {
   id: string;
@@ -424,7 +422,7 @@ const PROVIDERS_CATALOG: ProviderCardData[] = [
   },
 ];
 
-export function UslugodawcyScreen({ navigate }: ScreenProps) {
+export function UslugodawcyScreen() {
   // Wybrana kategoria po lewej stronie mega menu
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("muzyka");
   // Wybrana podkategoria
@@ -477,7 +475,6 @@ export function UslugodawcyScreen({ navigate }: ScreenProps) {
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen font-figtree">
       {/* Header z aktywnym stanem Usługodawcy ^ */}
-      <Header currentScreen="Uslugodawcy" navigate={navigate} />
 
       {/* 1. MEGA DROPDOWN MENU Z KATEGORIAMI I PODZIAŁAMI (DOKŁADNIE JAK NA ZRZUCIE EKRANU) */}
       <section className="shrink-0 px-6 sm:px-10 lg:px-[130px] pt-6 pb-4">
@@ -573,13 +570,12 @@ export function UslugodawcyScreen({ navigate }: ScreenProps) {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => navigate("NoweZlecenie")}
+              <Link
+                href="/dodaj-zlecenie"
                 className="w-full py-3.5 px-5 bg-white hover:bg-[#241C2B] hover:text-white transition-colors text-[#241C2B] text-[15px] font-semibold rounded-[12px] border border-[#241C2B] cursor-pointer shadow-xs"
               >
                 Wystaw zlecenie
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -705,13 +701,12 @@ export function UslugodawcyScreen({ navigate }: ScreenProps) {
               <div className="p-5 sm:p-6 flex flex-col grow">
                 <div className="text-[13px] text-[#3F5142] mb-1 font-medium">{p.category}</div>
                 <h3 className="m-0 mb-2 font-fraunces font-medium text-[21px]">
-                  <button
-                    type="button"
-                    onClick={() => navigate("Profil")}
+                  <Link
+                    href="/f/dwor-pod-lipami"
                     className="text-[#241C2B] hover:text-[#8A5405] text-left bg-transparent border-0 cursor-pointer p-0 font-inherit"
                   >
                     {p.name}
-                  </button>
+                  </Link>
                 </h3>
                 <p className="m-0 mb-3 text-[14px] leading-[1.6] text-[#6A5C70]">{p.base}</p>
                 <p className="m-0 mb-3.5 text-[14px] leading-[1.6] text-[#3E3344] line-clamp-2">
@@ -736,21 +731,18 @@ export function UslugodawcyScreen({ navigate }: ScreenProps) {
                     </div>
                     <div className="text-[12px] text-[#6A5C70]">{p.unit}</div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => navigate("Zapytanie")}
+                  <Link
+                    href="/f/dwor-pod-lipami/zapytanie"
                     className="text-[14px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-[10px] px-4 py-2 hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-transparent"
                   >
                     Zapytaj
-                  </button>
+                  </Link>
                 </div>
               </div>
             </article>
           ))}
         </div>
       </section>
-
-      <Footer navigate={navigate} />
     </div>
   );
 }

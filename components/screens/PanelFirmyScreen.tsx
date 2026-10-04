@@ -1,10 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { Header } from "../Header";
-import type { ScreenProps } from "../types";
 
-export function PanelFirmyScreen({ navigate }: ScreenProps) {
+export function PanelFirmyScreen() {
   const [internalCalendar, setInternalCalendar] = useState<
     Record<number, "wolny" | "trzymany" | "zajety" | "sobota">
   >({
@@ -39,8 +38,6 @@ export function PanelFirmyScreen({ navigate }: ScreenProps) {
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      <Header currentScreen="PanelFirmy" navigate={navigate} variant="dashboard-firm" />
-
       <section className="grow px-6 sm:px-12 md:px-[60px] pt-10 pb-16">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-7">
           <div>
@@ -49,23 +46,21 @@ export function PanelFirmyScreen({ navigate }: ScreenProps) {
             </h1>
             <p className="m-0 text-[15px] text-[#6A5C70]">
               Kobierzyce &nbsp;·&nbsp; plan Start do 14.03.2027 &nbsp;·&nbsp;{" "}
-              <button
-                type="button"
-                onClick={() => navigate("Profil")}
+              <Link
+                href="/f/dwor-pod-lipami"
                 className="text-[#8A5405] hover:text-[#241C2B] underline bg-transparent border-0 cursor-pointer p-0"
               >
                 zobacz profil oczami klienta
-              </button>
+              </Link>
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => navigate("Imprezy")}
+          <Link
+            href="/imprezy"
             className="shrink-0 text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-6 py-3.5 cursor-pointer shadow-sm self-start sm:self-auto"
           >
             Dodaj imprezę
-          </button>
+          </Link>
         </div>
 
         {/* 4 Stats Cards */}
@@ -104,13 +99,12 @@ export function PanelFirmyScreen({ navigate }: ScreenProps) {
             <div className="border border-[#E2D5CA] rounded-[18px] bg-white overflow-hidden shadow-sm">
               <div className="p-4.5 px-6 bg-[#F2E9E2] border-b border-[#E2D5CA] flex items-center justify-between">
                 <span className="text-[16px] font-bold">Zapytania i oferty</span>
-                <button
-                  type="button"
-                  onClick={() => navigate("Zlecenia")}
+                <Link
+                  href="/zlecenia"
                   className="text-[14px] font-semibold text-[#8A5405] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer"
                 >
                   Przejdź do giełdy
-                </button>
+                </Link>
               </div>
 
               {[
@@ -120,7 +114,7 @@ export function PanelFirmyScreen({ navigate }: ScreenProps) {
                   guests: "80 osób",
                   badge: "czeka na Twoją ofertę",
                   badgeStyle: "text-[#241C2B] bg-[#F0A62E] font-bold",
-                  action: () => navigate("Zlecenia"),
+                  adres: "/zlecenia",
                 },
                 {
                   title: "Chrzciny, Wrocław",
@@ -128,7 +122,7 @@ export function PanelFirmyScreen({ navigate }: ScreenProps) {
                   guests: "45 osób",
                   badge: "oferta złożona",
                   badgeStyle: "text-[#3F5142] bg-[#E7EDE7]",
-                  action: () => navigate("PanelKlienta"),
+                  adres: "/moje",
                 },
                 {
                   title: "Zapytanie bezpośrednie, Anna K.",
@@ -136,7 +130,7 @@ export function PanelFirmyScreen({ navigate }: ScreenProps) {
                   guests: "80 osób",
                   badge: "odpowiedz do jutra",
                   badgeStyle: "text-[#3F5142] bg-[#E7EDE7]",
-                  action: () => navigate("Wiadomosci"),
+                  adres: "/wiadomosci",
                 },
                 {
                   title: "Osiemnastka, Święta Katarzyna",
@@ -144,13 +138,12 @@ export function PanelFirmyScreen({ navigate }: ScreenProps) {
                   guests: "60 osób",
                   badge: "zlecenie zamknięte",
                   badgeStyle: "text-[#8B7F91] bg-[#EDE6E9]",
-                  action: () => {},
+                  adres: "/zlecenia",
                 },
               ].map((item) => (
-                <button
-                  type="button"
+                <Link
                   key={item.title}
-                  onClick={item.action}
+                  href={item.adres}
                   className="grid grid-cols-1 sm:grid-cols-5 gap-3 sm:gap-4 items-center p-4 px-6 border-t border-[#EFE5DD] text-[15px] cursor-pointer hover:bg-[#FAF8F6] transition-colors"
                 >
                   <span className="sm:col-span-2 font-semibold text-[#241C2B]">{item.title}</span>
@@ -161,7 +154,7 @@ export function PanelFirmyScreen({ navigate }: ScreenProps) {
                   >
                     {item.badge}
                   </span>
-                </button>
+                </Link>
               ))}
             </div>
 
@@ -329,13 +322,12 @@ export function PanelFirmyScreen({ navigate }: ScreenProps) {
                 Plan Start, 1 490 zł netto za rok, odnowi się 14 marca 2027. Jeśli nie przedłużysz,
                 profil zostaje w katalogu, znika tylko dostęp do zleceń.
               </p>
-              <button
-                type="button"
-                onClick={() => navigate("Cennik")}
+              <Link
+                href="/cennik"
                 className="w-full text-center text-[15px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-[10px] py-3 bg-white hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer"
               >
                 Zmień plan lub pobierz fakturę
-              </button>
+              </Link>
             </div>
           </aside>
         </div>

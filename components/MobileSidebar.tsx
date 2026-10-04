@@ -17,24 +17,18 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import type { ScreenId } from "./types";
 
 interface MobileSidebarProps {
   isOpen: boolean;
   onClose: () => void;
-  currentScreen: ScreenId;
-  navigate: (screen: ScreenId) => void;
   variant?: "public" | "dashboard-firm" | "dashboard-client" | "simple";
 }
 
-export function MobileSidebar({
-  isOpen,
-  onClose,
-  currentScreen,
-  navigate,
-  variant = "public",
-}: MobileSidebarProps) {
+export function MobileSidebar({ isOpen, onClose, variant = "public" }: MobileSidebarProps) {
+  const sciezka = usePathname();
   // Prevent body scrolling when sidebar is open
   useEffect(() => {
     if (isOpen) {
@@ -52,38 +46,33 @@ export function MobileSidebar({
     }
   }, [isOpen, onClose]);
 
-  const handleNav = (screen: ScreenId) => {
-    navigate(screen);
-    onClose();
-  };
-
   const navItems = [
     {
-      id: "Lokale" as ScreenId,
+      href: "/lokale",
       label: "Lokale i sale",
       subtitle: "Sale weselne, dworki, restauracje, stodoły",
       icon: Building2,
     },
     {
-      id: "Uslugodawcy" as ScreenId,
+      href: "/uslugodawcy",
       label: "Usługodawcy",
       subtitle: "DJ-e, fotografowie, catering, dekoracje",
       icon: Sparkles,
     },
     {
-      id: "Zlecenia" as ScreenId,
+      href: "/zlecenia",
       label: "Zlecenia",
       subtitle: "Giełda zleceń i zapytań od klientów",
       icon: ClipboardList,
     },
     {
-      id: "Imprezy" as ScreenId,
+      href: "/imprezy",
       label: "Imprezy",
       subtitle: "Wesela, osiemnastki, komunie, firmowe",
       icon: PartyPopper,
     },
     {
-      id: "Cennik" as ScreenId,
+      href: "/cennik",
       label: "Dla firm / Cennik",
       subtitle: "Stały abonament, 0% prowizji od umów",
       icon: Briefcase,
@@ -91,19 +80,19 @@ export function MobileSidebar({
   ];
 
   const dashboardFirmItems = [
-    { id: "PanelFirmy" as ScreenId, label: "Pulpit firmy", icon: Store },
-    { id: "Profil" as ScreenId, label: "Profil lokalu / Podgląd", icon: Building2 },
-    { id: "Zlecenia" as ScreenId, label: "Zlecenia i giełda", icon: ClipboardList },
-    { id: "Wiadomosci" as ScreenId, label: "Wiadomości i czat", icon: MessageSquare },
-    { id: "Cennik" as ScreenId, label: "Abonament i pakiety", icon: Briefcase },
+    { href: "/panel", label: "Pulpit firmy", icon: Store },
+    { href: "/f/dwor-pod-lipami", label: "Profil lokalu / Podgląd", icon: Building2 },
+    { href: "/zlecenia", label: "Zlecenia i giełda", icon: ClipboardList },
+    { href: "/wiadomosci", label: "Wiadomości i czat", icon: MessageSquare },
+    { href: "/cennik", label: "Abonament i pakiety", icon: Briefcase },
   ];
 
   const dashboardClientItems = [
-    { id: "PanelKlienta" as ScreenId, label: "Panel klienta", icon: User },
-    { id: "NoweZlecenie" as ScreenId, label: "Dodaj nowe zlecenie", icon: Plus },
-    { id: "Wiadomosci" as ScreenId, label: "Wiadomości z lokalami", icon: MessageSquare },
-    { id: "Lokale" as ScreenId, label: "Szukaj lokali", icon: Building2 },
-    { id: "Uslugodawcy" as ScreenId, label: "Szukaj usługodawców", icon: Sparkles },
+    { href: "/moje", label: "Panel klienta", icon: User },
+    { href: "/dodaj-zlecenie", label: "Dodaj nowe zlecenie", icon: Plus },
+    { href: "/wiadomosci", label: "Wiadomości z lokalami", icon: MessageSquare },
+    { href: "/lokale", label: "Szukaj lokali", icon: Building2 },
+    { href: "/uslugodawcy", label: "Szukaj usługodawców", icon: Sparkles },
   ];
 
   return (
@@ -134,9 +123,9 @@ export function MobileSidebar({
           >
             {/* Header of Drawer */}
             <div className="h-[74px] px-5 flex items-center justify-between border-b border-[#EADFD6] bg-[#F7EFE9] shrink-0">
-              <button
-                type="button"
-                onClick={() => handleNav("Main")}
+              <Link
+                href="/"
+                onClick={onClose}
                 className="flex flex-col text-left bg-transparent border-0 cursor-pointer p-0"
               >
                 <span className="font-fraunces text-[23px] font-semibold text-[#241C2B] tracking-tight leading-none">
@@ -145,7 +134,7 @@ export function MobileSidebar({
                 <span className="text-[11px] text-[#6A5C70] tracking-wide mt-1">
                   Miejsca i ludzie na każdą okazję
                 </span>
-              </button>
+              </Link>
 
               <button
                 type="button"
@@ -176,14 +165,14 @@ export function MobileSidebar({
                   <p className="m-0 text-[13px] text-[#D8CFDC] leading-snug mb-3">
                     Dołącz do katalogu i odbieraj bezpośrednie zapytania bez pośredników.
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => handleNav("RejestracjaFirmy")}
+                  <Link
+                    href="/rejestracja-firmy"
+                    onClick={onClose}
                     className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#F0A62E] hover:bg-[#e29922] transition-colors text-[#241C2B] font-bold text-[14px] border-0 cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Dodaj swój lokal</span>
-                  </button>
+                  </Link>
                 </div>
               )}
 
@@ -195,13 +184,13 @@ export function MobileSidebar({
                   </div>
                   <div className="space-y-1">
                     {dashboardFirmItems.map((item) => {
-                      const isActive = currentScreen === item.id;
+                      const isActive = sciezka === item.href;
                       const Icon = item.icon;
                       return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => handleNav(item.id)}
+                        <Link
+                          href={item.href}
+                          key={item.href}
+                          onClick={onClose}
                           className={`w-full flex items-center justify-between p-3 rounded-xl border-0 cursor-pointer text-left transition-colors ${
                             isActive
                               ? "bg-[#241C2B] text-white font-semibold"
@@ -217,7 +206,7 @@ export function MobileSidebar({
                           <ChevronRight
                             className={`w-4 h-4 ${isActive ? "text-white" : "text-[#A093A7]"}`}
                           />
-                        </button>
+                        </Link>
                       );
                     })}
                   </div>
@@ -231,13 +220,13 @@ export function MobileSidebar({
                   </div>
                   <div className="space-y-1">
                     {dashboardClientItems.map((item) => {
-                      const isActive = currentScreen === item.id;
+                      const isActive = sciezka === item.href;
                       const Icon = item.icon;
                       return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => handleNav(item.id)}
+                        <Link
+                          href={item.href}
+                          key={item.href}
+                          onClick={onClose}
                           className={`w-full flex items-center justify-between p-3 rounded-xl border-0 cursor-pointer text-left transition-colors ${
                             isActive
                               ? "bg-[#241C2B] text-white font-semibold"
@@ -253,7 +242,7 @@ export function MobileSidebar({
                           <ChevronRight
                             className={`w-4 h-4 ${isActive ? "text-white" : "text-[#A093A7]"}`}
                           />
-                        </button>
+                        </Link>
                       );
                     })}
                   </div>
@@ -267,13 +256,13 @@ export function MobileSidebar({
                 </div>
                 <div className="space-y-1.5">
                   {navItems.map((item) => {
-                    const isActive = currentScreen === item.id;
+                    const isActive = sciezka === item.href;
                     const Icon = item.icon;
                     return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => handleNav(item.id)}
+                      <Link
+                        href={item.href}
+                        key={item.href}
+                        onClick={onClose}
                         className={`w-full flex items-center justify-between p-3 rounded-xl border-0 cursor-pointer text-left transition-all ${
                           isActive
                             ? "bg-[#241C2B] text-white shadow-sm"
@@ -306,7 +295,7 @@ export function MobileSidebar({
                         <ChevronRight
                           className={`w-4 h-4 shrink-0 ${isActive ? "text-white" : "text-[#A093A7]"}`}
                         />
-                      </button>
+                      </Link>
                     );
                   })}
                 </div>
@@ -318,45 +307,45 @@ export function MobileSidebar({
                   Strefa użytkownika
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleNav("PanelKlienta")}
+                  <Link
+                    href="/moje"
+                    onClick={onClose}
                     className="p-3 bg-white border border-[#EFE5DD] rounded-xl text-left cursor-pointer hover:bg-[#F2E9E2] transition-colors"
                   >
                     <User className="w-4 h-4 text-[#241C2B] mb-1.5" />
                     <div className="text-[13px] font-bold text-[#241C2B]">Panel klienta</div>
                     <div className="text-[11px] text-[#6A5C70]">Oferty i zlecenia</div>
-                  </button>
+                  </Link>
 
-                  <button
-                    type="button"
-                    onClick={() => handleNav("PanelFirmy")}
+                  <Link
+                    href="/panel"
+                    onClick={onClose}
                     className="p-3 bg-white border border-[#EFE5DD] rounded-xl text-left cursor-pointer hover:bg-[#F2E9E2] transition-colors"
                   >
                     <Store className="w-4 h-4 text-[#241C2B] mb-1.5" />
                     <div className="text-[13px] font-bold text-[#241C2B]">Panel lokalu</div>
                     <div className="text-[11px] text-[#6A5C70]">Pulpit i kalendarz</div>
-                  </button>
+                  </Link>
 
-                  <button
-                    type="button"
-                    onClick={() => handleNav("Wiadomosci")}
+                  <Link
+                    href="/wiadomosci"
+                    onClick={onClose}
                     className="p-3 bg-white border border-[#EFE5DD] rounded-xl text-left cursor-pointer hover:bg-[#F2E9E2] transition-colors"
                   >
                     <MessageSquare className="w-4 h-4 text-[#241C2B] mb-1.5" />
                     <div className="text-[13px] font-bold text-[#241C2B]">Wiadomości</div>
                     <div className="text-[11px] text-[#6A5C70]">Czat i odpowiedzi</div>
-                  </button>
+                  </Link>
 
-                  <button
-                    type="button"
-                    onClick={() => handleNav("Kontakt")}
+                  <Link
+                    href="/kontakt"
+                    onClick={onClose}
                     className="p-3 bg-white border border-[#EFE5DD] rounded-xl text-left cursor-pointer hover:bg-[#F2E9E2] transition-colors"
                   >
                     <Phone className="w-4 h-4 text-[#241C2B] mb-1.5" />
                     <div className="text-[13px] font-bold text-[#241C2B]">Pomoc</div>
                     <div className="text-[11px] text-[#6A5C70]">Kontakt z biurem</div>
-                  </button>
+                  </Link>
                 </div>
               </div>
 
@@ -370,7 +359,7 @@ export function MobileSidebar({
                 </div>
                 <button
                   type="button"
-                  onClick={() => handleNav("Stany")}
+                  onClick={onClose}
                   className="text-[11px] font-bold text-[#241C2B] bg-transparent border-0 cursor-pointer underline"
                 >
                   Stany
@@ -393,32 +382,32 @@ export function MobileSidebar({
                       </div>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleNav("Main")}
+                  <Link
+                    href="/"
+                    onClick={onClose}
                     className="flex items-center gap-1.5 text-[13px] font-medium text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer py-1.5 px-2.5 rounded-lg hover:bg-white"
                   >
                     <LogOut className="w-4 h-4" />
                     <span>Wyloguj</span>
-                  </button>
+                  </Link>
                 </>
               ) : (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => handleNav("Logowanie")}
+                  <Link
+                    href="/logowanie"
+                    onClick={onClose}
                     className="grow flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white border border-[#D9CCC2] text-[#241C2B] font-bold text-[14px] hover:bg-[#F2E9E2] transition-colors cursor-pointer"
                   >
                     <LogIn className="w-4 h-4 text-[#6A5C70]" />
                     <span>Zaloguj się</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleNav("RejestracjaFirmy")}
+                  </Link>
+                  <Link
+                    href="/rejestracja-firmy"
+                    onClick={onClose}
                     className="grow flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#241C2B] text-white font-bold text-[14px] hover:bg-[#3E3344] transition-colors cursor-pointer border-0"
                   >
                     <span>Rejestracja</span>
-                  </button>
+                  </Link>
                 </>
               )}
             </div>

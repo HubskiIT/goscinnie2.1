@@ -1,11 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { Footer } from "../Footer";
-import { Header } from "../Header";
-import type { ScreenProps } from "../types";
 
-export function MainScreen({ navigate }: ScreenProps) {
+export function MainScreen() {
   const [selectedPlace, setSelectedPlace] = useState("sali");
   const [selectedOccasion, setSelectedOccasion] = useState("komunię");
   const [selectedCity, setSelectedCity] = useState("Wrocławiu");
@@ -26,8 +24,6 @@ export function MainScreen({ navigate }: ScreenProps) {
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      <Header currentScreen="Main" navigate={navigate} />
-
       {/* Hero Section */}
       <section
         id="top"
@@ -190,13 +186,12 @@ export function MainScreen({ navigate }: ScreenProps) {
             />
           </div>
 
-          <button
-            type="button"
-            onClick={() => navigate("Lokale")}
+          <Link
+            href="/lokale"
             className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-full px-9 py-4 cursor-pointer shadow"
           >
             Pokaż miejsca
-          </button>
+          </Link>
         </div>
       </section>
 
@@ -348,15 +343,14 @@ export function MainScreen({ navigate }: ScreenProps) {
               ),
             },
           ].map((item) => (
-            <button
+            <Link
+              href="/lokale"
               key={item.title}
-              type="button"
-              onClick={() => navigate("Lokale")}
               className="text-left bg-[#FBF7F4] hover:bg-white hover:shadow-md transition-all border border-[#E2D5CA] rounded-[14px] p-6 flex flex-col gap-3.5 cursor-pointer text-[#241C2B]"
             >
               {item.icon}
               <span className="text-[17px] font-semibold">{item.title}</span>
-            </button>
+            </Link>
           ))}
         </div>
       </section>
@@ -371,13 +365,12 @@ export function MainScreen({ navigate }: ScreenProps) {
             Opisz wydarzenie jeden raz. Firmy z okolicy składają oferty, nie widząc nawzajem swoich
             cen. Twoje dane zobaczy tylko ta firma, którą sam wybierzesz.
           </p>
-          <button
-            type="button"
-            onClick={() => navigate("NoweZlecenie")}
+          <Link
+            href="/dodaj-zlecenie"
             className="inline-block text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-full px-[34px] py-[17px] border-0 cursor-pointer"
           >
             Opisz wydarzenie
-          </button>
+          </Link>
         </div>
 
         <div className="w-full lg:w-[430px] shrink-0 bg-[#3A2D42] rounded-[18px] p-[30px] flex flex-col gap-4 shadow-xl">
@@ -414,20 +407,18 @@ export function MainScreen({ navigate }: ScreenProps) {
       <section id="uslugodawcy-preview" className="shrink-0 px-6 sm:px-12 md:px-[130px] py-20">
         <div className="flex items-baseline justify-between mb-[34px]">
           <h2 className="m-0 font-fraunces font-medium text-[32px]">Sale w okolicy Wrocławia</h2>
-          <button
-            type="button"
-            onClick={() => navigate("Lokale")}
+          <Link
+            href="/lokale"
             className="text-[15px] font-semibold text-[#8A5405] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer"
           >
             Zobacz wszystkie
-          </button>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-[26px]">
           {/* Card 1 */}
-          <button
-            type="button"
-            onClick={() => navigate("Profil")}
+          <Link
+            href="/f/dwor-pod-lipami"
             className="text-left border border-[#E2D5CA] rounded-[16px] overflow-hidden bg-white flex flex-col cursor-pointer hover:shadow-lg transition-all"
           >
             <div className="h-[180px] bg-[#E4D9CF] flex items-end p-3.5 relative">
@@ -458,12 +449,11 @@ export function MainScreen({ navigate }: ScreenProps) {
                 <span className="text-[14px] text-[#6A5C70]">4,8 &nbsp;·&nbsp; 36 opinii</span>
               </div>
             </div>
-          </button>
+          </Link>
 
           {/* Card 2 */}
-          <button
-            type="button"
-            onClick={() => navigate("Profil")}
+          <Link
+            href="/f/dwor-pod-lipami"
             className="text-left border border-[#E2D5CA] rounded-[16px] overflow-hidden bg-white flex flex-col cursor-pointer hover:shadow-lg transition-all"
           >
             <div className="h-[180px] bg-[#DED4DC] flex items-end p-3.5">
@@ -494,12 +484,11 @@ export function MainScreen({ navigate }: ScreenProps) {
                 <span className="text-[14px] text-[#6A5C70]">4,6 &nbsp;·&nbsp; 12 opinii</span>
               </div>
             </div>
-          </button>
+          </Link>
 
           {/* Card 3 */}
-          <button
-            type="button"
-            onClick={() => navigate("Profil")}
+          <Link
+            href="/f/dwor-pod-lipami"
             className="text-left border border-[#E2D5CA] rounded-[16px] overflow-hidden bg-white flex flex-col cursor-pointer hover:shadow-lg transition-all"
           >
             <div className="h-[180px] bg-[#DCE0D8] flex items-end p-3.5">
@@ -531,7 +520,7 @@ export function MainScreen({ navigate }: ScreenProps) {
                 <span className="text-[14px] text-[#6A5C70]">bez opinii</span>
               </div>
             </div>
-          </button>
+          </Link>
         </div>
       </section>
 
@@ -604,13 +593,12 @@ export function MainScreen({ navigate }: ScreenProps) {
         </div>
         <p className="mt-6 mb-0 text-[14px] text-[#6A5C70]">
           Opinię wystawia tylko osoba, której zapytanie lub zlecenie przeszło przez serwis.{" "}
-          <button
-            type="button"
-            onClick={() => navigate("Kontakt")}
+          <Link
+            href="/kontakt"
             className="text-[#8A5405] hover:text-[#241C2B] underline bg-transparent border-0 cursor-pointer"
           >
             Jak weryfikujemy opinie
-          </button>
+          </Link>
         </p>
       </section>
 
@@ -625,16 +613,13 @@ export function MainScreen({ navigate }: ScreenProps) {
             zwraca cały rok.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate("Cennik")}
+        <Link
+          href="/cennik"
           className="shrink-0 text-[16px] font-bold text-[#FBF7F4] bg-[#241C2B] hover:bg-black transition-colors rounded-full px-9 py-[18px] border-0 cursor-pointer"
         >
           Zobacz cennik
-        </button>
+        </Link>
       </section>
-
-      <Footer navigate={navigate} dark={true} />
     </div>
   );
 }

@@ -1,12 +1,12 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
-import { Footer } from "../Footer";
-import { Header } from "../Header";
-import type { ScreenProps } from "../types";
 
-export function ZapytanieScreen({ navigate }: ScreenProps) {
+export function ZapytanieScreen() {
+  const router = useRouter();
   const [recipients, setRecipients] = useState<
     { id: number; name: string; loc: string; price: string; checked: boolean }[]
   >([
@@ -45,31 +45,27 @@ export function ZapytanieScreen({ navigate }: ScreenProps) {
     alert(
       `Zapytanie zostało pomyślnie wysłane do ${checkedCount} obiektów. Odpowiedzi otrzymasz w panelu wiadomości.`,
     );
-    navigate("Wiadomosci");
+    router.push("/wiadomosci");
   };
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      <Header currentScreen="Zapytanie" navigate={navigate} />
-
       <section className="grow px-6 sm:px-12 md:px-[130px] pt-12 flex flex-col lg:flex-row gap-11 items-start pb-16">
         <div className="grow w-full">
           <p className="m-0 mb-3.5 text-[14px] text-[#6A5C70]">
-            <button
-              type="button"
-              onClick={() => navigate("Lokale")}
+            <Link
+              href="/lokale"
               className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
             >
               Sale i lokale
-            </button>{" "}
+            </Link>{" "}
             &nbsp;›&nbsp;{" "}
-            <button
-              type="button"
-              onClick={() => navigate("Profil")}
+            <Link
+              href="/f/dwor-pod-lipami"
               className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
             >
               Dwór pod Lipami
-            </button>{" "}
+            </Link>{" "}
             &nbsp;›&nbsp; Zapytanie
           </p>
 
@@ -237,8 +233,6 @@ export function ZapytanieScreen({ navigate }: ScreenProps) {
           </div>
         </aside>
       </section>
-
-      <Footer navigate={navigate} />
     </div>
   );
 }

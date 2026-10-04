@@ -1,12 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { Footer } from "../Footer";
-import { Header } from "../Header";
-import { ReviewsSection } from "../ReviewsSection";
-import type { ScreenProps } from "../types";
 
-export function ProfilScreen({ navigate }: ScreenProps) {
+export function ProfilScreen() {
   const [selectedOccasion, setSelectedOccasion] = useState("Komunia");
   const [selectedDate, setSelectedDate] = useState("12.06.2027");
   const [selectedGuests, setSelectedGuests] = useState("80");
@@ -59,17 +56,14 @@ export function ProfilScreen({ navigate }: ScreenProps) {
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      <Header currentScreen="Profil" navigate={navigate} />
-
       {/* Breadcrumb */}
       <div className="px-6 md:px-[110px] pt-4 text-[14px] text-[#6A5C70]">
-        <button
-          type="button"
-          onClick={() => navigate("Lokale")}
+        <Link
+          href="/lokale"
           className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
         >
           Sale weselne i lokale
-        </button>{" "}
+        </Link>{" "}
         &nbsp;›&nbsp; Wrocław i okolice &nbsp;›&nbsp; Dwór pod Lipami
       </div>
 
@@ -433,11 +427,6 @@ export function ProfilScreen({ navigate }: ScreenProps) {
             </div>
           </section>
 
-          {/* Section 8: Opinie */}
-          <section id="opinie" className="scroll-mt-20 border-t border-[#E2D5CA] pt-10">
-            <ReviewsSection navigate={navigate} venueName="Dwór pod Lipami" />
-          </section>
-
           {/* Section 9: Imprezy w obiekcie */}
           <section id="imprezy" className="scroll-mt-20 border-t border-[#E2D5CA] pt-10">
             <div className="flex justify-between items-end mb-4">
@@ -449,13 +438,12 @@ export function ProfilScreen({ navigate }: ScreenProps) {
                   Otwarte wieczory tematyczne i bale organizowane przez Dwór pod Lipami.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => navigate("Imprezy")}
+              <Link
+                href="/imprezy"
                 className="text-[14px] text-[#6A5C70] hover:text-[#241C2B] underline bg-transparent border-0 cursor-pointer"
               >
                 Wszystkie imprezy →
-              </button>
+              </Link>
             </div>
 
             <div className="border border-[#E2D5CA] rounded-[16px] bg-white p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xs">
@@ -474,13 +462,12 @@ export function ProfilScreen({ navigate }: ScreenProps) {
                 <div className="text-[18px] font-bold text-[#241C2B]">
                   220 zł <span className="text-[12px] font-normal text-[#6A5C70]">/ osoba</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => navigate("Impreza")}
+                <Link
+                  href="/imprezy/andrzejki-pod-lipami"
                   className="text-[13px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[8px] px-4 py-2 cursor-pointer shadow-2xs"
                 >
                   Zobacz szczegóły i zapytaj
-                </button>
+                </Link>
               </div>
             </div>
           </section>
@@ -542,13 +529,12 @@ export function ProfilScreen({ navigate }: ScreenProps) {
               <p className="m-0 mb-2.5 text-[12px] text-[#6A5C70] text-center font-medium">
                 ✓ Zapytanie jest w 100% bezpłatne i nie zobowiązuje
               </p>
-              <button
-                type="button"
-                onClick={() => navigate("Zapytanie")}
+              <Link
+                href="/f/dwor-pod-lipami/zapytanie"
                 className="w-full text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-4 cursor-pointer shadow-sm text-center"
               >
                 Zapytaj o ofertę
-              </button>
+              </Link>
             </div>
 
             <p className="m-0 text-[12px] leading-[1.5] text-[#8B7F91] text-center">
@@ -578,16 +564,13 @@ export function ProfilScreen({ navigate }: ScreenProps) {
             180 zł <span className="text-[12px] font-normal text-[#6A5C70]">/ osoba</span>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate("Zapytanie")}
+        <Link
+          href="/f/dwor-pod-lipami/zapytanie"
           className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[10px] px-6 py-3 cursor-pointer shadow-xs"
         >
           Zapytaj o ofertę
-        </button>
+        </Link>
       </div>
-
-      <Footer navigate={navigate} />
     </div>
   );
 }

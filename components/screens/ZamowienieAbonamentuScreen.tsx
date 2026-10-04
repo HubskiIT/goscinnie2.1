@@ -1,12 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import type React from "react";
 import { useState } from "react";
-import { Footer } from "../Footer";
-import { Header } from "../Header";
-import type { ScreenProps } from "../types";
 
-export function ZamowienieAbonamentuScreen({ navigate }: ScreenProps) {
+export function ZamowienieAbonamentuScreen() {
   const [selectedClass, setSelectedClass] = useState<"A" | "B" | "C">("A");
   const [selectedPlan, setSelectedPlan] = useState<"start" | "pelny" | "wyrozniony">("pelny");
   const [period, setPeriod] = useState<"miesiac" | "pol_roku" | "rok">("rok");
@@ -53,17 +51,14 @@ export function ZamowienieAbonamentuScreen({ navigate }: ScreenProps) {
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      <Header currentScreen="ZamowienieAbonamentu" navigate={navigate} />
-
       <main className="grow px-6 sm:px-12 md:px-[130px] pt-10 pb-16">
         <p className="m-0 mb-4 text-[14px] text-[#6A5C70]">
-          <button
-            type="button"
-            onClick={() => navigate("Cennik")}
+          <Link
+            href="/cennik"
             className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
           >
             Cennik dla firm
-          </button>{" "}
+          </Link>{" "}
           &nbsp;›&nbsp; Zamówienie abonamentu
         </p>
 
@@ -97,13 +92,12 @@ export function ZamowienieAbonamentuScreen({ navigate }: ScreenProps) {
                 VAT)
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate("PanelFirmy")}
+            <Link
+              href="/panel"
               className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-3.5 cursor-pointer shadow-xs"
             >
               Przejdź do panelu firmy →
-            </button>
+            </Link>
           </div>
         ) : isTrialSuccess ? (
           <div className="border border-[#E2D5CA] rounded-[20px] bg-white p-8 sm:p-12 max-w-[720px] mx-auto text-center shadow-sm my-8">
@@ -117,13 +111,12 @@ export function ZamowienieAbonamentuScreen({ navigate }: ScreenProps) {
               Twój profil jest już publiczny w katalogu i przyjmuje zapytania. Nie pobraliśmy
               żadnych opłat, ani nie wymagaliśmy podania danych karty.
             </p>
-            <button
-              type="button"
-              onClick={() => navigate("PanelFirmy")}
+            <Link
+              href="/panel"
               className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-3.5 cursor-pointer shadow-xs"
             >
               Zarządzaj profilem w panelu →
-            </button>
+            </Link>
           </div>
         ) : (
           <div className="flex flex-col lg:flex-row gap-10 items-start">
@@ -501,8 +494,6 @@ export function ZamowienieAbonamentuScreen({ navigate }: ScreenProps) {
           </div>
         )}
       </main>
-
-      <Footer navigate={navigate} />
     </div>
   );
 }
