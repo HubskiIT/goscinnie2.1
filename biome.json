@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!node_modules", "!.next", "!coverage"]
+    "includes": ["**", "!node_modules", "!.next", "!drizzle/meta", "!coverage"]
   },
   "css": {
     "parser": {

@@ -60,3 +60,6 @@ CLAUDE.local.md
 
 # Dane źródłowe TERYT i PRNG: duże, publiczne, pobierane skryptem
 scripts/dane/
+
+# Lokalne zmienne srodowiskowe
+.env.local

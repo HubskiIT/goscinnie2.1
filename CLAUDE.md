@@ -10,6 +10,13 @@ pnpm dev                 # aplikacja na localhost:3000
 pnpm build               # budowanie produkcyjne
 pnpm lint                # Biome, format i lint
 pnpm check               # plik blokady + lint + tsc, to samo co CI
+pnpm test                # Vitest, jednostkowe i integracyjne
+pnpm db:up               # Postgres z PostGIS w Dockerze
+pnpm db:generate         # wygeneruj SQL migracji ze schematu Drizzle
+pnpm db:migrate          # zastosuj migracje
+pnpm db:rollback         # cofnij ostatnią migrację
+pnpm db:seed             # dane zasiewowe
+pnpm db:reset            # down z wolumenem, up, migrate, seed
 pnpm dane:pobierz        # TERYT (GUS) i PRNG (GUGiK) do scripts/dane/
 pnpm dane:miejscowosci   # buduje content/miejscowosci.json.gz z pobranych danych
 ```
@@ -20,18 +27,30 @@ Przed każdym commitem uruchamiam `pnpm check`. Jeśli nie przechodzi, nie commi
 
 ```
 app/                  trasy Next.js (App Router)
-components/           komponenty UI
-  screens/            ekrany przenoszone na trasy w Etapie 1
-lib/                  funkcje pomocnicze
-hooks/                hooki Reacta
+  (publiczne)/        katalog, profile, zlecenia, imprezy, okazje
+  (panel)/            panel firmy i klienta
+  api/                webhooki i publiczne API
+components/           komponenty UI, bez zapytań do bazy
+  screens/            ekrany przeniesione z prototypu
+content/              treść i słowniki: ogłoszenia, kategorie, okazje, miejscowości
+lib/
+  db/schema/          schemat Drizzle, jeden plik na obszar
+  db/queries/         zapytania, tu mieszka cały SQL
+  auth/               sesje i uprawnienia
+  permissions.ts      REGUŁA "CO KTO WIDZI", jedyne źródło prawdy
+  validators/         schematy Zod
+  akcje/              akcje serwerowe formularzy
+drizzle/              migracje SQL, wersjonowane
+  down/               cofnięcia, jeden plik na migrację
+scripts/              runner migracji, dane TERYT i PRNG, import firm
+tests/                integracyjne
 docs/                 decyzje i kontekst, czytane na żądanie
 ```
 
-Stan na Etap 0: nie ma jeszcze bazy, logowania, testów ani prawdziwych danych.
-Zasady poniżej dotyczące bazy, uprawnień i migracji obowiązują od Etapu 6, gdy
-wejdzie zaplecze. Do tego czasu są kontraktem, nie opisem istniejącego kodu.
-Układ `lib/db/`, `lib/permissions.ts`, `drizzle/`, `tests/` i `e2e/` przenosimy
-wtedy z repozytorium `goscinnie`.
+Stan: baza, schemat, uprawnienia i testy są przeniesione z repozytorium
+`goscinnie`. Ekrany nadal czytają z `content/`, nie z bazy. Podłączenie
+ekranów do zapytań jest kolejnym krokiem Etapu 6, razem z logowaniem,
+płatnościami, zdjęciami i opiniami.
 
 ## Zasady, których złamanie jest błędem
 

@@ -1,0 +1,24 @@
+# Lokalna baza deweloperska. Ten sam obraz co w CI, żeby PostGIS zachowywał się
+# tak samo w obu miejscach.
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: goscinnie-db
+    environment:
+      POSTGRES_USER: goscinnie
+      POSTGRES_PASSWORD: goscinnie
+      POSTGRES_DB: goscinnie
+    ports:
+      - "5432:5432"
+    volumes:
+      # Wolumen nazwany, nie katalog z hosta: na macOS bind mount daje
+      # katalogowi danych złego właściciela i Postgres nie wstaje.
+      - goscinnie-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U goscinnie -d goscinnie"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  goscinnie-pgdata:

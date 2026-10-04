@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790171298607,
+      "tag": "0000_schemat_poczatkowy",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790191771562,
+      "tag": "0001_sesje",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790193268816,
+      "tag": "0002_czlonkostwo_w_firmie",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790194819178,
+      "tag": "0003_indeks_ofert_firmy",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790259335717,
+      "tag": "0004_wnioski_o_przejecie",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790259437089,
+      "tag": "0005_archiwizacja_kategorii",
+      "breakpoints": true
+    }
+  ]
+}

@@ -9,6 +9,27 @@ jobs:
   sprawdz:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: goscinnie
+          POSTGRES_PASSWORD: goscinnie
+          POSTGRES_DB: goscinnie_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://goscinnie:goscinnie@localhost:5432/goscinnie_test
+      # Sekret testowy, nie produkcyjny. Produkcyjny nigdy nie trafia do repo.
+      BETTER_AUTH_SECRET: sekret-wylacznie-do-ci-nie-uzywac-nigdzie-indziej
+      BETTER_AUTH_URL: http://localhost:3000
+
     steps:
       - uses: actions/checkout@v4
 
@@ -28,6 +49,29 @@ jobs:
 
       - name: Typy
         run: pnpm tsc --noEmit
+
+      - name: Migracje w przód
+        run: pnpm db:migrate
+
+      # Migracja bez działającego cofnięcia to główna przyczyna
+      # nieudanych wycofań wdrożenia. Sprawdzamy to przy każdym PR.
+      - name: Migracje w tył i znowu w przód
+        run: |
+          pnpm db:rollback
+          pnpm db:migrate
+
+      - name: Dane zasiewowe
+        run: pnpm db:seed
+
+      - name: Testy jednostkowe i integracyjne
+        run: pnpm test --run
+
+      # Te dwa testy chronią cały model przychodowy: bez abonamentu
+      # nie widać opisu zlecenia i nie da się złożyć oferty.
+      # Te testy chronią cały model przychodowy: bez abonamentu nie widać
+      # opisu zlecenia i nie da się złożyć oferty.
+      - name: Testy uprawnień, osobno i głośno
+        run: pnpm test --run tests/permissions.test.ts tests/sesje.test.ts tests/abonament.test.ts tests/oferty.test.ts tests/profil-firmy.test.ts tests/przejecie.test.ts tests/indeksy.test.ts tests/indeksowanie.test.ts tests/konwencja-zapytan.test.ts
 
       - name: Budowanie produkcyjne
         run: pnpm build

@@ -16,13 +16,26 @@
     "lint": "biome check .",
     "check:blokada": "pnpm install --frozen-lockfile --ignore-scripts >/dev/null",
     "dane:pobierz": "node scripts/pobierz-dane.mjs",
-    "dane:miejscowosci": "node scripts/miejscowosci.mjs"
+    "dane:miejscowosci": "node scripts/miejscowosci.mjs",
+    "test": "vitest",
+    "db:up": "docker compose -f setup/docker-compose.yml up -d --wait",
+    "db:down": "docker compose -f setup/docker-compose.yml down",
+    "db:generate": "drizzle-kit generate && tsx scripts/po-generacji.ts",
+    "db:migrate": "tsx scripts/migrate.ts up",
+    "db:rollback": "tsx scripts/migrate.ts down",
+    "db:seed": "tsx lib/db/seed.ts",
+    "db:reset": "docker compose -f setup/docker-compose.yml down -v && pnpm db:up && pnpm db:migrate && pnpm db:seed",
+    "import:firmy": "tsx scripts/import-firm.ts"
   },
   "dependencies": {
+    "@node-rs/argon2": "2.2.1",
+    "better-auth": "1.7.5",
     "clsx": "2.1.1",
+    "drizzle-orm": "0.45.3",
     "lucide-react": "1.51.0",
     "motion": "14.0.0",
     "next": "16.3.6",
+    "postgres": "3.4.9",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "tailwind-merge": "3.7.0",
@@ -34,16 +47,21 @@
     "@types/node": "26.6.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "drizzle-kit": "0.31.11",
     "postcss": "8.5.28",
     "tailwindcss": "4.3.3",
-    "typescript": "7.0.2"
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.0.1"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
       "@biomejs/biome",
       "@tailwindcss/oxide",
       "sharp",
-      "unrs-resolver"
+      "unrs-resolver",
+      "esbuild",
+      "@node-rs/argon2"
     ]
   }
 }
