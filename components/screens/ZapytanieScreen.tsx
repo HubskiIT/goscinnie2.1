@@ -1,30 +1,51 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { ScreenProps } from '../types';
-import { Header } from '../Header';
-import { Footer } from '../Footer';
+import type React from "react";
+import { useState } from "react";
+import { Footer } from "../Footer";
+import { Header } from "../Header";
+import type { ScreenProps } from "../types";
 
 export function ZapytanieScreen({ navigate }: ScreenProps) {
-  const [recipients, setRecipients] = useState<{ id: number; name: string; loc: string; price: string; checked: boolean }[]>([
-    { id: 1, name: 'Dwór pod Lipami', loc: 'Kobierzyce, 18 km', price: 'od 180 zł', checked: true },
-    { id: 2, name: 'Sala Pod Kasztanem', loc: 'Psie Pole, 7 km', price: 'od 145 zł', checked: true },
-    { id: 3, name: 'Folwark Zielona Brama', loc: 'Siechnice, 14 km', price: 'od 210 zł', checked: true },
-    { id: 4, name: 'Restauracja Nad Odrą', loc: 'Stare Miasto, 1 km', price: 'od 120 zł', checked: false },
+  const [recipients, setRecipients] = useState<
+    { id: number; name: string; loc: string; price: string; checked: boolean }[]
+  >([
+    { id: 1, name: "Dwór pod Lipami", loc: "Kobierzyce, 18 km", price: "od 180 zł", checked: true },
+    {
+      id: 2,
+      name: "Sala Pod Kasztanem",
+      loc: "Psie Pole, 7 km",
+      price: "od 145 zł",
+      checked: true,
+    },
+    {
+      id: 3,
+      name: "Folwark Zielona Brama",
+      loc: "Siechnice, 14 km",
+      price: "od 210 zł",
+      checked: true,
+    },
+    {
+      id: 4,
+      name: "Restauracja Nad Odrą",
+      loc: "Stare Miasto, 1 km",
+      price: "od 120 zł",
+      checked: false,
+    },
   ]);
 
   const toggleRecipient = (id: number) => {
-    setRecipients((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, checked: !r.checked } : r))
-    );
+    setRecipients((prev) => prev.map((r) => (r.id === id ? { ...r, checked: !r.checked } : r)));
   };
 
   const checkedCount = recipients.filter((r) => r.checked).length;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`Zapytanie zostało pomyślnie wysłane do ${checkedCount} obiektów. Odpowiedzi otrzymasz w panelu wiadomości.`);
-    navigate('Wiadomosci');
+    alert(
+      `Zapytanie zostało pomyślnie wysłane do ${checkedCount} obiektów. Odpowiedzi otrzymasz w panelu wiadomości.`,
+    );
+    navigate("Wiadomosci");
   };
 
   return (
@@ -35,18 +56,20 @@ export function ZapytanieScreen({ navigate }: ScreenProps) {
         <div className="grow w-full">
           <p className="m-0 mb-3.5 text-[14px] text-[#6A5C70]">
             <button
-              onClick={() => navigate('Lokale')}
+              type="button"
+              onClick={() => navigate("Lokale")}
               className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
             >
               Sale i lokale
-            </button>{' '}
-            &nbsp;›&nbsp;{' '}
+            </button>{" "}
+            &nbsp;›&nbsp;{" "}
             <button
-              onClick={() => navigate('Profil')}
+              type="button"
+              onClick={() => navigate("Profil")}
               className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
             >
               Dwór pod Lipami
-            </button>{' '}
+            </button>{" "}
             &nbsp;›&nbsp; Zapytanie
           </p>
 
@@ -54,11 +77,14 @@ export function ZapytanieScreen({ navigate }: ScreenProps) {
             Zapytaj o ofertę
           </h1>
           <p className="m-0 mb-8 text-[17px] leading-[1.6] text-[#3E3344] max-w-[64ch]">
-            Jedno zapytanie możesz wysłać do pięciu miejsc naraz. Każde z nich odpowiada osobno i nie wie, do kogo
-            jeszcze napisałeś.
+            Jedno zapytanie możesz wysłać do pięciu miejsc naraz. Każde z nich odpowiada osobno i
+            nie wie, do kogo jeszcze napisałeś.
           </p>
 
-          <form onSubmit={handleSubmit} className="border border-[#D9CCC2] rounded-[20px] bg-white p-7 sm:p-8 shadow-sm">
+          <form
+            onSubmit={handleSubmit}
+            className="border border-[#D9CCC2] rounded-[20px] bg-white p-7 sm:p-8 shadow-sm"
+          >
             <div className="flex flex-col sm:flex-row gap-4 mb-5">
               <div className="grow flex flex-col gap-2">
                 <label htmlFor="q-okazja" className="text-[14px] font-semibold text-[#3E3344]">
@@ -134,6 +160,7 @@ export function ZapytanieScreen({ navigate }: ScreenProps) {
 
             <div className="border border-[#E2D5CA] rounded-[12px] bg-[#F2E9E2] p-4 sm:px-[18px] flex gap-3 mb-6">
               <svg
+                aria-hidden="true"
                 width="20"
                 height="20"
                 viewBox="0 0 24 24"
@@ -148,8 +175,8 @@ export function ZapytanieScreen({ navigate }: ScreenProps) {
                 <path d="M8 11V8a4 4 0 0 1 8 0v3" />
               </svg>
               <div className="text-[14px] leading-[1.65] text-[#55485A]">
-                Numeru telefonu nie pytamy i nie potrzebujemy. Jeśli wpiszesz go w treści, zostanie zasłonięty do momentu,
-                w którym sam dodasz tę firmę do krótkiej listy.
+                Numeru telefonu nie pytamy i nie potrzebujemy. Jeśli wpiszesz go w treści, zostanie
+                zasłonięty do momentu, w którym sam dodasz tę firmę do krótkiej listy.
               </div>
             </div>
 
@@ -158,7 +185,8 @@ export function ZapytanieScreen({ navigate }: ScreenProps) {
                 type="submit"
                 className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-4 cursor-pointer shadow-sm"
               >
-                Wyślij do {checkedCount} {checkedCount === 1 ? 'miejsca' : checkedCount < 5 ? 'miejsc' : 'miejsc'}
+                Wyślij do {checkedCount}{" "}
+                {checkedCount === 1 ? "miejsca" : checkedCount < 5 ? "miejsc" : "miejsc"}
               </button>
               <span className="text-[14px] text-[#6A5C70]">Za darmo i bez zobowiązań</span>
             </div>
@@ -175,19 +203,20 @@ export function ZapytanieScreen({ navigate }: ScreenProps) {
 
             <div className="flex flex-col gap-2.5">
               {recipients.map((r) => (
-                <div
+                <button
+                  type="button"
                   key={r.id}
                   onClick={() => toggleRecipient(r.id)}
-                  className={`border rounded-[14px] bg-white p-3.5 px-4 flex items-center gap-3.5 cursor-pointer transition-all ${
-                    r.checked ? 'border-[#241C2B] shadow-sm' : 'border-[#E2D5CA] opacity-60'
+                  className={`text-left border rounded-[14px] bg-white p-3.5 px-4 flex items-center gap-3.5 cursor-pointer transition-all ${
+                    r.checked ? "border-[#241C2B] shadow-sm" : "border-[#E2D5CA] opacity-60"
                   }`}
                 >
                   <span
                     className={`w-[22px] h-[22px] rounded-[6px] text-[#FBF7F4] text-[13px] flex items-center justify-center shrink-0 ${
-                      r.checked ? 'bg-[#241C2B]' : 'border-[1.5px] border-[#D9CCC2]'
+                      r.checked ? "bg-[#241C2B]" : "border-[1.5px] border-[#D9CCC2]"
                     }`}
                   >
-                    {r.checked ? '✓' : ''}
+                    {r.checked ? "✓" : ""}
                   </span>
                   <span className="w-[54px] h-[54px] rounded-[10px] bg-[#E4D9CF] shrink-0 flex items-center justify-center font-bold text-[#241C2B]">
                     {r.name.charAt(0)}
@@ -197,12 +226,13 @@ export function ZapytanieScreen({ navigate }: ScreenProps) {
                     <div className="text-[13px] text-[#6A5C70]">{r.loc}</div>
                   </div>
                   <div className="text-[15px] font-semibold shrink-0">{r.price}</div>
-                </div>
+                </button>
               ))}
             </div>
 
             <p className="mt-4 mb-0 text-[13px] leading-[1.65] text-[#6A5C70]">
-              Limit to pięć miejsc na jedno zapytanie. Więcej nie pomaga, a utrudnia porównanie odpowiedzi.
+              Limit to pięć miejsc na jedno zapytanie. Więcej nie pomaga, a utrudnia porównanie
+              odpowiedzi.
             </p>
           </div>
         </aside>

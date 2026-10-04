@@ -1,6 +1,0 @@
-{
-  "name": "Gościnnie - Prototyp serwisu",
-  "description": "Katalog sal i usługodawców na każdą okazję, giełda zleceń, profil lokali oraz imprezy otwarte.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

@@ -1,27 +1,30 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { ScreenProps } from '../types';
-import { Header } from '../Header';
-import { Footer } from '../Footer';
+import type React from "react";
+import { useState } from "react";
+import { Footer } from "../Footer";
+import { Header } from "../Header";
+import type { ScreenProps } from "../types";
 
 export function KontaktScreen({ navigate }: ScreenProps) {
-  const [topic, setTopic] = useState('Pytanie o abonament');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
+  const [topic, setTopic] = useState("Pytanie o abonament");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
 
-  const [reportUrl, setReportUrl] = useState('goscinnie.pl/sale/...');
-  const [reportReason, setReportReason] = useState('Wpis podszywa się pod moją firmę');
+  const [reportUrl, setReportUrl] = useState("goscinnie.pl/sale/...");
+  const [reportReason, setReportReason] = useState("Wpis podszywa się pod moją firmę");
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Wiadomość została wysłana! Odpowiemy w ciągu 24 godzin.');
-    setMessage('');
+    alert("Wiadomość została wysłana! Odpowiemy w ciągu 24 godzin.");
+    setMessage("");
   };
 
   const handleReportSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Zgłoszenie treści zostało przyjęte do weryfikacji. Dziękujemy za dbałość o jakość serwisu.');
+    alert(
+      "Zgłoszenie treści zostało przyjęte do weryfikacji. Dziękujemy za dbałość o jakość serwisu.",
+    );
   };
 
   return (
@@ -29,10 +32,12 @@ export function KontaktScreen({ navigate }: ScreenProps) {
       <Header currentScreen="Kontakt" navigate={navigate} />
 
       <section className="grow px-6 sm:px-12 md:px-[130px] pt-14 pb-16">
-        <h1 className="m-0 mb-3 font-fraunces font-normal text-[36px] sm:text-[44px] tracking-tight">Kontakt</h1>
+        <h1 className="m-0 mb-3 font-fraunces font-normal text-[36px] sm:text-[44px] tracking-tight">
+          Kontakt
+        </h1>
         <p className="m-0 mb-9 text-[17px] leading-[1.6] text-[#3E3344] max-w-[70ch]">
-          Serwis prowadzi jedna osoba, więc odpowiedź przychodzi od człowieka, zwykle w ciągu jednego dnia roboczego.
-          Nie mamy infolinii i nie udajemy, że mamy.
+          Serwis prowadzi jedna osoba, więc odpowiedź przychodzi od człowieka, zwykle w ciągu
+          jednego dnia roboczego. Nie mamy infolinii i nie udajemy, że mamy.
         </p>
 
         <div className="flex flex-col lg:flex-row gap-6 items-start">
@@ -103,8 +108,9 @@ export function KontaktScreen({ navigate }: ScreenProps) {
             >
               <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">Zgłoś treść</h2>
               <p className="m-0 mb-5 text-[15px] leading-[1.7] text-[#3E3344]">
-                Jeśli wpis jest nieprawdziwy, podszywa się pod cudzą firmę albo narusza prawo, zgłoś go tutaj. Każde
-                zgłoszenie czyta człowiek, a zgłaszający dostaje odpowiedź z decyzją.
+                Jeśli wpis jest nieprawdziwy, podszywa się pod cudzą firmę albo narusza prawo, zgłoś
+                go tutaj. Każde zgłoszenie czyta człowiek, a zgłaszający dostaje odpowiedź z
+                decyzją.
               </p>
 
               <div className="flex flex-col gap-4.5 mb-5.5">
@@ -151,8 +157,8 @@ export function KontaktScreen({ navigate }: ScreenProps) {
                 </div>
               </div>
               <p className="mt-4 mb-0 text-[13px] leading-[1.65] text-[#55485A]">
-                Nie publikujemy numeru telefonu, dopóki nie będzie go kto odebrać. Numer, którego nikt nie odbiera,
-                szkodzi bardziej niż jego brak.
+                Nie publikujemy numeru telefonu, dopóki nie będzie go kto odebrać. Numer, którego
+                nikt nie odbiera, szkodzi bardziej niż jego brak.
               </p>
             </div>
           </div>

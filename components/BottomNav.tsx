@@ -1,7 +1,6 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { ScreenId } from './types';
+import type { ScreenId } from "./types";
 
 interface BottomNavProps {
   currentScreen: ScreenId;
@@ -9,26 +8,26 @@ interface BottomNavProps {
 }
 
 const SCREENS: { id: ScreenId; label: string }[] = [
-  { id: 'Main', label: 'Strona główna' },
-  { id: 'Lokale', label: 'Lokale' },
-  { id: 'Uslugodawcy', label: 'Usługodawcy' },
-  { id: 'Profil', label: 'Profil lokalu' },
-  { id: 'WpisBezProfilu', label: 'Wpis bez profilu' },
-  { id: 'Zlecenia', label: 'Zlecenia' },
-  { id: 'NoweZlecenie', label: 'Nowe zlecenie' },
-  { id: 'Zapytanie', label: 'Zapytanie' },
-  { id: 'Imprezy', label: 'Imprezy' },
-  { id: 'Impreza', label: 'Impreza' },
-  { id: 'PotwierdzenieRezerwacji', label: 'Rezerwacja' },
-  { id: 'Cennik', label: 'Dla firm' },
-  { id: 'ZamowienieAbonamentu', label: 'Zamówienie' },
-  { id: 'RejestracjaFirmy', label: 'Rejestracja firmy' },
-  { id: 'Logowanie', label: 'Logowanie' },
-  { id: 'PanelFirmy', label: 'Panel firmy' },
-  { id: 'PanelKlienta', label: 'Panel klienta' },
-  { id: 'Wiadomosci', label: 'Wiadomości' },
-  { id: 'Kontakt', label: 'Kontakt' },
-  { id: 'Stany', label: 'Stany' },
+  { id: "Main", label: "Strona główna" },
+  { id: "Lokale", label: "Lokale" },
+  { id: "Uslugodawcy", label: "Usługodawcy" },
+  { id: "Profil", label: "Profil lokalu" },
+  { id: "WpisBezProfilu", label: "Wpis bez profilu" },
+  { id: "Zlecenia", label: "Zlecenia" },
+  { id: "NoweZlecenie", label: "Nowe zlecenie" },
+  { id: "Zapytanie", label: "Zapytanie" },
+  { id: "Imprezy", label: "Imprezy" },
+  { id: "Impreza", label: "Impreza" },
+  { id: "PotwierdzenieRezerwacji", label: "Rezerwacja" },
+  { id: "Cennik", label: "Dla firm" },
+  { id: "ZamowienieAbonamentu", label: "Zamówienie" },
+  { id: "RejestracjaFirmy", label: "Rejestracja firmy" },
+  { id: "Logowanie", label: "Logowanie" },
+  { id: "PanelFirmy", label: "Panel firmy" },
+  { id: "PanelKlienta", label: "Panel klienta" },
+  { id: "Wiadomosci", label: "Wiadomości" },
+  { id: "Kontakt", label: "Kontakt" },
+  { id: "Stany", label: "Stany" },
 ];
 
 export function BottomNav({ currentScreen, navigate }: BottomNavProps) {
@@ -45,13 +44,14 @@ export function BottomNav({ currentScreen, navigate }: BottomNavProps) {
         const isActive = currentScreen === item.id;
         return (
           <button
+            type="button"
             key={item.id}
             data-ekran={item.id}
             onClick={() => navigate(item.id)}
             className={`shrink-0 text-[13px] py-1.5 px-3.5 rounded-full whitespace-nowrap transition-colors border-0 cursor-pointer ${
               isActive
-                ? 'text-[#241C2B] bg-[#F0A62E] font-bold shadow-sm'
-                : 'text-[#D8CFDC] bg-transparent hover:text-[#241C2B] hover:bg-[#F2E9E2]'
+                ? "text-[#241C2B] bg-[#F0A62E] font-bold shadow-sm"
+                : "text-[#D8CFDC] bg-transparent hover:text-[#241C2B] hover:bg-[#F2E9E2]"
             }`}
           >
             {item.label}

@@ -1,40 +1,42 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { ScreenProps } from '../types';
-import { Header } from '../Header';
+import { useState } from "react";
+import { Header } from "../Header";
+import type { ScreenProps } from "../types";
 
 export function WiadomosciScreen({ navigate }: ScreenProps) {
-  const [selectedChat, setSelectedChat] = useState('Dwór pod Lipami');
+  const [selectedChat, setSelectedChat] = useState("Dwór pod Lipami");
   const [messages, setMessages] = useState([
     {
       id: 1,
-      sender: 'me',
-      text: 'Dzień dobry, czy mają Państwo wolny 12 czerwca i czy sala jest wtedy na wyłączność?',
-      time: '24 października, 11:02',
+      sender: "me",
+      text: "Dzień dobry, czy mają Państwo wolny 12 czerwca i czy sala jest wtedy na wyłączność?",
+      time: "24 października, 11:02",
     },
     {
       id: 2,
-      sender: 'them',
-      text: 'Dzień dobry, termin jest wolny. Sala jest na wyłączność przy grupie powyżej sześćdziesięciu osób, więc u Państwa tak. Własny tort bez opłaty.',
-      time: '24 października, 13:41',
+      sender: "them",
+      text: "Dzień dobry, termin jest wolny. Sala jest na wyłączność przy grupie powyżej sześćdziesięciu osób, więc u Państwa tak. Własny tort bez opłaty.",
+      time: "24 października, 13:41",
     },
     {
       id: 3,
-      sender: 'me',
-      text: 'Świetnie. Proszę o kontakt pod numerem ███ ███ ███, będzie szybciej.',
-      time: '24 października, 14:05',
+      sender: "me",
+      text: "Świetnie. Proszę o kontakt pod numerem ███ ███ ███, będzie szybciej.",
+      time: "24 października, 14:05",
       warning:
-        'Numer został zasłonięty, bo tej firmy nie ma jeszcze na Twojej krótkiej liście. Wiadomość doszła w całości, bez numeru.',
+        "Numer został zasłonięty, bo tej firmy nie ma jeszcze na Twojej krótkiej liście. Wiadomość doszła w całości, bez numeru.",
     },
     {
       id: 4,
-      sender: 'them',
-      text: 'Potwierdzamy termin, czekamy na decyzję. Telefon widzimy już po dodaniu nas do krótkiej listy, dziękujemy.',
-      time: 'dzisiaj, 14:20',
+      sender: "them",
+      text: "Potwierdzamy termin, czekamy na decyzję. Telefon widzimy już po dodaniu nas do krótkiej listy, dziękujemy.",
+      time: "dzisiaj, 14:20",
     },
   ]);
-  const [inputVal, setInputVal] = useState('Dziękuję, rezerwujemy. Odezwę się jutro w sprawie menu.');
+  const [inputVal, setInputVal] = useState(
+    "Dziękuję, rezerwujemy. Odezwę się jutro w sprawie menu.",
+  );
 
   const handleSend = () => {
     if (!inputVal.trim()) return;
@@ -42,24 +44,24 @@ export function WiadomosciScreen({ navigate }: ScreenProps) {
     // Check if user is typing phone number pattern to demonstrate live masking!
     const phoneRegex = /\b\d{3}[- ]?\d{3}[- ]?\d{3}\b/g;
     let textToSend = inputVal;
-    let warning: string | undefined = undefined;
+    let warning: string | undefined;
 
     if (phoneRegex.test(inputVal)) {
-      textToSend = inputVal.replace(phoneRegex, '███ ███ ███');
-      warning = 'Numer został automatycznie zamaskowany zgodnie z polityką prywatności serwisu.';
+      textToSend = inputVal.replace(phoneRegex, "███ ███ ███");
+      warning = "Numer został automatycznie zamaskowany zgodnie z polityką prywatności serwisu.";
     }
 
     setMessages((prev) => [
       ...prev,
       {
         id: Date.now(),
-        sender: 'me',
+        sender: "me",
         text: textToSend,
-        time: 'teraz',
-        warning,
+        time: "teraz",
+        ...(warning === undefined ? {} : { warning }),
       },
     ]);
-    setInputVal('');
+    setInputVal("");
   };
 
   return (
@@ -71,12 +73,13 @@ export function WiadomosciScreen({ navigate }: ScreenProps) {
         <div className="w-full lg:w-[360px] shrink-0 border border-[#E2D5CA] rounded-[18px] bg-white overflow-hidden shadow-sm flex flex-col">
           <div className="p-4.5 px-5 border-b border-[#E2D5CA] text-[16px] font-bold">Rozmowy</div>
 
-          <div
-            onClick={() => setSelectedChat('Dwór pod Lipami')}
-            className={`flex gap-3.5 p-4 px-4.5 cursor-pointer transition-colors border-b border-[#EFE5DD] ${
-              selectedChat === 'Dwór pod Lipami'
-                ? 'bg-[#F2E9E2] border-l-4 border-l-[#241C2B]'
-                : 'bg-transparent border-l-4 border-l-transparent hover:bg-[#FAF8F6]'
+          <button
+            type="button"
+            onClick={() => setSelectedChat("Dwór pod Lipami")}
+            className={`text-left flex gap-3.5 p-4 px-4.5 cursor-pointer transition-colors border-b border-[#EFE5DD] ${
+              selectedChat === "Dwór pod Lipami"
+                ? "bg-[#F2E9E2] border-l-4 border-l-[#241C2B]"
+                : "bg-transparent border-l-4 border-l-transparent hover:bg-[#FAF8F6]"
             }`}
           >
             <span className="w-10.5 h-10.5 rounded-[10px] bg-[#E4D9CF] shrink-0 flex items-center justify-center font-bold text-[#241C2B]">
@@ -87,16 +90,19 @@ export function WiadomosciScreen({ navigate }: ScreenProps) {
                 <span className="text-[15px] font-semibold truncate">Dwór pod Lipami</span>
                 <span className="text-[12px] text-[#6A5C70] shrink-0">14:20</span>
               </div>
-              <div className="text-[13px] text-[#6A5C70] mt-0.5 truncate">Potwierdzamy termin, czekamy na...</div>
+              <div className="text-[13px] text-[#6A5C70] mt-0.5 truncate">
+                Potwierdzamy termin, czekamy na...
+              </div>
             </div>
-          </div>
+          </button>
 
-          <div
-            onClick={() => setSelectedChat('Sala Pod Kasztanem')}
-            className={`flex gap-3.5 p-4 px-4.5 cursor-pointer transition-colors border-b border-[#EFE5DD] ${
-              selectedChat === 'Sala Pod Kasztanem'
-                ? 'bg-[#F2E9E2] border-l-4 border-l-[#241C2B]'
-                : 'bg-transparent border-l-4 border-l-transparent hover:bg-[#FAF8F6]'
+          <button
+            type="button"
+            onClick={() => setSelectedChat("Sala Pod Kasztanem")}
+            className={`text-left flex gap-3.5 p-4 px-4.5 cursor-pointer transition-colors border-b border-[#EFE5DD] ${
+              selectedChat === "Sala Pod Kasztanem"
+                ? "bg-[#F2E9E2] border-l-4 border-l-[#241C2B]"
+                : "bg-transparent border-l-4 border-l-transparent hover:bg-[#FAF8F6]"
             }`}
           >
             <span className="w-10.5 h-10.5 rounded-[10px] bg-[#DED4DC] shrink-0 flex items-center justify-center font-bold text-[#241C2B]">
@@ -107,16 +113,19 @@ export function WiadomosciScreen({ navigate }: ScreenProps) {
                 <span className="text-[15px] font-semibold truncate">Sala Pod Kasztanem</span>
                 <span className="text-[12px] text-[#6A5C70] shrink-0">wczoraj</span>
               </div>
-              <div className="text-[13px] text-[#6A5C70] mt-0.5 truncate">Dzień dobry, termin jest wolny</div>
+              <div className="text-[13px] text-[#6A5C70] mt-0.5 truncate">
+                Dzień dobry, termin jest wolny
+              </div>
             </div>
-          </div>
+          </button>
 
-          <div
-            onClick={() => setSelectedChat('Folwark Zielona Brama')}
-            className={`flex gap-3.5 p-4 px-4.5 cursor-pointer transition-colors border-b border-[#EFE5DD] ${
-              selectedChat === 'Folwark Zielona Brama'
-                ? 'bg-[#F2E9E2] border-l-4 border-l-[#241C2B]'
-                : 'bg-transparent border-l-4 border-l-transparent hover:bg-[#FAF8F6]'
+          <button
+            type="button"
+            onClick={() => setSelectedChat("Folwark Zielona Brama")}
+            className={`text-left flex gap-3.5 p-4 px-4.5 cursor-pointer transition-colors border-b border-[#EFE5DD] ${
+              selectedChat === "Folwark Zielona Brama"
+                ? "bg-[#F2E9E2] border-l-4 border-l-[#241C2B]"
+                : "bg-transparent border-l-4 border-l-transparent hover:bg-[#FAF8F6]"
             }`}
           >
             <span className="w-10.5 h-10.5 rounded-[10px] bg-[#DCE0D8] shrink-0 flex items-center justify-center font-bold text-[#241C2B]">
@@ -127,9 +136,11 @@ export function WiadomosciScreen({ navigate }: ScreenProps) {
                 <span className="text-[15px] font-semibold truncate">Folwark Zielona Brama</span>
                 <span className="text-[12px] text-[#6A5C70] shrink-0">28 paź</span>
               </div>
-              <div className="text-[13px] text-[#6A5C70] mt-0.5 truncate">Przesyłam menu komunijne</div>
+              <div className="text-[13px] text-[#6A5C70] mt-0.5 truncate">
+                Przesyłam menu komunijne
+              </div>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Right chat message thread */}
@@ -151,7 +162,7 @@ export function WiadomosciScreen({ navigate }: ScreenProps) {
           {/* Messages Body */}
           <div className="grow p-6 sm:p-7.5 flex flex-col overflow-y-auto max-h-[520px]">
             {messages.map((m) => {
-              if (m.sender === 'me') {
+              if (m.sender === "me") {
                 return (
                   <div key={m.id} className="max-w-[85%] sm:max-w-[62%] ml-auto mb-4">
                     <div className="bg-[#241C2B] text-[#FBF7F4] rounded-[16px] rounded-br-[4px] p-4 text-[15px] leading-[1.65] shadow-xs">
@@ -162,7 +173,9 @@ export function WiadomosciScreen({ navigate }: ScreenProps) {
                         </div>
                       )}
                     </div>
-                    <div className="text-[12px] text-right text-[#6A5C70] mt-1.5 mr-0.5">{m.time}</div>
+                    <div className="text-[12px] text-right text-[#6A5C70] mt-1.5 mr-0.5">
+                      {m.time}
+                    </div>
                   </div>
                 );
               }
@@ -190,12 +203,6 @@ export function WiadomosciScreen({ navigate }: ScreenProps) {
                   rows={2}
                   value={inputVal}
                   onChange={(e) => setInputVal(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSend();
-                    }
-                  }}
                   className="text-[15px] leading-[1.6] text-[#241C2B] border-[1.5px] border-[#D9CCC2] rounded-[12px] p-3.5 bg-white resize-none focus:outline-none"
                   placeholder="Wpisz treść wiadomości..."
                 />
@@ -210,8 +217,9 @@ export function WiadomosciScreen({ navigate }: ScreenProps) {
               </button>
             </div>
             <p className="mt-3 mb-0 text-[13px] leading-[1.6] text-[#6A5C70]">
-              Numery telefonów, adresy e-mail i odnośniki są zasłaniane po obu stronach do momentu dodania firmy do
-              krótkiej listy. Wiadomość zawsze dochodzi, zasłaniany jest sam kontakt.
+              Numery telefonów, adresy e-mail i odnośniki są zasłaniane po obu stronach do momentu
+              dodania firmy do krótkiej listy. Wiadomość zawsze dochodzi, zasłaniany jest sam
+              kontakt.
             </p>
           </div>
         </div>

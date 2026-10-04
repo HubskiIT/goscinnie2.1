@@ -1,9 +1,8 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { ScreenProps } from '../types';
-import { Header } from '../Header';
-import { Footer } from '../Footer';
+import { Footer } from "../Footer";
+import { Header } from "../Header";
+import type { ScreenProps } from "../types";
 
 export function WpisBezProfiluScreen({ navigate }: ScreenProps) {
   return (
@@ -14,11 +13,12 @@ export function WpisBezProfiluScreen({ navigate }: ScreenProps) {
         {/* Breadcrumb */}
         <p className="m-0 mb-5 text-[14px] text-[#6A5C70]">
           <button
-            onClick={() => navigate('Lokale')}
+            type="button"
+            onClick={() => navigate("Lokale")}
             className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
           >
             Lokale
-          </button>{' '}
+          </button>{" "}
           &nbsp;›&nbsp; Powiat trzebnicki &nbsp;›&nbsp; Stary Spichlerz (Wpis z rejestru)
         </p>
 
@@ -29,14 +29,17 @@ export function WpisBezProfiluScreen({ navigate }: ScreenProps) {
               i
             </span>
             <div>
-              <div className="text-[15px] font-bold text-[#241C2B]">Wpis nieprzejęty (import z rejestru publicznego)</div>
+              <div className="text-[15px] font-bold text-[#241C2B]">
+                Wpis nieprzejęty (import z rejestru publicznego)
+              </div>
               <div className="text-[13px] text-[#6A5C70]">
                 Profil nie posiada opublikowanego cennika ani kontaktu od właściciela.
               </div>
             </div>
           </div>
           <button
-            onClick={() => navigate('RejestracjaFirmy')}
+            type="button"
+            onClick={() => navigate("RejestracjaFirmy")}
             className="text-[14px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[10px] px-5 py-2.5 cursor-pointer shrink-0 shadow-xs"
           >
             Przejmij profil za 0 zł (30 dni próby)
@@ -61,23 +64,29 @@ export function WpisBezProfiluScreen({ navigate }: ScreenProps) {
             <div className="border border-[#E2D5CA] bg-[#FBF7F4] rounded-[14px] p-4 text-center min-w-[200px]">
               <div className="text-[12px] text-[#6A5C70] mb-1">Status profilu</div>
               <div className="text-[15px] font-bold text-[#241C2B]">Oczekuje na weryfikację</div>
-              <div className="text-[11px] text-[#8B7F91] mt-1">Zgodnie z zasadą pełnego katalogu</div>
+              <div className="text-[11px] text-[#8B7F91] mt-1">
+                Zgodnie z zasadą pełnego katalogu
+              </div>
             </div>
           </div>
 
           <div className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div>
-              <h2 className="font-fraunces text-[22px] font-medium mb-3">Informacja dla klientów i organizatorów</h2>
+              <h2 className="font-fraunces text-[22px] font-medium mb-3">
+                Informacja dla klientów i organizatorów
+              </h2>
               <p className="text-[15px] text-[#3E3344] leading-[1.6] mb-4">
-                Właściciel tego obiektu nie uruchomił jeszcze formularza bezpośrednich zapytań ani nie uzupełnił
-                kalendarza wolnych terminów na rok 2027.
+                Właściciel tego obiektu nie uruchomił jeszcze formularza bezpośrednich zapytań ani
+                nie uzupełnił kalendarza wolnych terminów na rok 2027.
               </p>
               <p className="text-[15px] text-[#3E3344] leading-[1.6] mb-6">
-                Nie musisz dzwonić w ciemno. Wystaw <strong>anonimowe zlecenie</strong> na swoją uroczystość — sprawdzimy
-                lokale w powiecie trzebnickim i otrzymasz gotowe oferty z cenami wprost do porównania.
+                Nie musisz dzwonić w ciemno. Wystaw <strong>anonimowe zlecenie</strong> na swoją
+                uroczystość — sprawdzimy lokale w powiecie trzebnickim i otrzymasz gotowe oferty z
+                cenami wprost do porównania.
               </p>
               <button
-                onClick={() => navigate('NoweZlecenie')}
+                type="button"
+                onClick={() => navigate("NoweZlecenie")}
                 className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-7 py-3.5 cursor-pointer shadow-xs"
               >
                 Dodaj bezpłatne zlecenie
@@ -85,7 +94,9 @@ export function WpisBezProfiluScreen({ navigate }: ScreenProps) {
             </div>
 
             <div className="border border-[#D9CCC2] rounded-[16px] bg-[#FAF6F2] p-6">
-              <h3 className="font-fraunces text-[20px] font-medium mb-2.5">Zarządzasz tym miejscem?</h3>
+              <h3 className="font-fraunces text-[20px] font-medium mb-2.5">
+                Zarządzasz tym miejscem?
+              </h3>
               <p className="text-[14px] text-[#55485A] leading-[1.6] mb-4">
                 Przejmij profil obiektu <strong>Stary Spichlerz</strong>. Otrzymasz:
               </p>
@@ -93,10 +104,13 @@ export function WpisBezProfiluScreen({ navigate }: ScreenProps) {
                 <li>✓ Pełną wizytówkę z 30 zdjęciami, cennikiem i kalendarzem</li>
                 <li>✓ Dostęp do zleceń od klientów szukających sali w Twoim powiecie</li>
                 <li>✓ Formularz bezpośrednich zapytań bez prowizji od umów</li>
-                <li>✓ <strong>30 dni bezpłatnego testu</strong> bez konieczności podawania karty</li>
+                <li>
+                  ✓ <strong>30 dni bezpłatnego testu</strong> bez konieczności podawania karty
+                </li>
               </ul>
               <button
-                onClick={() => navigate('RejestracjaFirmy')}
+                type="button"
+                onClick={() => navigate("RejestracjaFirmy")}
                 className="w-full text-center text-[15px] font-bold text-[#241C2B] bg-white border-2 border-[#241C2B] hover:bg-[#241C2B] hover:text-white transition-colors rounded-[12px] py-3 cursor-pointer"
               >
                 Przejmij ten profil (krok 1 z 4)
@@ -107,19 +121,24 @@ export function WpisBezProfiluScreen({ navigate }: ScreenProps) {
 
         {/* Comparison: Full Profile vs Imported Profile */}
         <div className="border border-[#E2D5CA] rounded-[18px] bg-white p-7">
-          <h3 className="font-fraunces text-[22px] font-medium mb-2">Jak wygląda pełny profil po przejęciu?</h3>
+          <h3 className="font-fraunces text-[22px] font-medium mb-2">
+            Jak wygląda pełny profil po przejęciu?
+          </h3>
           <p className="text-[15px] text-[#6A5C70] mb-5">
-            Zobacz różnicę pomiędzy wpisem nieprzejętym a zweryfikowanym profilem lokalu w naszym katalogu.
+            Zobacz różnicę pomiędzy wpisem nieprzejętym a zweryfikowanym profilem lokalu w naszym
+            katalogu.
           </p>
           <div className="flex flex-wrap gap-4">
             <button
-              onClick={() => navigate('Profil')}
+              type="button"
+              onClick={() => navigate("Profil")}
               className="text-[14px] font-semibold text-[#241C2B] bg-[#F2E9E2] hover:bg-[#EADFD6] transition-colors border-0 rounded-[10px] px-5 py-2.5 cursor-pointer"
             >
               Zobacz przykładowy profil: Dwór pod Lipami →
             </button>
             <button
-              onClick={() => navigate('Cennik')}
+              type="button"
+              onClick={() => navigate("Cennik")}
               className="text-[14px] font-semibold text-[#6A5C70] hover:text-[#241C2B] bg-transparent border border-[#D9CCC2] rounded-[10px] px-5 py-2.5 cursor-pointer"
             >
               Sprawdź cennik abonamentów dla sal

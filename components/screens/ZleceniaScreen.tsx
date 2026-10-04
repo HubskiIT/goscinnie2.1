@@ -1,15 +1,18 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { ScreenProps } from '../types';
-import { Header } from '../Header';
-import { Footer } from '../Footer';
+import type React from "react";
+import { useState } from "react";
+import { Footer } from "../Footer";
+import { Header } from "../Header";
+import type { ScreenProps } from "../types";
 
 export function ZleceniaScreen({ navigate }: ScreenProps) {
   const [isSubscriber, setIsSubscriber] = useState(true);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
-  const [offerPrice, setOfferPrice] = useState('14 400 zł');
-  const [offerScope, setOfferScope] = useState('Menu komunijne 180 zł/osobę, sala balowa na wyłączność, ogród z placem zabaw, własny tort bez opłaty.');
+  const [offerPrice, setOfferPrice] = useState("14 400 zł");
+  const [offerScope, setOfferScope] = useState(
+    "Menu komunijne 180 zł/osobę, sala balowa na wyłączność, ogród z placem zabaw, własny tort bez opłaty.",
+  );
   const [offerSubmitted, setOfferSubmitted] = useState(false);
 
   const handleSendOffer = (e: React.FormEvent) => {
@@ -35,7 +38,9 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
             type="button"
             onClick={() => setIsSubscriber(true)}
             className={`px-3 py-1 rounded-[8px] font-semibold cursor-pointer transition-colors ${
-              isSubscriber ? 'bg-[#241C2B] text-white shadow-2xs' : 'text-[#6A5C70] hover:text-[#241C2B]'
+              isSubscriber
+                ? "bg-[#241C2B] text-white shadow-2xs"
+                : "text-[#6A5C70] hover:text-[#241C2B]"
             }`}
           >
             Firma z abonamentem (Pełny)
@@ -44,7 +49,9 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
             type="button"
             onClick={() => setIsSubscriber(false)}
             className={`px-3 py-1 rounded-[8px] font-semibold cursor-pointer transition-colors ${
-              !isSubscriber ? 'bg-[#241C2B] text-white shadow-2xs' : 'text-[#6A5C70] hover:text-[#241C2B]'
+              !isSubscriber
+                ? "bg-[#241C2B] text-white shadow-2xs"
+                : "text-[#6A5C70] hover:text-[#241C2B]"
             }`}
           >
             Firma bez abonamentu (Gość)
@@ -60,8 +67,8 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
               Giełda zleceń
             </h1>
             <p className="m-0 text-[17px] leading-[1.6] text-[#3E3344] max-w-[70ch]">
-              Klient opisuje raz, czego szuka. Firmy odpowiadają ceną. Zlecenia są anonimowe do momentu, w którym
-              klient sam doda ofertę do krótkiej listy.
+              Klient opisuje raz, czego szuka. Firmy odpowiadają ceną. Zlecenia są anonimowe do
+              momentu, w którym klient sam doda ofertę do krótkiej listy.
             </p>
           </div>
           <div className="shrink-0 text-left md:text-right">
@@ -78,7 +85,16 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
             <span className="text-[12px] text-[#6A5C70]">Kategoria</span>
             <span className="flex items-center justify-between text-[15px] font-semibold text-[#241C2B]">
               Sale weselne i okolicznościowe
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6A5C70" strokeWidth="2.2" strokeLinecap="round">
+              <svg
+                aria-hidden="true"
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#6A5C70"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+              >
                 <polyline points="5 9 12 16 19 9" />
               </svg>
             </span>
@@ -88,7 +104,16 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
             <span className="text-[12px] text-[#6A5C70]">Województwo / powiat</span>
             <span className="flex items-center justify-between text-[15px] font-semibold text-[#241C2B]">
               dolnośląskie (powiat wrocławski)
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6A5C70" strokeWidth="2.2" strokeLinecap="round">
+              <svg
+                aria-hidden="true"
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#6A5C70"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+              >
                 <polyline points="5 9 12 16 19 9" />
               </svg>
             </span>
@@ -98,7 +123,16 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
             <span className="text-[12px] text-[#6A5C70]">Okazja</span>
             <span className="flex items-center justify-between text-[15px] font-semibold text-[#241C2B]">
               Wszystkie uroczystości
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6A5C70" strokeWidth="2.2" strokeLinecap="round">
+              <svg
+                aria-hidden="true"
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#6A5C70"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+              >
                 <polyline points="5 9 12 16 19 9" />
               </svg>
             </span>
@@ -108,7 +142,16 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
             <span className="text-[12px] text-[#6A5C70]">Termin</span>
             <span className="flex items-center justify-between text-[15px] font-semibold text-[#241C2B]">
               Czerwiec – Wrzesień 2027
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6A5C70" strokeWidth="2.2" strokeLinecap="round">
+              <svg
+                aria-hidden="true"
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#6A5C70"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+              >
                 <polyline points="5 9 12 16 19 9" />
               </svg>
             </span>
@@ -129,7 +172,9 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
           {/* Order 1: Primary Target */}
           <article className="border border-[#E2D5CA] rounded-[18px] bg-white p-6 sm:p-7 shadow-xs">
             <div className="flex items-start justify-between gap-5 mb-5">
-              <h3 className="m-0 font-fraunces font-medium text-[23px]">Komunia, 80 osób, powiat wrocławski</h3>
+              <h3 className="m-0 font-fraunces font-medium text-[23px]">
+                Komunia, 80 osób, powiat wrocławski
+              </h3>
               <span className="shrink-0 text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[8px] px-3 py-1.5 font-semibold">
                 zamyka się za 4 dni
               </span>
@@ -157,7 +202,9 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
                 {isSubscriber ? (
                   <div className="text-[15px] font-bold text-[#3F5142]">do 18 000 zł</div>
                 ) : (
-                  <div className="text-[13px] text-[#8B7F91] font-semibold italic">w abonamencie (402)</div>
+                  <div className="text-[13px] text-[#8B7F91] font-semibold italic">
+                    w abonamencie (402)
+                  </div>
                 )}
               </div>
             </div>
@@ -165,9 +212,9 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
             {isSubscriber ? (
               <>
                 <p className="m-0 mb-5 text-[16px] leading-[1.7] text-[#3E3344] max-w-[78ch]">
-                  Szukamy sali na komunię córki. Osiemdziesięciu gości, w tym dwadzieścioro dzieci, więc przydałby się kąt do
-                  zabawy albo ogród. Zależy nam na sali na wyłączność i na własnym torcie bez opłaty. Początek około
-                  trzynastej, planujemy do dwudziestej.
+                  Szukamy sali na komunię córki. Osiemdziesięciu gości, w tym dwadzieścioro dzieci,
+                  więc przydałby się kąt do zabawy albo ogród. Zależy nam na sali na wyłączność i na
+                  własnym torcie bez opłaty. Początek około trzynastej, planujemy do dwudziestej.
                 </p>
 
                 <div className="flex flex-wrap items-center gap-4">
@@ -193,21 +240,25 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
               <>
                 <div className="relative mb-5">
                   <p className="m-0 text-[16px] leading-[1.7] text-[#3E3344] max-w-[78ch] select-none">
-                    Szukamy sali na komunię córki. Osiemdziesięciu gości, w tym dwadzieścioro dzieci, więc przydałby się kąt do...
+                    Szukamy sali na komunię córki. Osiemdziesięciu gości, w tym dwadzieścioro
+                    dzieci, więc przydałby się kąt do...
                   </p>
                   <div className="absolute inset-x-0 -bottom-1 h-10 bg-gradient-to-b from-transparent to-white" />
                 </div>
 
                 <div className="border border-[#E2D5CA] rounded-[14px] bg-[#F2E9E2] p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
-                    <div className="text-[15px] font-bold text-[#241C2B] mb-1">Widzisz 120 znaków z 380</div>
+                    <div className="text-[15px] font-bold text-[#241C2B] mb-1">
+                      Widzisz 120 znaków z 380
+                    </div>
                     <div className="text-[13px] text-[#55485A]">
-                      Pełny opis, budżet i prawo złożenia oferty są dostępne dla firm z aktywnym abonamentem.
+                      Pełny opis, budżet i prawo złożenia oferty są dostępne dla firm z aktywnym
+                      abonamentem.
                     </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => navigate('Cennik')}
+                    onClick={() => navigate("Cennik")}
                     className="shrink-0 text-[14px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[10px] px-5 py-2.5 border-0 cursor-pointer shadow-2xs"
                   >
                     Odblokuj w abonamencie (Cennik)
@@ -220,7 +271,9 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
           {/* Order 2: Wesele */}
           <article className="border border-[#E2D5CA] rounded-[18px] bg-white p-6 sm:p-7 shadow-xs">
             <div className="flex items-start justify-between gap-5 mb-5">
-              <h3 className="m-0 font-fraunces font-medium text-[23px]">Wesele, 130 osób, powiat oławski</h3>
+              <h3 className="m-0 font-fraunces font-medium text-[23px]">
+                Wesele, 130 osób, powiat oławski
+              </h3>
               <span className="shrink-0 text-[13px] text-[#55485A] bg-[#F2E9E2] rounded-[8px] px-3 py-1.5 font-medium">
                 otwarte 2 dni temu
               </span>
@@ -250,8 +303,9 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
             </div>
 
             <p className="m-0 mb-5 text-[16px] leading-[1.7] text-[#3E3344] max-w-[78ch]">
-              Planujemy wesele na początek września 2027. Zależy nam na pięknej sali z klimatem, możliwością zorganizowania
-              zaślubin w plenerze oraz noclegach dla około 50 gości przyjezdnych.
+              Planujemy wesele na początek września 2027. Zależy nam na pięknej sali z klimatem,
+              możliwością zorganizowania zaślubin w plenerze oraz noclegach dla około 50 gości
+              przyjezdnych.
             </p>
 
             <div className="flex flex-wrap items-center gap-4">
@@ -262,17 +316,19 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
               >
                 Złóż ofertę
               </button>
-              <span className="text-[13px] text-[#6A5C70]">
-                Maksymalnie 10 ofert na zlecenie.
-              </span>
+              <span className="text-[13px] text-[#6A5C70]">Maksymalnie 10 ofert na zlecenie.</span>
             </div>
           </article>
 
           {/* Order 3: Already submitted */}
           <article className="border border-[#E2D5CA] rounded-[18px] bg-white p-5 sm:px-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
             <div className="grow">
-              <h3 className="m-0 mb-1 font-fraunces font-medium text-[20px]">Chrzciny, 45 osób, Wrocław</h3>
-              <p className="m-0 text-[14px] text-[#6A5C70]">16.05.2027 &nbsp;·&nbsp; Wrocław &nbsp;·&nbsp; Twoja oferta została złożona</p>
+              <h3 className="m-0 mb-1 font-fraunces font-medium text-[20px]">
+                Chrzciny, 45 osób, Wrocław
+              </h3>
+              <p className="m-0 text-[14px] text-[#6A5C70]">
+                16.05.2027 &nbsp;·&nbsp; Wrocław &nbsp;·&nbsp; Twoja oferta została złożona
+              </p>
             </div>
             <div className="flex items-center gap-3">
               <span className="shrink-0 text-[13px] font-semibold text-[#3F5142] bg-[#E7EDE7] rounded-[8px] px-3.5 py-2">
@@ -280,7 +336,7 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
               </span>
               <button
                 type="button"
-                onClick={() => navigate('PanelKlienta')}
+                onClick={() => navigate("PanelKlienta")}
                 className="shrink-0 text-[14px] font-semibold text-[#241C2B] border border-[#241C2B] rounded-[8px] px-4 py-2 hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-transparent"
               >
                 Podejrzyj
@@ -304,9 +360,15 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
                 Czas powiadomień według planu:
               </div>
               <div className="text-[13px] text-[#3E3344] space-y-1">
-                <div>Wyróżniony: <strong>natychmiast (0 min)</strong></div>
-                <div>Pełny: <strong>po 15 minutach</strong></div>
-                <div>Start: <strong>po 60 minutach</strong></div>
+                <div>
+                  Wyróżniony: <strong>natychmiast (0 min)</strong>
+                </div>
+                <div>
+                  Pełny: <strong>po 15 minutach</strong>
+                </div>
+                <div>
+                  Start: <strong>po 60 minutach</strong>
+                </div>
               </div>
             </div>
           </div>
@@ -314,10 +376,12 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
           <div className="border border-[#E2D5CA] rounded-[18px] bg-[#FAF6F2] p-6 shadow-2xs">
             <h4 className="font-fraunces text-[18px] font-medium mb-2">Sam szukasz wykonawcy?</h4>
             <p className="text-[14px] text-[#55485A] leading-[1.5] mb-4">
-              Jako właściciel lokalu możesz potrzebować DJ-a, fotografa lub dekoratora na własne wydarzenie.
+              Jako właściciel lokalu możesz potrzebować DJ-a, fotografa lub dekoratora na własne
+              wydarzenie.
             </p>
             <button
-              onClick={() => navigate('NoweZlecenie')}
+              type="button"
+              onClick={() => navigate("NoweZlecenie")}
               className="w-full text-center text-[14px] font-bold text-[#241C2B] bg-white border border-[#241C2B] hover:bg-[#241C2B] hover:text-white transition-colors rounded-[10px] py-2.5 cursor-pointer"
             >
               Wystaw zlecenie bezpłatnie →
@@ -331,6 +395,7 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-[20px] border border-[#E2D5CA] max-w-[560px] w-full p-7 sm:p-8 shadow-2xl relative">
             <button
+              type="button"
               onClick={() => setOfferModalOpen(false)}
               className="absolute top-5 right-5 text-[20px] text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer"
             >
@@ -353,32 +418,45 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
                 <span className="w-14 h-14 rounded-full bg-[#E7EDE7] text-[#5E7360] text-2xl font-bold flex items-center justify-center mx-auto mb-3">
                   ✓
                 </span>
-                <h3 className="font-fraunces text-[22px] font-medium mb-2">Oferta została przekazana!</h3>
+                <h3 className="font-fraunces text-[22px] font-medium mb-2">
+                  Oferta została przekazana!
+                </h3>
                 <p className="text-[14px] text-[#6A5C70]">
-                  Gdy klient doda Twoją ofertę do krótkiej listy, otrzymasz powiadomienie z danymi kontaktowymi.
+                  Gdy klient doda Twoją ofertę do krótkiej listy, otrzymasz powiadomienie z danymi
+                  kontaktowymi.
                 </p>
               </div>
             ) : (
               <form onSubmit={handleSendOffer} className="space-y-4">
                 <div>
-                  <label className="block text-[13px] font-bold text-[#6A5C70] uppercase mb-1">
+                  <label
+                    htmlFor="zleceniascreen-cena-laczna-brutto-za-cale-zamowienie"
+                    className="block text-[13px] font-bold text-[#6A5C70] uppercase mb-1"
+                  >
                     Cena łączna brutto za całe zamówienie
                   </label>
                   <input
+                    id="zleceniascreen-cena-laczna-brutto-za-cale-zamowienie"
                     type="text"
                     value={offerPrice}
                     onChange={(e) => setOfferPrice(e.target.value)}
                     required
                     className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[16px] font-semibold text-[#241C2B] outline-none focus:border-[#241C2B]"
                   />
-                  <span className="text-[12px] text-[#8B7F91]">Budżet klienta wynosi: do 18 000 zł</span>
+                  <span className="text-[12px] text-[#8B7F91]">
+                    Budżet klienta wynosi: do 18 000 zł
+                  </span>
                 </div>
 
                 <div>
-                  <label className="block text-[13px] font-bold text-[#6A5C70] uppercase mb-1">
+                  <label
+                    htmlFor="zleceniascreen-zakres-oferty-i-co-zawiera-cena"
+                    className="block text-[13px] font-bold text-[#6A5C70] uppercase mb-1"
+                  >
                     Zakres oferty i co zawiera cena
                   </label>
                   <textarea
+                    id="zleceniascreen-zakres-oferty-i-co-zawiera-cena"
                     rows={3}
                     value={offerScope}
                     onChange={(e) => setOfferScope(e.target.value)}
@@ -388,10 +466,16 @@ export function ZleceniaScreen({ navigate }: ScreenProps) {
                 </div>
 
                 <div>
-                  <label className="block text-[13px] font-bold text-[#6A5C70] uppercase mb-1">
+                  <label
+                    htmlFor="zleceniascreen-termin-waznosci-oferty"
+                    className="block text-[13px] font-bold text-[#6A5C70] uppercase mb-1"
+                  >
                     Termin ważności oferty
                   </label>
-                  <select className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[14px] text-[#241C2B] outline-none focus:border-[#241C2B] bg-white">
+                  <select
+                    id="zleceniascreen-termin-waznosci-oferty"
+                    className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[14px] text-[#241C2B] outline-none focus:border-[#241C2B] bg-white"
+                  >
                     <option>Ważna przez 14 dni</option>
                     <option>Ważna przez 7 dni</option>
                     <option>Ważna przez 30 dni</option>

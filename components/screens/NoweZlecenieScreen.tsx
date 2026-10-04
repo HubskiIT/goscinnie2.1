@@ -1,36 +1,27 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { ScreenProps } from '../types';
-import { Header } from '../Header';
-import { Footer } from '../Footer';
+import { useState } from "react";
+import { Footer } from "../Footer";
+import { Header } from "../Header";
+import type { ScreenProps } from "../types";
 
 export function NoweZlecenieScreen({ navigate }: ScreenProps) {
   const [currentStep, setCurrentStep] = useState(2);
-  const [date, setDate] = useState('12.06.2027');
-  const [guests, setGuests] = useState('80');
-  const [city, setCity] = useState('Wrocław');
-  const [radius, setRadius] = useState('do 25 km');
-  const [budget, setBudget] = useState('18 000 zł');
+  const [date, setDate] = useState("12.06.2027");
+  const [guests, setGuests] = useState("80");
+  const [city, setCity] = useState("Wrocław");
+  const [radius, setRadius] = useState("do 25 km");
+  const [budget, setBudget] = useState("18 000 zł");
   const [description, setDescription] = useState(
-    'Szukamy sali na komunię córki. Osiemdziesięciu gości, w tym dwadzieścioro dzieci, więc przydałby się kąt do zabawy albo ogród. Zależy nam na sali na wyłączność i na własnym torcie bez opłaty.'
+    "Szukamy sali na komunię córki. Osiemdziesięciu gości, w tym dwadzieścioro dzieci, więc przydałby się kąt do zabawy albo ogród. Zależy nam na sali na wyłączność i na własnym torcie bez opłaty.",
   );
-  const [selectedTags, setSelectedTags] = useState<string[]>([
-    'Sala na wyłączność',
-    'Ogród',
-  ]);
+  const [selectedTags, setSelectedTags] = useState<string[]>(["Sala na wyłączność", "Ogród"]);
 
-  const tags = [
-    'Sala na wyłączność',
-    'Ogród',
-    'Nocleg',
-    'Parking',
-    'Dostęp dla wózka',
-  ];
+  const tags = ["Sala na wyłączność", "Ogród", "Nocleg", "Parking", "Dostęp dla wózka"];
 
   const toggleTag = (t: string) => {
     setSelectedTags((prev) =>
-      prev.includes(t) ? prev.filter((item) => item !== t) : [...prev, t]
+      prev.includes(t) ? prev.filter((item) => item !== t) : [...prev, t],
     );
   };
 
@@ -44,14 +35,15 @@ export function NoweZlecenieScreen({ navigate }: ScreenProps) {
             Opisz raz, odpowiedzą sami
           </h1>
           <p className="m-0 mb-8 text-[17px] leading-[1.6] text-[#3E3344] max-w-[64ch]">
-            Cztery kroki, około dwóch minut. Wystawienie zlecenia jest bezpłatne i nie zobowiązuje do niczego. Nie
-            podajesz numeru telefonu.
+            Cztery kroki, około dwóch minut. Wystawienie zlecenia jest bezpłatne i nie zobowiązuje
+            do niczego. Nie podajesz numeru telefonu.
           </p>
 
           {/* Stepper */}
           <div className="flex items-center gap-3.5 mb-10 overflow-x-auto pb-2">
             {/* Step 1 */}
             <button
+              type="button"
               onClick={() => setCurrentStep(1)}
               className="flex items-center gap-3 cursor-pointer bg-transparent border-0 p-0 shrink-0"
             >
@@ -64,23 +56,24 @@ export function NoweZlecenieScreen({ navigate }: ScreenProps) {
 
             {/* Step 2 */}
             <button
+              type="button"
               onClick={() => setCurrentStep(2)}
               className="flex items-center gap-3 cursor-pointer bg-transparent border-0 p-0 shrink-0"
             >
               <span
                 className={`w-[30px] h-[30px] rounded-full text-[14px] font-bold flex items-center justify-center ${
                   currentStep === 2
-                    ? 'bg-[#241C2B] text-[#FBF7F4]'
+                    ? "bg-[#241C2B] text-[#FBF7F4]"
                     : currentStep > 2
-                    ? 'bg-[#5E7360] text-[#FBF7F4]'
-                    : 'border-[1.5px] border-[#D9CCC2] text-[#8B7F91]'
+                      ? "bg-[#5E7360] text-[#FBF7F4]"
+                      : "border-[1.5px] border-[#D9CCC2] text-[#8B7F91]"
                 }`}
               >
                 2
               </span>
               <span
                 className={`text-[15px] font-semibold ${
-                  currentStep === 2 ? 'text-[#241C2B]' : 'text-[#8B7F91]'
+                  currentStep === 2 ? "text-[#241C2B]" : "text-[#8B7F91]"
                 }`}
               >
                 Szczegóły
@@ -90,23 +83,24 @@ export function NoweZlecenieScreen({ navigate }: ScreenProps) {
 
             {/* Step 3 */}
             <button
+              type="button"
               onClick={() => setCurrentStep(3)}
               className="flex items-center gap-3 cursor-pointer bg-transparent border-0 p-0 shrink-0"
             >
               <span
                 className={`w-[30px] h-[30px] rounded-full text-[14px] font-bold flex items-center justify-center ${
                   currentStep === 3
-                    ? 'bg-[#241C2B] text-[#FBF7F4]'
+                    ? "bg-[#241C2B] text-[#FBF7F4]"
                     : currentStep > 3
-                    ? 'bg-[#5E7360] text-[#FBF7F4]'
-                    : 'border-[1.5px] border-[#D9CCC2] text-[#8B7F91]'
+                      ? "bg-[#5E7360] text-[#FBF7F4]"
+                      : "border-[1.5px] border-[#D9CCC2] text-[#8B7F91]"
                 }`}
               >
                 3
               </span>
               <span
                 className={`text-[15px] font-semibold ${
-                  currentStep === 3 ? 'text-[#241C2B]' : 'text-[#8B7F91]'
+                  currentStep === 3 ? "text-[#241C2B]" : "text-[#8B7F91]"
                 }`}
               >
                 Budżet
@@ -116,21 +110,22 @@ export function NoweZlecenieScreen({ navigate }: ScreenProps) {
 
             {/* Step 4 */}
             <button
+              type="button"
               onClick={() => setCurrentStep(4)}
               className="flex items-center gap-3 cursor-pointer bg-transparent border-0 p-0 shrink-0"
             >
               <span
                 className={`w-[30px] h-[30px] rounded-full text-[14px] font-bold flex items-center justify-center ${
                   currentStep === 4
-                    ? 'bg-[#241C2B] text-[#FBF7F4]'
-                    : 'border-[1.5px] border-[#D9CCC2] text-[#8B7F91]'
+                    ? "bg-[#241C2B] text-[#FBF7F4]"
+                    : "border-[1.5px] border-[#D9CCC2] text-[#8B7F91]"
                 }`}
               >
                 4
               </span>
               <span
                 className={`text-[15px] font-semibold ${
-                  currentStep === 4 ? 'text-[#241C2B]' : 'text-[#8B7F91]'
+                  currentStep === 4 ? "text-[#241C2B]" : "text-[#8B7F91]"
                 }`}
               >
                 Kontakt
@@ -144,23 +139,27 @@ export function NoweZlecenieScreen({ navigate }: ScreenProps) {
               <div>
                 <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">Wybierz okazję</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-                  {['Komunia', 'Wesele', 'Chrzciny', 'Urodziny', 'Event firmowy', 'Stypa'].map((o) => (
-                    <button
-                      key={o}
-                      type="button"
-                      onClick={() => setCurrentStep(2)}
-                      className="border border-[#D9CCC2] hover:border-[#241C2B] rounded-xl p-4 text-left font-semibold text-[16px] bg-[#FBF7F4] hover:bg-white cursor-pointer"
-                    >
-                      {o}
-                    </button>
-                  ))}
+                  {["Komunia", "Wesele", "Chrzciny", "Urodziny", "Event firmowy", "Stypa"].map(
+                    (o) => (
+                      <button
+                        key={o}
+                        type="button"
+                        onClick={() => setCurrentStep(2)}
+                        className="border border-[#D9CCC2] hover:border-[#241C2B] rounded-xl p-4 text-left font-semibold text-[16px] bg-[#FBF7F4] hover:bg-white cursor-pointer"
+                      >
+                        {o}
+                      </button>
+                    ),
+                  )}
                 </div>
               </div>
             )}
 
             {currentStep === 2 && (
               <>
-                <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">Szczegóły wydarzenia</h2>
+                <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">
+                  Szczegóły wydarzenia
+                </h2>
 
                 <div className="flex flex-col sm:flex-row gap-4 mb-5">
                   <div className="grow flex flex-col gap-2">
@@ -174,7 +173,9 @@ export function NoweZlecenieScreen({ navigate }: ScreenProps) {
                       onChange={(e) => setDate(e.target.value)}
                       className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
                     />
-                    <span className="text-[13px] text-[#6A5C70]">Nie znasz jeszcze daty? Wpisz miesiąc.</span>
+                    <span className="text-[13px] text-[#6A5C70]">
+                      Nie znasz jeszcze daty? Wpisz miesiąc.
+                    </span>
                   </div>
                   <div className="w-full sm:w-[220px] flex flex-col gap-2">
                     <label htmlFor="z-osoby" className="text-[14px] font-semibold text-[#3E3344]">
@@ -236,7 +237,9 @@ export function NoweZlecenieScreen({ navigate }: ScreenProps) {
                 </div>
 
                 <div className="flex flex-col gap-2.5 mb-7">
-                  <span className="text-[14px] font-semibold text-[#3E3344]">Czego potrzebujesz</span>
+                  <span className="text-[14px] font-semibold text-[#3E3344]">
+                    Czego potrzebujesz
+                  </span>
                   <div className="flex gap-2.5 flex-wrap">
                     {tags.map((t) => {
                       const isSelected = selectedTags.includes(t);
@@ -247,8 +250,8 @@ export function NoweZlecenieScreen({ navigate }: ScreenProps) {
                           onClick={() => toggleTag(t)}
                           className={`text-[14px] rounded-full px-4 py-2 cursor-pointer transition-colors ${
                             isSelected
-                              ? 'font-semibold text-[#241C2B] bg-white border-[1.5px] border-[#241C2B] shadow-sm'
-                              : 'text-[#3E3344] bg-white border border-[#D9CCC2] hover:border-[#241C2B]'
+                              ? "font-semibold text-[#241C2B] bg-white border-[1.5px] border-[#241C2B] shadow-sm"
+                              : "text-[#3E3344] bg-white border border-[#D9CCC2] hover:border-[#241C2B]"
                           }`}
                         >
                           {t}
@@ -285,21 +288,33 @@ export function NoweZlecenieScreen({ navigate }: ScreenProps) {
               <div className="mb-6">
                 <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">Dane kontaktowe</h2>
                 <p className="text-[15px] text-[#55485A] mb-4">
-                  Twój adres e-mail służy do powiadomień o nowych ofertach. Firmy nie zobaczą go, dopóki sam ich nie dodasz
-                  do krótkiej listy.
+                  Twój adres e-mail służy do powiadomień o nowych ofertach. Firmy nie zobaczą go,
+                  dopóki sam ich nie dodasz do krótkiej listy.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
-                    <label className="text-[14px] font-semibold text-[#3E3344]">Imię</label>
+                    <label
+                      htmlFor="nowezleceniescreen-imie"
+                      className="text-[14px] font-semibold text-[#3E3344]"
+                    >
+                      Imię
+                    </label>
                     <input
+                      id="nowezleceniescreen-imie"
                       type="text"
                       defaultValue="Anna"
                       className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-[14px] font-semibold text-[#3E3344]">Adres e-mail</label>
+                    <label
+                      htmlFor="nowezleceniescreen-adres-e-mail"
+                      className="text-[14px] font-semibold text-[#3E3344]"
+                    >
+                      Adres e-mail
+                    </label>
                     <input
+                      id="nowezleceniescreen-adres-e-mail"
                       type="email"
                       defaultValue="anna.kowalska@example.com"
                       className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5"
@@ -317,12 +332,16 @@ export function NoweZlecenieScreen({ navigate }: ScreenProps) {
                   onClick={() => setCurrentStep(currentStep + 1)}
                   className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-4 cursor-pointer shadow-sm"
                 >
-                  {currentStep === 1 ? 'Dalej, szczegóły' : currentStep === 2 ? 'Dalej, budżet' : 'Dalej, kontakt'}
+                  {currentStep === 1
+                    ? "Dalej, szczegóły"
+                    : currentStep === 2
+                      ? "Dalej, budżet"
+                      : "Dalej, kontakt"}
                 </button>
               ) : (
                 <button
                   type="button"
-                  onClick={() => navigate('PanelKlienta')}
+                  onClick={() => navigate("PanelKlienta")}
                   className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-4 cursor-pointer shadow-sm"
                 >
                   Opublikuj zlecenie
@@ -375,8 +394,9 @@ export function NoweZlecenieScreen({ navigate }: ScreenProps) {
                 </div>
               </div>
               <p className="m-0 text-[14px] leading-[1.65] text-[#55485A]">
-                Firma pozna Twoje imię, adres e-mail i numer dopiero wtedy, gdy sam dodasz jej ofertę do krótkiej listy.
-                Do tego czasu rozmawiacie przez serwis, a filtr zasłania numery i adresy po obu stronach.
+                Firma pozna Twoje imię, adres e-mail i numer dopiero wtedy, gdy sam dodasz jej
+                ofertę do krótkiej listy. Do tego czasu rozmawiacie przez serwis, a filtr zasłania
+                numery i adresy po obu stronach.
               </p>
             </div>
           </div>
@@ -384,8 +404,8 @@ export function NoweZlecenieScreen({ navigate }: ScreenProps) {
           <div className="border border-[#E2D5CA] rounded-[20px] bg-[#F2E9E2] p-6">
             <div className="text-[16px] font-bold mb-2.5">Ile to kosztuje</div>
             <p className="m-0 text-[14px] leading-[1.7] text-[#55485A]">
-              Nic. Klient nie płaci w tym serwisie nigdy, ani za wystawienie zlecenia, ani za kontakt, ani prowizji od
-              umów. Płacą firmy, abonamentem.
+              Nic. Klient nie płaci w tym serwisie nigdy, ani za wystawienie zlecenia, ani za
+              kontakt, ani prowizji od umów. Płacą firmy, abonamentem.
             </p>
           </div>
         </aside>

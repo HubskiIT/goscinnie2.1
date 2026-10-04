@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { ScreenProps } from '../types';
-import { Header } from '../Header';
-import { Footer } from '../Footer';
+import { useState } from "react";
+import { Footer } from "../Footer";
+import { Header } from "../Header";
+import type { ScreenProps } from "../types";
 
 export function ImprezaScreen({ navigate }: ScreenProps) {
   const [ticketCount, setTicketCount] = useState(2);
-  const [tableType, setTableType] = useState('wspólny');
+  const [tableType, setTableType] = useState("wspólny");
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
@@ -17,18 +17,20 @@ export function ImprezaScreen({ navigate }: ScreenProps) {
       <section className="shrink-0 px-6 sm:px-12 md:px-[130px] pt-8">
         <p className="m-0 mb-4 text-[14px] text-[#6A5C70]">
           <button
-            onClick={() => navigate('Imprezy')}
+            type="button"
+            onClick={() => navigate("Imprezy")}
             className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
           >
             Imprezy
-          </button>{' '}
-          &nbsp;›&nbsp;{' '}
+          </button>{" "}
+          &nbsp;›&nbsp;{" "}
           <button
-            onClick={() => navigate('Imprezy')}
+            type="button"
+            onClick={() => navigate("Imprezy")}
             className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
           >
             Andrzejki
-          </button>{' '}
+          </button>{" "}
           &nbsp;›&nbsp; Wrocław i okolice
         </p>
 
@@ -60,9 +62,10 @@ export function ImprezaScreen({ navigate }: ScreenProps) {
             Andrzejki pod Lipami
           </h1>
           <p className="m-0 mb-8 text-[17px] text-[#6A5C70]">
-            29 listopada 2026, 19:00 do 3:00 &nbsp;·&nbsp;{' '}
+            29 listopada 2026, 19:00 do 3:00 &nbsp;·&nbsp;{" "}
             <button
-              onClick={() => navigate('Profil')}
+              type="button"
+              onClick={() => navigate("Profil")}
               className="text-[#8A5405] hover:text-[#241C2B] underline bg-transparent border-0 cursor-pointer p-0 font-inherit"
             >
               Dwór pod Lipami
@@ -72,44 +75,103 @@ export function ImprezaScreen({ navigate }: ScreenProps) {
 
           <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">O imprezie</h2>
           <p className="m-0 mb-8 text-[16px] leading-[1.72] text-[#3E3344] max-w-[68ch]">
-            Wieczór w sali balowej, z kolacją zasiadaną i muzyką do trzeciej. Wróżby prowadzi para aktorów, lanie wosku
-            na starym sprzęcie, bez elektroniki. Sala jest tego wieczoru tylko dla uczestników tej imprezy.
+            Wieczór w sali balowej, z kolacją zasiadaną i muzyką do trzeciej. Wróżby prowadzi para
+            aktorów, lanie wosku na starym sprzęcie, bez elektroniki. Sala jest tego wieczoru tylko
+            dla uczestników tej imprezy.
           </p>
 
           <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">Co jest w cenie</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-7 gap-y-3 mb-9 max-w-[72ch]">
             <div className="flex gap-2.5 items-center text-[15px]">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E7360" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                aria-hidden="true"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#5E7360"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <polyline points="4 12 10 18 20 6" />
               </svg>
               Kolacja zasiadana, trzy dania
             </div>
             <div className="flex gap-2.5 items-center text-[15px]">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E7360" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                aria-hidden="true"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#5E7360"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <polyline points="4 12 10 18 20 6" />
               </svg>
               Bufet słodki i kawa przez cały wieczór
             </div>
             <div className="flex gap-2.5 items-center text-[15px]">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E7360" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                aria-hidden="true"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#5E7360"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <polyline points="4 12 10 18 20 6" />
               </svg>
               DJ i parkiet
             </div>
             <div className="flex gap-2.5 items-center text-[15px]">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E7360" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                aria-hidden="true"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#5E7360"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <polyline points="4 12 10 18 20 6" />
               </svg>
               Wróżby i lanie wosku
             </div>
             <div className="flex gap-2.5 items-center text-[15px] text-[#6A5C70]">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B7F91" strokeWidth="2.2" strokeLinecap="round">
+              <svg
+                aria-hidden="true"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#8B7F91"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+              >
                 <path d="M6 6l12 12M18 6L6 18" />
               </svg>
               Alkohol, płatny przy barze
             </div>
             <div className="flex gap-2.5 items-center text-[15px] text-[#6A5C70]">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B7F91" strokeWidth="2.2" strokeLinecap="round">
+              <svg
+                aria-hidden="true"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#8B7F91"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+              >
                 <path d="M6 6l12 12M18 6L6 18" />
               </svg>
               Nocleg, osobno 150 zł od osoby
@@ -119,14 +181,14 @@ export function ImprezaScreen({ navigate }: ScreenProps) {
           <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">Plan wieczoru</h2>
           <div className="mb-9 max-w-[72ch]">
             {[
-              { time: '19:00', desc: 'Przyjęcie gości, aperitif w sieni' },
-              { time: '20:00', desc: 'Kolacja' },
-              { time: '21:30', desc: 'Wróżby i lanie wosku' },
-              { time: '22:30', desc: 'Parkiet' },
-              { time: '00:30', desc: 'Bufet nocny' },
-              { time: '03:00', desc: 'Koniec' },
-            ].map((plan, idx) => (
-              <div key={idx} className="flex gap-5 py-3.5 border-t border-[#EFE5DD]">
+              { time: "19:00", desc: "Przyjęcie gości, aperitif w sieni" },
+              { time: "20:00", desc: "Kolacja" },
+              { time: "21:30", desc: "Wróżby i lanie wosku" },
+              { time: "22:30", desc: "Parkiet" },
+              { time: "00:30", desc: "Bufet nocny" },
+              { time: "03:00", desc: "Koniec" },
+            ].map((plan) => (
+              <div key={plan.time} className="flex gap-5 py-3.5 border-t border-[#EFE5DD]">
                 <span className="w-[70px] shrink-0 text-[15px] font-bold">{plan.time}</span>
                 <span className="text-[15px] leading-[1.6] text-[#3E3344]">{plan.desc}</span>
               </div>
@@ -139,7 +201,7 @@ export function ImprezaScreen({ navigate }: ScreenProps) {
               className="absolute inset-0"
               style={{
                 background:
-                  'linear-gradient(90deg, rgba(94,115,96,0.10) 1px, transparent 1px) 0 0 / 46px 46px, linear-gradient(0deg, rgba(94,115,96,0.10) 1px, transparent 1px) 0 0 / 46px 46px',
+                  "linear-gradient(90deg, rgba(94,115,96,0.10) 1px, transparent 1px) 0 0 / 46px 46px, linear-gradient(0deg, rgba(94,115,96,0.10) 1px, transparent 1px) 0 0 / 46px 46px",
               }}
             />
             <span className="absolute left-[300px] top-[100px] w-8 h-8 rounded-full rounded-br-[2px] bg-[#241C2B] -rotate-45" />
@@ -155,7 +217,7 @@ export function ImprezaScreen({ navigate }: ScreenProps) {
         <aside className="w-full lg:w-[360px] shrink-0">
           <div className="border border-[#D9CCC2] rounded-[20px] bg-white p-[26px] flex flex-col gap-4 shadow-sm">
             <div>
-              <span className="font-fraunces text-[34px] font-medium">180 zł</span>{' '}
+              <span className="font-fraunces text-[34px] font-medium">180 zł</span>{" "}
               <span className="text-[15px] text-[#6A5C70]">od osoby</span>
             </div>
             <div className="h-[1px] bg-[#EFE5DD]" />
@@ -185,7 +247,7 @@ export function ImprezaScreen({ navigate }: ScreenProps) {
                     id="i-osoby"
                     type="number"
                     value={ticketCount}
-                    onChange={(e) => setTicketCount(Math.max(1, parseInt(e.target.value) || 1))}
+                    onChange={(e) => setTicketCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
                     className="w-full text-center border-0 p-0 text-[15px] font-semibold text-[#241C2B] focus:outline-none"
                   />
                   <button
@@ -216,39 +278,44 @@ export function ImprezaScreen({ navigate }: ScreenProps) {
 
             <div className="text-[14px] text-[#6A5C70] flex justify-between pt-1">
               <span>Suma:</span>
-              <strong className="text-[16px] text-[#241C2B] font-bold">{ticketCount * 180} zł</strong>
+              <strong className="text-[16px] text-[#241C2B] font-bold">
+                {ticketCount * 180} zł
+              </strong>
             </div>
 
             <button
               type="button"
-              onClick={() => navigate('PotwierdzenieRezerwacji')}
+              onClick={() => navigate("PotwierdzenieRezerwacji")}
               className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-4 cursor-pointer shadow-sm text-center"
             >
               Zarezerwuj miejsca
             </button>
 
             <p className="m-0 text-[13px] leading-[1.6] text-[#6A5C70]">
-              Rezerwację potwierdza lokal, płacisz na miejscu albo przelewem do niego. Serwis nie pośredniczy w płatności
-              i nie pobiera prowizji.
+              Rezerwację potwierdza lokal, płacisz na miejscu albo przelewem do niego. Serwis nie
+              pośredniczy w płatności i nie pobiera prowizji.
             </p>
           </div>
 
           <div className="mt-[18px] border border-[#E2D5CA] rounded-[20px] bg-[#F2E9E2] p-[22px]">
             <div className="text-[15px] font-bold mb-2.5">Inne terminy tego miejsca</div>
             <button
-              onClick={() => navigate('Imprezy')}
+              type="button"
+              onClick={() => navigate("Imprezy")}
               className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] py-2 border-b border-[#E2D5CA] bg-transparent border-0 border-b cursor-pointer w-full"
             >
               Mikołajki, 6 grudnia
             </button>
             <button
-              onClick={() => navigate('Imprezy')}
+              type="button"
+              onClick={() => navigate("Imprezy")}
               className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] py-2 border-b border-[#E2D5CA] bg-transparent border-0 border-b cursor-pointer w-full"
             >
               Sylwester w ogrodzie, 31 grudnia
             </button>
             <button
-              onClick={() => navigate('Profil')}
+              type="button"
+              onClick={() => navigate("Profil")}
               className="block text-left text-[14px] text-[#8A5405] hover:text-[#241C2B] pt-2.5 bg-transparent border-0 cursor-pointer font-semibold"
             >
               Zobacz cały profil lokalu

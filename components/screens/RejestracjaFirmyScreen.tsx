@@ -1,50 +1,51 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { ScreenProps } from '../types';
-import { Header } from '../Header';
-import { Footer } from '../Footer';
+import { useState } from "react";
+import { Footer } from "../Footer";
+import { Header } from "../Header";
+import type { ScreenProps } from "../types";
 
 export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Step 1: Account & Type
-  const [accountType, setAccountType] = useState<'lokal' | 'usluga'>('lokal');
-  const [category, setCategory] = useState('Sale weselne i obiekty');
-  const [email, setEmail] = useState('biuro@dworpodlipami.pl');
-  const [password, setPassword] = useState('********');
+  const [accountType, setAccountType] = useState<"lokal" | "usluga">("lokal");
+  const [category, setCategory] = useState("Sale weselne i obiekty");
+  const [email, setEmail] = useState("biuro@dworpodlipami.pl");
+  const [password, setPassword] = useState("********");
 
   // Step 2: Profile Content
-  const [displayName, setDisplayName] = useState('Dwór pod Lipami');
-  const [town, setTown] = useState('Kobierzyce, k. Wrocławia');
-  const [priceFrom, setPriceFrom] = useState('180 zł');
-  const [capacity, setCapacity] = useState('do 140 osób');
+  const [displayName, setDisplayName] = useState("Dwór pod Lipami");
+  const [town, setTown] = useState("Kobierzyce, k. Wrocławia");
+  const [priceFrom, setPriceFrom] = useState("180 zł");
+  const [capacity, setCapacity] = useState("do 140 osób");
   const [description, setDescription] = useState(
-    'Dwór z 1902 roku z salą balową na 140 osób i parkiem. Obsługujemy wesela, komunie i przyjęcia okolicznościowe.'
+    "Dwór z 1902 roku z salą balową na 140 osób i parkiem. Obsługujemy wesela, komunie i przyjęcia okolicznościowe.",
   );
 
   // Step 3: Company verification
-  const [nip, setNip] = useState('8971234567');
+  const [nip, setNip] = useState("8971234567");
   const [isNipVerified, setIsNipVerified] = useState(true);
-  const [phone, setPhone] = useState('+48 71 390 12 34');
-  const [smsCode, setSmsCode] = useState('4829');
-  const [isPhoneVerified, setIsPhoneVerified] = useState(true);
+  const [phone, setPhone] = useState("+48 71 390 12 34");
+  const [smsCode, setSmsCode] = useState("4829");
+  const [isPhoneVerified, _setIsPhoneVerified] = useState(true);
 
   // Step 4: Plan & Period
-  const [selectedPlan, setSelectedPlan] = useState<'start' | 'pelny' | 'wyrozniony'>('pelny');
-  const [selectedPeriod, setSelectedPeriod] = useState<'miesiac' | 'pol_roku' | 'rok'>('rok');
+  const [selectedPlan, setSelectedPlan] = useState<"start" | "pelny" | "wyrozniony">("pelny");
+  const [selectedPeriod, setSelectedPeriod] = useState<"miesiac" | "pol_roku" | "rok">("rok");
   const [useTrial, setUseTrial] = useState(false);
 
   const getStartingPrice = () => {
-    if (accountType === 'lokal') return 'od 189 zł / msc (Klasa A)';
-    if (category.includes('Foto') || category.includes('Wideo') || category.includes('Zespół')) return 'od 89 zł / msc (Klasa B)';
-    return 'od 49 zł / msc (Klasa C)';
+    if (accountType === "lokal") return "od 189 zł / msc (Klasa A)";
+    if (category.includes("Foto") || category.includes("Wideo") || category.includes("Zespół"))
+      return "od 89 zł / msc (Klasa B)";
+    return "od 49 zł / msc (Klasa C)";
   };
 
   const handleNext = () => {
     if (step < 4) setStep((prev) => (prev + 1) as 1 | 2 | 3 | 4);
     else {
-      navigate('PanelFirmy');
+      navigate("PanelFirmy");
     }
   };
 
@@ -56,11 +57,12 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
         {/* Breadcrumb */}
         <p className="m-0 mb-4 text-[14px] text-[#6A5C70]">
           <button
-            onClick={() => navigate('Cennik')}
+            type="button"
+            onClick={() => navigate("Cennik")}
             className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
           >
             Dla firm
-          </button>{' '}
+          </button>{" "}
           &nbsp;›&nbsp; Rejestracja profilu i kreator
         </p>
 
@@ -71,21 +73,37 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
               Dodaj swoją firmę do katalogu Gościnnie
             </h1>
             <p className="m-0 mt-1 text-[16px] text-[#6A5C70]">
-              Budowa profilu jest w 100% bezpłatna. Plan i okres wybierzesz w ostatnim kroku, lub zaczniesz od 30 dni próby.
+              Budowa profilu jest w 100% bezpłatna. Plan i okres wybierzesz w ostatnim kroku, lub
+              zaczniesz od 30 dni próby.
             </p>
           </div>
 
           <div className="flex items-center gap-2 text-[14px] font-bold text-[#6A5C70] bg-[#F2E9E2] px-4 py-2 rounded-full border border-[#E2D5CA]">
-            Krok {step} z 4: {step === 1 ? 'Konto i rodzaj' : step === 2 ? 'Kreator profilu' : step === 3 ? 'Weryfikacja firmy' : 'Publikacja'}
+            Krok {step} z 4:{" "}
+            {step === 1
+              ? "Konto i rodzaj"
+              : step === 2
+                ? "Kreator profilu"
+                : step === 3
+                  ? "Weryfikacja firmy"
+                  : "Publikacja"}
           </div>
         </div>
 
         {/* Step Indicator Progress Bar */}
         <div className="grid grid-cols-4 gap-2.5 mb-10">
-          <div className={`h-2 rounded-full transition-colors ${step >= 1 ? 'bg-[#241C2B]' : 'bg-[#E2D5CA]'}`} />
-          <div className={`h-2 rounded-full transition-colors ${step >= 2 ? 'bg-[#241C2B]' : 'bg-[#E2D5CA]'}`} />
-          <div className={`h-2 rounded-full transition-colors ${step >= 3 ? 'bg-[#241C2B]' : 'bg-[#E2D5CA]'}`} />
-          <div className={`h-2 rounded-full transition-colors ${step >= 4 ? 'bg-[#241C2B]' : 'bg-[#E2D5CA]'}`} />
+          <div
+            className={`h-2 rounded-full transition-colors ${step >= 1 ? "bg-[#241C2B]" : "bg-[#E2D5CA]"}`}
+          />
+          <div
+            className={`h-2 rounded-full transition-colors ${step >= 2 ? "bg-[#241C2B]" : "bg-[#E2D5CA]"}`}
+          />
+          <div
+            className={`h-2 rounded-full transition-colors ${step >= 3 ? "bg-[#241C2B]" : "bg-[#E2D5CA]"}`}
+          />
+          <div
+            className={`h-2 rounded-full transition-colors ${step >= 4 ? "bg-[#241C2B]" : "bg-[#E2D5CA]"}`}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
@@ -94,18 +112,22 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
             {/* Step 1: Konto i rodzaj */}
             {step === 1 && (
               <div>
-                <h2 className="font-fraunces text-[24px] font-medium mb-2">1. Konto i rodzaj działalności</h2>
+                <h2 className="font-fraunces text-[24px] font-medium mb-2">
+                  1. Konto i rodzaj działalności
+                </h2>
                 <p className="text-[14px] text-[#6A5C70] mb-6">
-                  Wybierz, czy prowadzisz lokal stacjonarny, czy jesteś mobilnym usługodawcą dojeżdżającym do klienta.
+                  Wybierz, czy prowadzisz lokal stacjonarny, czy jesteś mobilnym usługodawcą
+                  dojeżdżającym do klienta.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                  <div
-                    onClick={() => setAccountType('lokal')}
-                    className={`p-5 rounded-[16px] border-2 cursor-pointer transition-all ${
-                      accountType === 'lokal'
-                        ? 'border-[#241C2B] bg-[#FAF6F2]'
-                        : 'border-[#E2D5CA] bg-white hover:border-[#6A5C70]'
+                  <button
+                    type="button"
+                    onClick={() => setAccountType("lokal")}
+                    className={`text-left p-5 rounded-[16px] border-2 cursor-pointer transition-all ${
+                      accountType === "lokal"
+                        ? "border-[#241C2B] bg-[#FAF6F2]"
+                        : "border-[#E2D5CA] bg-white hover:border-[#6A5C70]"
                     }`}
                   >
                     <div className="text-[24px] mb-2">🏛️</div>
@@ -113,14 +135,15 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
                     <div className="text-[13px] text-[#6A5C70] leading-[1.4]">
                       Sala weselna, restauracja, dom weselny, hotel, agroturystyka, remiza, plener.
                     </div>
-                  </div>
+                  </button>
 
-                  <div
-                    onClick={() => setAccountType('usluga')}
-                    className={`p-5 rounded-[16px] border-2 cursor-pointer transition-all ${
-                      accountType === 'usluga'
-                        ? 'border-[#241C2B] bg-[#FAF6F2]'
-                        : 'border-[#E2D5CA] bg-white hover:border-[#6A5C70]'
+                  <button
+                    type="button"
+                    onClick={() => setAccountType("usluga")}
+                    className={`text-left p-5 rounded-[16px] border-2 cursor-pointer transition-all ${
+                      accountType === "usluga"
+                        ? "border-[#241C2B] bg-[#FAF6F2]"
+                        : "border-[#E2D5CA] bg-white hover:border-[#6A5C70]"
                     }`}
                   >
                     <div className="text-[24px] mb-2">🎧</div>
@@ -128,7 +151,7 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
                     <div className="text-[13px] text-[#6A5C70] leading-[1.4]">
                       DJ, fotograf, wideo, zespół muzyczny, catering, barman, dekorator, animator.
                     </div>
-                  </div>
+                  </button>
                 </div>
 
                 <div className="border border-[#E2D5CA] bg-[#F2E9E2] rounded-[12px] p-3.5 mb-6 text-[13px] text-[#55485A] flex items-center justify-between">
@@ -138,8 +161,14 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
 
                 <div className="space-y-4 text-[14px]">
                   <div>
-                    <label className="block text-[#6A5C70] font-medium mb-1.5">Główna kategoria</label>
+                    <label
+                      htmlFor="rejestracjafirmyscreen-glowna-kategoria"
+                      className="block text-[#6A5C70] font-medium mb-1.5"
+                    >
+                      Główna kategoria
+                    </label>
                     <select
+                      id="rejestracjafirmyscreen-glowna-kategoria"
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
                       className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] bg-white outline-none focus:border-[#241C2B]"
@@ -157,8 +186,14 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[#6A5C70] font-medium mb-1.5">Adres e-mail konta</label>
+                      <label
+                        htmlFor="rejestracjafirmyscreen-adres-e-mail-konta"
+                        className="block text-[#6A5C70] font-medium mb-1.5"
+                      >
+                        Adres e-mail konta
+                      </label>
                       <input
+                        id="rejestracjafirmyscreen-adres-e-mail-konta"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -166,8 +201,14 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
                       />
                     </div>
                     <div>
-                      <label className="block text-[#6A5C70] font-medium mb-1.5">Hasło do panelu</label>
+                      <label
+                        htmlFor="rejestracjafirmyscreen-haslo-do-panelu"
+                        className="block text-[#6A5C70] font-medium mb-1.5"
+                      >
+                        Hasło do panelu
+                      </label>
                       <input
+                        id="rejestracjafirmyscreen-haslo-do-panelu"
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -182,16 +223,25 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
             {/* Step 2: Kreator profilu */}
             {step === 2 && (
               <div>
-                <h2 className="font-fraunces text-[24px] font-medium mb-2">2. Treść i wizytówka profilu</h2>
+                <h2 className="font-fraunces text-[24px] font-medium mb-2">
+                  2. Treść i wizytówka profilu
+                </h2>
                 <p className="text-[14px] text-[#6A5C70] mb-6">
-                  Zasada Gościnnie: profil musi zawierać obowiązkową cenę „od”, aby klienci nie musieli dzwonić w ciemno.
+                  Zasada Gościnnie: profil musi zawierać obowiązkową cenę „od”, aby klienci nie
+                  musieli dzwonić w ciemno.
                 </p>
 
                 <div className="space-y-4 text-[14px]">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[#6A5C70] font-medium mb-1.5">Nazwa profilu (obiektu lub firmy)</label>
+                      <label
+                        htmlFor="rejestracjafirmyscreen-nazwa-profilu-obiektu-lub-firmy"
+                        className="block text-[#6A5C70] font-medium mb-1.5"
+                      >
+                        Nazwa profilu (obiektu lub firmy)
+                      </label>
                       <input
+                        id="rejestracjafirmyscreen-nazwa-profilu-obiektu-lub-firmy"
                         type="text"
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
@@ -199,8 +249,14 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
                       />
                     </div>
                     <div>
-                      <label className="block text-[#6A5C70] font-medium mb-1.5">Miejscowość i powiat</label>
+                      <label
+                        htmlFor="rejestracjafirmyscreen-miejscowosc-i-powiat"
+                        className="block text-[#6A5C70] font-medium mb-1.5"
+                      >
+                        Miejscowość i powiat
+                      </label>
                       <input
+                        id="rejestracjafirmyscreen-miejscowosc-i-powiat"
                         type="text"
                         value={town}
                         onChange={(e) => setTown(e.target.value)}
@@ -211,10 +267,14 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[#6A5C70] font-medium mb-1.5">
+                      <label
+                        htmlFor="rejestracjafirmyscreen-cena-od-pole-obowiazkowe"
+                        className="block text-[#6A5C70] font-medium mb-1.5"
+                      >
                         Cena od (pole obowiązkowe)
                       </label>
                       <input
+                        id="rejestracjafirmyscreen-cena-od-pole-obowiazkowe"
                         type="text"
                         value={priceFrom}
                         onChange={(e) => setPriceFrom(e.target.value)}
@@ -223,10 +283,14 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
                       />
                     </div>
                     <div>
-                      <label className="block text-[#6A5C70] font-medium mb-1.5">
-                        {accountType === 'lokal' ? 'Pojemność sali' : 'Zasięg dojazdu (km)'}
+                      <label
+                        htmlFor="rejestracjafirmyscreen-accounttype-lokal-pojemnosc-sali-zasieg-dojazdu-km"
+                        className="block text-[#6A5C70] font-medium mb-1.5"
+                      >
+                        {accountType === "lokal" ? "Pojemność sali" : "Zasięg dojazdu (km)"}
                       </label>
                       <input
+                        id="rejestracjafirmyscreen-accounttype-lokal-pojemnosc-sali-zasieg-dojazdu-km"
                         type="text"
                         value={capacity}
                         onChange={(e) => setCapacity(e.target.value)}
@@ -236,8 +300,14 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
                   </div>
 
                   <div>
-                    <label className="block text-[#6A5C70] font-medium mb-1.5">Krótki opis dla gości</label>
+                    <label
+                      htmlFor="rejestracjafirmyscreen-krotki-opis-dla-gosci"
+                      className="block text-[#6A5C70] font-medium mb-1.5"
+                    >
+                      Krótki opis dla gości
+                    </label>
                     <textarea
+                      id="rejestracjafirmyscreen-krotki-opis-dla-gosci"
                       rows={3}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
@@ -246,8 +316,12 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
                   </div>
 
                   <div className="border border-dashed border-[#D9CCC2] rounded-[12px] p-5 text-center bg-[#FAF6F2]">
-                    <div className="text-[14px] font-bold text-[#241C2B] mb-1">Dodaj zdjęcia galerii (do 30 zdjęć)</div>
-                    <div className="text-[12px] text-[#6A5C70]">Wybierz pliki JPG, PNG do 10 MB. Możesz uzupełnić to w każdej chwili w panelu.</div>
+                    <div className="text-[14px] font-bold text-[#241C2B] mb-1">
+                      Dodaj zdjęcia galerii (do 30 zdjęć)
+                    </div>
+                    <div className="text-[12px] text-[#6A5C70]">
+                      Wybierz pliki JPG, PNG do 10 MB. Możesz uzupełnić to w każdej chwili w panelu.
+                    </div>
                   </div>
                 </div>
               </div>
@@ -256,16 +330,25 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
             {/* Step 3: Weryfikacja firmy */}
             {step === 3 && (
               <div>
-                <h2 className="font-fraunces text-[24px] font-medium mb-2">3. Weryfikacja działalności (NIP i SMS)</h2>
+                <h2 className="font-fraunces text-[24px] font-medium mb-2">
+                  3. Weryfikacja działalności (NIP i SMS)
+                </h2>
                 <p className="text-[14px] text-[#6A5C70] mb-6">
-                  Weryfikujemy NIP w rejestrze Ministerstwa Finansów oraz numer telefonu, aby chronić katalog przed fałszywymi kontami.
+                  Weryfikujemy NIP w rejestrze Ministerstwa Finansów oraz numer telefonu, aby
+                  chronić katalog przed fałszywymi kontami.
                 </p>
 
                 <div className="space-y-5 text-[14px]">
                   <div>
-                    <label className="block text-[#6A5C70] font-medium mb-1.5">Numer NIP firmy</label>
+                    <label
+                      htmlFor="rejestracjafirmyscreen-numer-nip-firmy"
+                      className="block text-[#6A5C70] font-medium mb-1.5"
+                    >
+                      Numer NIP firmy
+                    </label>
                     <div className="flex gap-2">
                       <input
+                        id="rejestracjafirmyscreen-numer-nip-firmy"
                         type="text"
                         value={nip}
                         onChange={(e) => setNip(e.target.value)}
@@ -281,15 +364,22 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
                     </div>
                     {isNipVerified && (
                       <div className="text-[12px] text-[#5E7360] font-semibold mt-1.5 flex items-center gap-1.5">
-                        ✓ NIP zweryfikowany w wykazie podatników VAT (podmiot czynny: Dwór pod Lipami Sp. z o.o.)
+                        ✓ NIP zweryfikowany w wykazie podatników VAT (podmiot czynny: Dwór pod
+                        Lipami Sp. z o.o.)
                       </div>
                     )}
                   </div>
 
                   <div>
-                    <label className="block text-[#6A5C70] font-medium mb-1.5">Numer telefonu komórkowego do zapytań</label>
+                    <label
+                      htmlFor="rejestracjafirmyscreen-numer-telefonu-komorkowego-do-zapytan"
+                      className="block text-[#6A5C70] font-medium mb-1.5"
+                    >
+                      Numer telefonu komórkowego do zapytań
+                    </label>
                     <div className="flex gap-2">
                       <input
+                        id="rejestracjafirmyscreen-numer-telefonu-komorkowego-do-zapytan"
                         type="tel"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
@@ -316,18 +406,22 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
             {/* Step 4: Cena i publikacja */}
             {step === 4 && (
               <div>
-                <h2 className="font-fraunces text-[24px] font-medium mb-2">4. Wybór planu i publikacja</h2>
+                <h2 className="font-fraunces text-[24px] font-medium mb-2">
+                  4. Wybór planu i publikacja
+                </h2>
                 <p className="text-[14px] text-[#6A5C70] mb-6">
-                  Wybierz plan abonamentowy lub rozpocznij od 30 dni bezpłatnej próby bez podawania karty.
+                  Wybierz plan abonamentowy lub rozpocznij od 30 dni bezpłatnej próby bez podawania
+                  karty.
                 </p>
 
                 {/* 30 Days Trial Option */}
-                <div
+                <button
+                  type="button"
                   onClick={() => setUseTrial(!useTrial)}
-                  className={`border-2 rounded-[16px] p-5 mb-6 cursor-pointer transition-all ${
+                  className={`text-left border-2 rounded-[16px] p-5 mb-6 cursor-pointer transition-all ${
                     useTrial
-                      ? 'border-[#5E7360] bg-[#E7EDE7]/40 ring-2 ring-[#5E7360]/20'
-                      : 'border-[#E2D5CA] bg-[#FAF6F2]'
+                      ? "border-[#5E7360] bg-[#E7EDE7]/40 ring-2 ring-[#5E7360]/20"
+                      : "border-[#E2D5CA] bg-[#FAF6F2]"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
@@ -339,48 +433,73 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
                     </span>
                   </div>
                   <p className="text-[13px] text-[#55485A] leading-[1.5] m-0">
-                    Profil staje się natychmiast publiczny w katalogu. Nie wymagamy podawania karty płatniczej.
+                    Profil staje się natychmiast publiczny w katalogu. Nie wymagamy podawania karty
+                    płatniczej.
                   </p>
-                </div>
+                </button>
 
                 {!useTrial && (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-[13px] font-bold text-[#6A5C70] uppercase mb-2">Plan</label>
-                      <div className="grid grid-cols-3 gap-2.5">
-                        {(['start', 'pelny', 'wyrozniony'] as const).map((p) => (
-                          <div
+                      <span
+                        id="rejestracjafirmyscreen-plan"
+                        className="block text-[13px] font-bold text-[#6A5C70] uppercase mb-2"
+                      >
+                        Plan
+                      </span>
+                      <fieldset
+                        aria-labelledby="rejestracjafirmyscreen-plan"
+                        className="grid grid-cols-3 gap-2.5"
+                      >
+                        {(["start", "pelny", "wyrozniony"] as const).map((p) => (
+                          <button
+                            type="button"
                             key={p}
                             onClick={() => setSelectedPlan(p)}
                             className={`p-3.5 rounded-[12px] border text-center cursor-pointer transition-all ${
                               selectedPlan === p
-                                ? 'border-2 border-[#241C2B] bg-[#FAF6F2] font-bold'
-                                : 'border-[#E2D5CA] bg-white'
+                                ? "border-2 border-[#241C2B] bg-[#FAF6F2] font-bold"
+                                : "border-[#E2D5CA] bg-white"
                             }`}
                           >
                             <div className="capitalize">{p}</div>
-                          </div>
+                          </button>
                         ))}
-                      </div>
+                      </fieldset>
                     </div>
 
                     <div>
-                      <label className="block text-[13px] font-bold text-[#6A5C70] uppercase mb-2">Okres rozliczenia</label>
-                      <div className="grid grid-cols-3 gap-2.5">
-                        {(['miesiac', 'pol_roku', 'rok'] as const).map((pr) => (
-                          <div
+                      <span
+                        id="rejestracjafirmyscreen-okres-rozliczenia"
+                        className="block text-[13px] font-bold text-[#6A5C70] uppercase mb-2"
+                      >
+                        Okres rozliczenia
+                      </span>
+                      <fieldset
+                        aria-labelledby="rejestracjafirmyscreen-okres-rozliczenia"
+                        className="grid grid-cols-3 gap-2.5"
+                      >
+                        {(["miesiac", "pol_roku", "rok"] as const).map((pr) => (
+                          <button
+                            type="button"
                             key={pr}
                             onClick={() => setSelectedPeriod(pr)}
                             className={`p-3.5 rounded-[12px] border text-center cursor-pointer transition-all ${
                               selectedPeriod === pr
-                                ? 'border-2 border-[#241C2B] bg-[#FAF6F2] font-bold'
-                                : 'border-[#E2D5CA] bg-white'
+                                ? "border-2 border-[#241C2B] bg-[#FAF6F2] font-bold"
+                                : "border-[#E2D5CA] bg-white"
                             }`}
                           >
-                            <div>{pr === 'rok' ? 'Rok (baza)' : pr === 'pol_roku' ? 'Pół roku' : 'Miesiąc'}</div>
-                          </div>
+                            <div>
+                              {pr === "rok"
+                                ? "Rok (baza)"
+                                : pr === "pol_roku"
+                                  ? "Pół roku"
+                                  : "Miesiąc"}
+                            </div>
+                          </button>
                         ))}
-                      </div>
+                      </fieldset>
                     </div>
                   </div>
                 )}
@@ -406,7 +525,11 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
                 onClick={handleNext}
                 className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-3.5 cursor-pointer shadow-xs"
               >
-                {step === 4 ? (useTrial ? 'Aktywuj 30 dni próby' : 'Przejdź do panelu firmy') : 'Dalej →'}
+                {step === 4
+                  ? useTrial
+                    ? "Aktywuj 30 dni próby"
+                    : "Przejdź do panelu firmy"
+                  : "Dalej →"}
               </button>
             </div>
           </div>
@@ -426,9 +549,9 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
                 </div>
                 <div className="p-4 bg-white">
                   <div className="font-fraunces font-medium text-[18px] text-[#241C2B] mb-0.5">
-                    {displayName || 'Nazwa Twojego obiektu'}
+                    {displayName || "Nazwa Twojego obiektu"}
                   </div>
-                  <div className="text-[12px] text-[#6A5C70] mb-2">{town || 'Miejscowość'}</div>
+                  <div className="text-[12px] text-[#6A5C70] mb-2">{town || "Miejscowość"}</div>
                   <div className="flex justify-between items-baseline border-t border-[#EFE5DD] pt-2 text-[13px]">
                     <span className="text-[#6A5C70]">Cena od:</span>
                     <strong className="text-[#241C2B]">{priceFrom}</strong>
@@ -438,7 +561,8 @@ export function RejestracjaFirmyScreen({ navigate }: ScreenProps) {
               </div>
 
               <div className="mt-4 text-[12px] text-[#6A5C70] leading-[1.5]">
-                🔒 Dane firmy i NIP są bezpiecznie szyfrowane. Wszystkie ceny w cenniku podajemy netto.
+                🔒 Dane firmy i NIP są bezpiecznie szyfrowane. Wszystkie ceny w cenniku podajemy
+                netto.
               </div>
             </div>
           </aside>

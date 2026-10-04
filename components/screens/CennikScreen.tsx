@@ -1,65 +1,68 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { ScreenProps } from '../types';
-import { Header } from '../Header';
-import { Footer } from '../Footer';
+import { useState } from "react";
+import { Footer } from "../Footer";
+import { Header } from "../Header";
+import type { ScreenProps } from "../types";
 
 export function CennikScreen({ navigate }: ScreenProps) {
-  const [selectedClass, setSelectedClass] = useState<'A' | 'B' | 'C'>('A');
-  const [period, setPeriod] = useState<'miesiac' | 'pol_roku' | 'rok'>('rok');
+  const [selectedClass, setSelectedClass] = useState<"A" | "B" | "C">("A");
+  const [period, setPeriod] = useState<"miesiac" | "pol_roku" | "rok">("rok");
 
   // Pricing matrix from spec (Oct 3, 2026)
   const prices = {
     A: {
-      label: 'Klasa A · Sale, hotele, dwory, catering pełny',
-      avgDeal: '15 000 – 60 000 zł',
+      label: "Klasa A · Sale, hotele, dwory, catering pełny",
+      avgDeal: "15 000 – 60 000 zł",
       miesiac: { start: 189, pelny: 379, wyrozniony: 739 },
       pol_roku: { start: 890, pelny: 1790, wyrozniony: 3540 },
       rok: { start: 1490, pelny: 2990, wyrozniony: 5900 },
-      categoryDesc: 'Dla obiektów i firm, gdzie jedno pozyskane wesele lub przyjęcie zwraca koszt rocznego abonamentu z kilkukrotną nawiązką.',
+      categoryDesc:
+        "Dla obiektów i firm, gdzie jedno pozyskane wesele lub przyjęcie zwraca koszt rocznego abonamentu z kilkukrotną nawiązką.",
     },
     B: {
-      label: 'Klasa B · Restauracje, agroturystyka, zespoły, foto, wideo, dekoracje',
-      avgDeal: '3 000 – 15 000 zł',
+      label: "Klasa B · Restauracje, agroturystyka, zespoły, foto, wideo, dekoracje",
+      avgDeal: "3 000 – 15 000 zł",
       miesiac: { start: 89, pelny: 179, wyrozniony: 349 },
       pol_roku: { start: 410, pelny: 830, wyrozniony: 1670 },
       rok: { start: 690, pelny: 1390, wyrozniony: 2790 },
-      categoryDesc: 'Dla kluczowych twórców oprawy uroczystości szukających regularnych zleceń w wybranym regionie.',
+      categoryDesc:
+        "Dla kluczowych twórców oprawy uroczystości szukających regularnych zleceń w wybranym regionie.",
     },
     C: {
-      label: 'Klasa C · DJ, barman, animator, fotobudka, transport, florysta',
-      avgDeal: '500 – 3 000 zł',
+      label: "Klasa C · DJ, barman, animator, fotobudka, transport, florysta",
+      avgDeal: "500 – 3 000 zł",
       miesiac: { start: 49, pelny: 99, wyrozniony: 189 },
       pol_roku: { start: 230, pelny: 470, wyrozniony: 890 },
       rok: { start: 390, pelny: 790, wyrozniony: 1490 },
-      categoryDesc: 'Dla mobilnych specjalistów i usługodawców z krótszym czasem realizacji i dużą częstotliwością imprez.',
+      categoryDesc:
+        "Dla mobilnych specjalistów i usługodawców z krótszym czasem realizacji i dużą częstotliwością imprez.",
     },
   };
 
   const currentPrices = prices[selectedClass][period];
 
   const getPeriodLabel = () => {
-    if (period === 'miesiac') return 'za miesiąc (odnawiany z karty)';
-    if (period === 'pol_roku') return 'za pół roku (+20% vs baza roczna)';
-    return 'za rok (cena bazowa, najkorzystniejsza)';
+    if (period === "miesiac") return "za miesiąc (odnawiany z karty)";
+    if (period === "pol_roku") return "za pół roku (+20% vs baza roczna)";
+    return "za rok (cena bazowa, najkorzystniejsza)";
   };
 
-  const getOfferLimit = (plan: 'start' | 'pelny' | 'wyrozniony') => {
-    if (plan === 'start') {
-      if (period === 'miesiac') return '2 oferty / miesiąc';
-      if (period === 'pol_roku') return '8 ofert / pół roku';
-      return '15 ofert / rok';
+  const getOfferLimit = (plan: "start" | "pelny" | "wyrozniony") => {
+    if (plan === "start") {
+      if (period === "miesiac") return "2 oferty / miesiąc";
+      if (period === "pol_roku") return "8 ofert / pół roku";
+      return "15 ofert / rok";
     }
-    if (plan === 'pelny') {
-      if (period === 'miesiac') return '8 ofert / miesiąc';
-      return 'Bez limitu ofert';
+    if (plan === "pelny") {
+      if (period === "miesiac") return "8 ofert / miesiąc";
+      return "Bez limitu ofert";
     }
-    if (plan === 'wyrozniony') {
-      if (period === 'miesiac') return '15 ofert / miesiąc';
-      return 'Bez limitu ofert';
+    if (plan === "wyrozniony") {
+      if (period === "miesiac") return "15 ofert / miesiąc";
+      return "Bez limitu ofert";
     }
-    return '';
+    return "";
   };
 
   return (
@@ -77,25 +80,34 @@ export function CennikScreen({ navigate }: ScreenProps) {
           Jedna opłata, zero prowizji od umów i wejściówek
         </h1>
         <p className="m-0 mb-6 text-[18px] leading-[1.6] text-[#3E3344] max-w-[72ch]">
-          Nie bierzemy procentu od wesela ani 150 zł za pojedynczy kontakt, jak inne serwisy. Płacisz przejrzysty abonament
-          za obecność w katalogu i prawo odpowiadania na zlecenia. Klient korzysta bezpłatnie i bez prowizji.
+          Nie bierzemy procentu od wesela ani 150 zł za pojedynczy kontakt, jak inne serwisy.
+          Płacisz przejrzysty abonament za obecność w katalogu i prawo odpowiadania na zlecenia.
+          Klient korzysta bezpłatnie i bez prowizji.
         </p>
 
         <div className="flex flex-wrap gap-y-3 gap-x-8 text-[15px] text-[#55485A] border-b border-[#E2D5CA] pb-8">
           <span className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-full bg-[#E7EDE7] text-[#5E7360] flex items-center justify-center font-bold text-[12px]">✓</span>
+            <span className="w-5 h-5 rounded-full bg-[#E7EDE7] text-[#5E7360] flex items-center justify-center font-bold text-[12px]">
+              ✓
+            </span>
             Gwarancja 90 dni (przedłużenie o pół roku gratis)
           </span>
           <span className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-full bg-[#E7EDE7] text-[#5E7360] flex items-center justify-center font-bold text-[12px]">✓</span>
+            <span className="w-5 h-5 rounded-full bg-[#E7EDE7] text-[#5E7360] flex items-center justify-center font-bold text-[12px]">
+              ✓
+            </span>
             30 dni próby bez podpinania karty
           </span>
           <span className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-full bg-[#E7EDE7] text-[#5E7360] flex items-center justify-center font-bold text-[12px]">✓</span>
+            <span className="w-5 h-5 rounded-full bg-[#E7EDE7] text-[#5E7360] flex items-center justify-center font-bold text-[12px]">
+              ✓
+            </span>
             Zwrot do 14 dni bez pytań
           </span>
           <span className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-full bg-[#E7EDE7] text-[#5E7360] flex items-center justify-center font-bold text-[12px]">✓</span>
+            <span className="w-5 h-5 rounded-full bg-[#E7EDE7] text-[#5E7360] flex items-center justify-center font-bold text-[12px]">
+              ✓
+            </span>
             Faktura VAT 23% gotowa pod KSeF
           </span>
         </div>
@@ -112,33 +124,33 @@ export function CennikScreen({ navigate }: ScreenProps) {
             <div className="inline-flex flex-wrap p-1 bg-[#F2E9E2] rounded-[14px] border border-[#E2D5CA]">
               <button
                 type="button"
-                onClick={() => setSelectedClass('A')}
+                onClick={() => setSelectedClass("A")}
                 className={`px-4 py-2.5 rounded-[10px] text-[14px] font-semibold cursor-pointer transition-all ${
-                  selectedClass === 'A'
-                    ? 'bg-white text-[#241C2B] shadow-xs'
-                    : 'text-[#6A5C70] hover:text-[#241C2B] bg-transparent'
+                  selectedClass === "A"
+                    ? "bg-white text-[#241C2B] shadow-xs"
+                    : "text-[#6A5C70] hover:text-[#241C2B] bg-transparent"
                 }`}
               >
                 Klasa A (Sale, hotele, catering)
               </button>
               <button
                 type="button"
-                onClick={() => setSelectedClass('B')}
+                onClick={() => setSelectedClass("B")}
                 className={`px-4 py-2.5 rounded-[10px] text-[14px] font-semibold cursor-pointer transition-all ${
-                  selectedClass === 'B'
-                    ? 'bg-white text-[#241C2B] shadow-xs'
-                    : 'text-[#6A5C70] hover:text-[#241C2B] bg-transparent'
+                  selectedClass === "B"
+                    ? "bg-white text-[#241C2B] shadow-xs"
+                    : "text-[#6A5C70] hover:text-[#241C2B] bg-transparent"
                 }`}
               >
                 Klasa B (Restauracje, foto, wideo, zespół)
               </button>
               <button
                 type="button"
-                onClick={() => setSelectedClass('C')}
+                onClick={() => setSelectedClass("C")}
                 className={`px-4 py-2.5 rounded-[10px] text-[14px] font-semibold cursor-pointer transition-all ${
-                  selectedClass === 'C'
-                    ? 'bg-white text-[#241C2B] shadow-xs'
-                    : 'text-[#6A5C70] hover:text-[#241C2B] bg-transparent'
+                  selectedClass === "C"
+                    ? "bg-white text-[#241C2B] shadow-xs"
+                    : "text-[#6A5C70] hover:text-[#241C2B] bg-transparent"
                 }`}
               >
                 Klasa C (DJ, barman, animator, transport)
@@ -154,33 +166,33 @@ export function CennikScreen({ navigate }: ScreenProps) {
             <div className="inline-flex p-1 bg-[#F2E9E2] rounded-[14px] border border-[#E2D5CA]">
               <button
                 type="button"
-                onClick={() => setPeriod('miesiac')}
+                onClick={() => setPeriod("miesiac")}
                 className={`px-4 py-2.5 rounded-[10px] text-[14px] font-semibold cursor-pointer transition-all ${
-                  period === 'miesiac'
-                    ? 'bg-white text-[#241C2B] shadow-xs'
-                    : 'text-[#6A5C70] hover:text-[#241C2B] bg-transparent'
+                  period === "miesiac"
+                    ? "bg-white text-[#241C2B] shadow-xs"
+                    : "text-[#6A5C70] hover:text-[#241C2B] bg-transparent"
                 }`}
               >
                 Miesiąc
               </button>
               <button
                 type="button"
-                onClick={() => setPeriod('pol_roku')}
+                onClick={() => setPeriod("pol_roku")}
                 className={`px-4 py-2.5 rounded-[10px] text-[14px] font-semibold cursor-pointer transition-all ${
-                  period === 'pol_roku'
-                    ? 'bg-white text-[#241C2B] shadow-xs'
-                    : 'text-[#6A5C70] hover:text-[#241C2B] bg-transparent'
+                  period === "pol_roku"
+                    ? "bg-white text-[#241C2B] shadow-xs"
+                    : "text-[#6A5C70] hover:text-[#241C2B] bg-transparent"
                 }`}
               >
                 Pół roku
               </button>
               <button
                 type="button"
-                onClick={() => setPeriod('rok')}
+                onClick={() => setPeriod("rok")}
                 className={`px-4 py-2.5 rounded-[10px] text-[14px] font-semibold cursor-pointer transition-all ${
-                  period === 'rok'
-                    ? 'bg-white text-[#241C2B] shadow-xs'
-                    : 'text-[#6A5C70] hover:text-[#241C2B] bg-transparent'
+                  period === "rok"
+                    ? "bg-white text-[#241C2B] shadow-xs"
+                    : "text-[#6A5C70] hover:text-[#241C2B] bg-transparent"
                 }`}
               >
                 Rok (Rekomendowany)
@@ -192,11 +204,16 @@ export function CennikScreen({ navigate }: ScreenProps) {
         {/* Selected class explanation bar */}
         <div className="border border-[#E2D5CA] bg-white rounded-[14px] p-4.5 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
-            <span className="font-semibold text-[15px] text-[#241C2B] mr-3">{prices[selectedClass].label}</span>
-            <span className="text-[14px] text-[#6A5C70]">Średnia wartość zlecenia: {prices[selectedClass].avgDeal}</span>
+            <span className="font-semibold text-[15px] text-[#241C2B] mr-3">
+              {prices[selectedClass].label}
+            </span>
+            <span className="text-[14px] text-[#6A5C70]">
+              Średnia wartość zlecenia: {prices[selectedClass].avgDeal}
+            </span>
           </div>
           <span className="text-[13px] text-[#55485A] italic">
-            Ceny netto za okres: {period === 'rok' ? '12 miesięcy' : period === 'pol_roku' ? '6 miesięcy' : '1 miesiąc'}
+            Ceny netto za okres:{" "}
+            {period === "rok" ? "12 miesięcy" : period === "pol_roku" ? "6 miesięcy" : "1 miesiąc"}
           </span>
         </div>
 
@@ -211,7 +228,7 @@ export function CennikScreen({ navigate }: ScreenProps) {
 
             <div className="flex items-baseline gap-1.5 mb-1">
               <span className="font-fraunces text-[42px] font-medium text-[#241C2B]">
-                {currentPrices.start.toLocaleString('pl-PL')} zł
+                {currentPrices.start.toLocaleString("pl-PL")} zł
               </span>
               <span className="text-[14px] text-[#6A5C70]">netto</span>
             </div>
@@ -240,7 +257,7 @@ export function CennikScreen({ navigate }: ScreenProps) {
                 </li>
                 <li className="flex items-start gap-2 font-semibold text-[#241C2B]">
                   <span className="text-[#F0A62E] font-bold">★</span>
-                  <span>Limit ofert na giełdzie: {getOfferLimit('start')}</span>
+                  <span>Limit ofert na giełdzie: {getOfferLimit("start")}</span>
                 </li>
                 <li className="flex items-start gap-2 text-[#6A5C70]">
                   <span className="text-[#8B7F91]">·</span>
@@ -252,14 +269,14 @@ export function CennikScreen({ navigate }: ScreenProps) {
             <div className="space-y-2.5">
               <button
                 type="button"
-                onClick={() => navigate('ZamowienieAbonamentu')}
+                onClick={() => navigate("ZamowienieAbonamentu")}
                 className="w-full text-[15px] font-bold text-[#241C2B] bg-white border-2 border-[#241C2B] rounded-[12px] p-3.5 cursor-pointer hover:bg-[#241C2B] hover:text-white transition-colors"
               >
                 Wybierz Start
               </button>
               <button
                 type="button"
-                onClick={() => navigate('RejestracjaFirmy')}
+                onClick={() => navigate("RejestracjaFirmy")}
                 className="w-full text-[13px] text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 py-1.5 cursor-pointer text-center"
               >
                 lub wypróbuj 30 dni za darmo →
@@ -275,12 +292,13 @@ export function CennikScreen({ navigate }: ScreenProps) {
 
             <div className="font-fraunces font-medium text-[26px] mb-1.5 mt-2">Pełny</div>
             <div className="text-[14px] text-[#6A5C70] mb-5 min-h-[44px]">
-              Dla firm, które chcą regularnie zdobywać klientów i nie tracić żadnego pasującego zlecenia.
+              Dla firm, które chcą regularnie zdobywać klientów i nie tracić żadnego pasującego
+              zlecenia.
             </div>
 
             <div className="flex items-baseline gap-1.5 mb-1">
               <span className="font-fraunces text-[42px] font-medium text-[#241C2B]">
-                {currentPrices.pelny.toLocaleString('pl-PL')} zł
+                {currentPrices.pelny.toLocaleString("pl-PL")} zł
               </span>
               <span className="text-[14px] text-[#6A5C70]">netto</span>
             </div>
@@ -293,7 +311,7 @@ export function CennikScreen({ navigate }: ScreenProps) {
               <ul className="m-0 pl-0 list-none text-[14px] leading-[1.6] text-[#3E3344] space-y-2.5">
                 <li className="flex items-start gap-2 font-semibold text-[#241C2B]">
                   <span className="text-[#5E7360] font-bold">✓</span>
-                  <span>{getOfferLimit('pelny')}</span>
+                  <span>{getOfferLimit("pelny")}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-[#5E7360] font-bold">✓</span>
@@ -321,14 +339,14 @@ export function CennikScreen({ navigate }: ScreenProps) {
             <div className="space-y-2.5">
               <button
                 type="button"
-                onClick={() => navigate('ZamowienieAbonamentu')}
+                onClick={() => navigate("ZamowienieAbonamentu")}
                 className="w-full text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-3.5 cursor-pointer shadow-xs"
               >
                 Wybierz Pełny
               </button>
               <button
                 type="button"
-                onClick={() => navigate('RejestracjaFirmy')}
+                onClick={() => navigate("RejestracjaFirmy")}
                 className="w-full text-[13px] text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 py-1.5 cursor-pointer text-center"
               >
                 lub wypróbuj 30 dni za darmo →
@@ -345,7 +363,7 @@ export function CennikScreen({ navigate }: ScreenProps) {
 
             <div className="flex items-baseline gap-1.5 mb-1">
               <span className="font-fraunces text-[42px] font-medium text-[#241C2B]">
-                {currentPrices.wyrozniony.toLocaleString('pl-PL')} zł
+                {currentPrices.wyrozniony.toLocaleString("pl-PL")} zł
               </span>
               <span className="text-[14px] text-[#6A5C70]">netto</span>
             </div>
@@ -358,7 +376,7 @@ export function CennikScreen({ navigate }: ScreenProps) {
               <ul className="m-0 pl-0 list-none text-[14px] leading-[1.6] text-[#3E3344] space-y-2.5">
                 <li className="flex items-start gap-2 font-semibold text-[#241C2B]">
                   <span className="text-[#5E7360] font-bold">✓</span>
-                  <span>{getOfferLimit('wyrozniony')}</span>
+                  <span>{getOfferLimit("wyrozniony")}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-[#5E7360] font-bold">✓</span>
@@ -382,14 +400,14 @@ export function CennikScreen({ navigate }: ScreenProps) {
             <div className="space-y-2.5">
               <button
                 type="button"
-                onClick={() => navigate('ZamowienieAbonamentu')}
+                onClick={() => navigate("ZamowienieAbonamentu")}
                 className="w-full text-[15px] font-bold text-[#241C2B] bg-white border-2 border-[#241C2B] rounded-[12px] p-3.5 cursor-pointer hover:bg-[#241C2B] hover:text-white transition-colors"
               >
                 Wybierz Wyróżniony
               </button>
               <button
                 type="button"
-                onClick={() => navigate('RejestracjaFirmy')}
+                onClick={() => navigate("RejestracjaFirmy")}
                 className="w-full text-[13px] text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 py-1.5 cursor-pointer text-center"
               >
                 lub wypróbuj 30 dni za darmo →
@@ -405,24 +423,33 @@ export function CennikScreen({ navigate }: ScreenProps) {
           Porównanie możliwości planów
         </h2>
         <p className="text-[16px] text-[#6A5C70] mb-7 max-w-[65ch]">
-          Wszystkie plany gwarantują brak prowizji od transakcji. Różnią się widocznością oraz szybkością dostępu do giełdy zleceń.
+          Wszystkie plany gwarantują brak prowizji od transakcji. Różnią się widocznością oraz
+          szybkością dostępu do giełdy zleceń.
         </p>
 
         <div className="border border-[#E2D5CA] rounded-[18px] bg-white overflow-x-auto shadow-xs">
           <table className="w-full text-left border-collapse text-[14px]">
             <thead>
               <tr className="border-b border-[#E2D5CA] bg-[#F2E9E2]/50">
-                <th className="p-4 sm:p-5 font-semibold text-[#241C2B] w-2/5">Funkcja / uprawnienie</th>
+                <th className="p-4 sm:p-5 font-semibold text-[#241C2B] w-2/5">
+                  Funkcja / uprawnienie
+                </th>
                 <th className="p-4 sm:p-5 font-semibold text-[#241C2B] text-center w-1/5">Start</th>
-                <th className="p-4 sm:p-5 font-semibold text-[#241C2B] text-center w-1/5 bg-[#F2E9E2]">Pełny</th>
-                <th className="p-4 sm:p-5 font-semibold text-[#241C2B] text-center w-1/5">Wyróżniony</th>
+                <th className="p-4 sm:p-5 font-semibold text-[#241C2B] text-center w-1/5 bg-[#F2E9E2]">
+                  Pełny
+                </th>
+                <th className="p-4 sm:p-5 font-semibold text-[#241C2B] text-center w-1/5">
+                  Wyróżniony
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#EFE5DD] text-[#3E3344]">
               <tr>
                 <td className="p-4 sm:p-5 font-medium">Prowizja od pozyskanych umów</td>
                 <td className="p-4 sm:p-5 text-center text-[#5E7360] font-bold">0% zawsze</td>
-                <td className="p-4 sm:p-5 text-center text-[#5E7360] font-bold bg-[#FBF7F4]">0% zawsze</td>
+                <td className="p-4 sm:p-5 text-center text-[#5E7360] font-bold bg-[#FBF7F4]">
+                  0% zawsze
+                </td>
                 <td className="p-4 sm:p-5 text-center text-[#5E7360] font-bold">0% zawsze</td>
               </tr>
               <tr>
@@ -440,19 +467,27 @@ export function CennikScreen({ navigate }: ScreenProps) {
               <tr>
                 <td className="p-4 sm:p-5 font-medium">Powiadomienia o zleceniach klienta</td>
                 <td className="p-4 sm:p-5 text-center text-[#6A5C70]">po 60 min</td>
-                <td className="p-4 sm:p-5 text-center font-bold text-[#241C2B] bg-[#FBF7F4]">po 15 min</td>
-                <td className="p-4 sm:p-5 text-center font-bold text-[#F0A62E]">natychmiast (0 min)</td>
+                <td className="p-4 sm:p-5 text-center font-bold text-[#241C2B] bg-[#FBF7F4]">
+                  po 15 min
+                </td>
+                <td className="p-4 sm:p-5 text-center font-bold text-[#F0A62E]">
+                  natychmiast (0 min)
+                </td>
               </tr>
               <tr>
                 <td className="p-4 sm:p-5 font-medium">Limit ofert na giełdzie (okres roczny)</td>
                 <td className="p-4 sm:p-5 text-center">15 ofert / rok</td>
-                <td className="p-4 sm:p-5 text-center font-bold text-[#5E7360] bg-[#FBF7F4]">Bez limitu</td>
+                <td className="p-4 sm:p-5 text-center font-bold text-[#5E7360] bg-[#FBF7F4]">
+                  Bez limitu
+                </td>
                 <td className="p-4 sm:p-5 text-center font-bold text-[#5E7360]">Bez limitu</td>
               </tr>
               <tr>
                 <td className="p-4 sm:p-5 font-medium">Pozycja w katalogu w powiecie</td>
                 <td className="p-4 sm:p-5 text-center text-[#6A5C70]">standardowa</td>
-                <td className="p-4 sm:p-5 text-center font-medium bg-[#FBF7F4]">wyżej w wynikach</td>
+                <td className="p-4 sm:p-5 text-center font-medium bg-[#FBF7F4]">
+                  wyżej w wynikach
+                </td>
                 <td className="p-4 sm:p-5 text-center font-bold text-[#241C2B]">pierwsza trójka</td>
               </tr>
               <tr>
@@ -472,7 +507,8 @@ export function CennikScreen({ navigate }: ScreenProps) {
           Usługi dodatkowe dla wymagających
         </h2>
         <p className="text-[16px] text-[#6A5C70] mb-7 max-w-[65ch]">
-          Opcjonalne pakiety, które możesz dokupić w dowolnym momencie trwania abonamentu w panelu firmy.
+          Opcjonalne pakiety, które możesz dokupić w dowolnym momencie trwania abonamentu w panelu
+          firmy.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -481,7 +517,8 @@ export function CennikScreen({ navigate }: ScreenProps) {
             <div className="font-fraunces text-[22px] font-medium mb-2">Sesja zdjęciowa lokalu</div>
             <div className="text-[20px] font-bold text-[#241C2B] mb-2">900 – 1 800 zł</div>
             <p className="text-[14px] text-[#55485A] leading-[1.5] m-0">
-              Profesjonalny fotograf architektury wnętrz. 25 obrobionych kadrów fasady, sal, ogrodu i detali stołu.
+              Profesjonalny fotograf architektury wnętrz. 25 obrobionych kadrów fasady, sal, ogrodu
+              i detali stołu.
             </p>
           </div>
 
@@ -490,16 +527,20 @@ export function CennikScreen({ navigate }: ScreenProps) {
             <div className="font-fraunces text-[22px] font-medium mb-2">Spacer wirtualny 360°</div>
             <div className="text-[20px] font-bold text-[#241C2B] mb-2">1 200 zł</div>
             <p className="text-[14px] text-[#55485A] leading-[1.5] m-0">
-              Interaktywny spacer 3D po obiekcie zintegrowany w zakładce profilu. Klient ogląda salę bez wychodzenia z domu.
+              Interaktywny spacer 3D po obiekcie zintegrowany w zakładce profilu. Klient ogląda salę
+              bez wychodzenia z domu.
             </p>
           </div>
 
           <div className="border border-[#E2D5CA] rounded-[16px] bg-white p-6 shadow-xs">
             <div className="text-[13px] text-[#6A5C70] mb-1">Dotarcie bezpośrednie</div>
-            <div className="font-fraunces text-[22px] font-medium mb-2">Wyróżnienie w newsletterze</div>
+            <div className="font-fraunces text-[22px] font-medium mb-2">
+              Wyróżnienie w newsletterze
+            </div>
             <div className="text-[20px] font-bold text-[#241C2B] mb-2">400 zł / wysyłka</div>
             <p className="text-[14px] text-[#55485A] leading-[1.5] m-0">
-              Maksymalnie 3 polecane firmy w cotygodniowym wydaniu do par i organizatorów planujących imprezę w danym miesiącu.
+              Maksymalnie 3 polecane firmy w cotygodniowym wydaniu do par i organizatorów
+              planujących imprezę w danym miesiącu.
             </p>
           </div>
         </div>

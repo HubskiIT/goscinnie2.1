@@ -1,27 +1,27 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { ScreenProps } from '../types';
-import { Header } from '../Header';
-import { Footer } from '../Footer';
+import { useState } from "react";
+import { Footer } from "../Footer";
+import { Header } from "../Header";
+import type { ScreenProps } from "../types";
 
 export function MainScreen({ navigate }: ScreenProps) {
-  const [selectedPlace, setSelectedPlace] = useState('sali');
-  const [selectedOccasion, setSelectedOccasion] = useState('komunię');
-  const [selectedCity, setSelectedCity] = useState('Wrocławiu');
-  const [selectedGuests, setSelectedGuests] = useState('80');
-  const [termin, setTermin] = useState('czerwiec 2027');
-  const [promien, setPromien] = useState('30 km');
+  const [selectedPlace, setSelectedPlace] = useState("sali");
+  const [selectedOccasion, setSelectedOccasion] = useState("komunię");
+  const [selectedCity, setSelectedCity] = useState("Wrocławiu");
+  const [selectedGuests, setSelectedGuests] = useState("80");
+  const [termin, setTermin] = useState("czerwiec 2027");
+  const [promien, setPromien] = useState("30 km");
 
-  const places = ['sali', 'lokalu', 'ogrodu', 'dworku'];
-  const occasions = ['komunię', 'wesele', 'chrzciny', 'urodziny', 'event firmowy', 'stypę'];
-  const cities = ['Wrocławiu', 'Warszawie', 'Krakowie', 'Poznaniu'];
-  const guestsList = ['40', '60', '80', '120', '150'];
+  const places = ["sali", "lokalu", "ogrodu", "dworku"];
+  const occasions = ["komunię", "wesele", "chrzciny", "urodziny", "event firmowy", "stypę"];
+  const cities = ["Wrocławiu", "Warszawie", "Krakowie", "Poznaniu"];
+  const guestsList = ["40", "60", "80", "120", "150"];
 
   const cycle = (current: string, list: string[], setter: (val: string) => void) => {
     const idx = list.indexOf(current);
     const next = list[(idx + 1) % list.length];
-    setter(next);
+    if (next !== undefined) setter(next);
   };
 
   return (
@@ -34,7 +34,7 @@ export function MainScreen({ navigate }: ScreenProps) {
         className="shrink-0 px-6 sm:px-12 md:px-[130px] pt-16 md:pt-24 pb-16 md:pb-[92px] relative"
         style={{
           background:
-            'radial-gradient(760px 420px at 34% 34%, rgba(240,166,46,0.20), rgba(240,166,46,0) 68%)',
+            "radial-gradient(760px 420px at 34% 34%, rgba(240,166,46,0.20), rgba(240,166,46,0) 68%)",
         }}
       >
         <p className="m-0 mb-6 md:mb-[34px] text-[16px] text-[#6A5C70] max-w-[520px]">
@@ -42,7 +42,7 @@ export function MainScreen({ navigate }: ScreenProps) {
         </p>
 
         <h1 className="m-0 font-fraunces font-normal text-[36px] sm:text-[48px] md:text-[62px] leading-[1.3] md:leading-[1.45] tracking-tight max-w-[1000px]">
-          Szukam{' '}
+          Szukam{" "}
           <button
             type="button"
             onClick={() => cycle(selectedPlace, places, setSelectedPlace)}
@@ -64,8 +64,8 @@ export function MainScreen({ navigate }: ScreenProps) {
             >
               <polyline points="5 9 12 16 19 9" />
             </svg>
-          </button>{' '}
-          na{' '}
+          </button>{" "}
+          na{" "}
           <button
             type="button"
             onClick={() => cycle(selectedOccasion, occasions, setSelectedOccasion)}
@@ -88,7 +88,7 @@ export function MainScreen({ navigate }: ScreenProps) {
               <polyline points="5 9 12 16 19 9" />
             </svg>
           </button>
-          <br className="hidden sm:inline" /> we{' '}
+          <br className="hidden sm:inline" /> we{" "}
           <button
             type="button"
             onClick={() => cycle(selectedCity, cities, setSelectedCity)}
@@ -110,8 +110,8 @@ export function MainScreen({ navigate }: ScreenProps) {
             >
               <polyline points="5 9 12 16 19 9" />
             </svg>
-          </button>{' '}
-          dla{' '}
+          </button>{" "}
+          dla{" "}
           <button
             type="button"
             onClick={() => cycle(selectedGuests, guestsList, setSelectedGuests)}
@@ -133,7 +133,7 @@ export function MainScreen({ navigate }: ScreenProps) {
             >
               <polyline points="5 9 12 16 19 9" />
             </svg>
-          </button>{' '}
+          </button>{" "}
           osób
         </h1>
 
@@ -192,7 +192,7 @@ export function MainScreen({ navigate }: ScreenProps) {
 
           <button
             type="button"
-            onClick={() => navigate('Lokale')}
+            onClick={() => navigate("Lokale")}
             className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-full px-9 py-4 cursor-pointer shadow"
           >
             Pokaż miejsca
@@ -206,81 +206,152 @@ export function MainScreen({ navigate }: ScreenProps) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
             {
-              title: 'Wesele',
+              title: "Wesele",
               icon: (
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#5E7360" strokeWidth="1.5">
+                <svg
+                  aria-hidden="true"
+                  width="30"
+                  height="30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5E7360"
+                  strokeWidth="1.5"
+                >
                   <circle cx="9" cy="14" r="5" />
                   <circle cx="15" cy="14" r="5" />
                 </svg>
               ),
             },
             {
-              title: 'Komunia',
+              title: "Komunia",
               icon: (
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#5E7360" strokeWidth="1.5" strokeLinecap="round">
+                <svg
+                  aria-hidden="true"
+                  width="30"
+                  height="30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5E7360"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                >
                   <path d="M7 4h10l-1.5 6a4 4 0 0 1-7 0z" />
                   <path d="M12 14v5M8 21h8" />
                 </svg>
               ),
             },
             {
-              title: 'Chrzciny',
+              title: "Chrzciny",
               icon: (
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#5E7360" strokeWidth="1.5" strokeLinejoin="round">
+                <svg
+                  aria-hidden="true"
+                  width="30"
+                  height="30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5E7360"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                >
                   <path d="M12 3c3.5 4.3 5.5 7.2 5.5 9.6A5.5 5.5 0 0 1 12 18a5.5 5.5 0 0 1-5.5-5.4C6.5 10.2 8.5 7.3 12 3z" />
                 </svg>
               ),
             },
             {
-              title: 'Urodziny',
+              title: "Urodziny",
               icon: (
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#5E7360" strokeWidth="1.5" strokeLinecap="round">
+                <svg
+                  aria-hidden="true"
+                  width="30"
+                  height="30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5E7360"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                >
                   <rect x="4" y="11" width="16" height="9" rx="2" />
                   <path d="M12 11V7M9 20v-9M15 20v-9" />
                 </svg>
               ),
             },
             {
-              title: 'Osiemnastka',
+              title: "Osiemnastka",
               icon: (
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#5E7360" strokeWidth="1.5" strokeLinecap="round">
+                <svg
+                  aria-hidden="true"
+                  width="30"
+                  height="30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5E7360"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                >
                   <path d="M12 3a5.5 5.5 0 0 1 5.5 5.5c0 3.6-3.4 6.5-5.5 6.5s-5.5-2.9-5.5-6.5A5.5 5.5 0 0 1 12 3z" />
                   <path d="M12 15v6" />
                 </svg>
               ),
             },
             {
-              title: 'Event firmowy',
+              title: "Event firmowy",
               icon: (
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#5E7360" strokeWidth="1.5" strokeLinecap="round">
+                <svg
+                  aria-hidden="true"
+                  width="30"
+                  height="30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5E7360"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                >
                   <rect x="3" y="8" width="18" height="12" rx="2" />
                   <path d="M9 8V5h6v3M3 13h18" />
                 </svg>
               ),
             },
             {
-              title: 'Stypa',
+              title: "Stypa",
               icon: (
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#5E7360" strokeWidth="1.5" strokeLinecap="round">
+                <svg
+                  aria-hidden="true"
+                  width="30"
+                  height="30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5E7360"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                >
                   <rect x="9" y="9" width="6" height="11" rx="1.5" />
                   <path d="M12 9V6M12 3v1.5" />
                 </svg>
               ),
             },
             {
-              title: 'Plener',
+              title: "Plener",
               icon: (
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#5E7360" strokeWidth="1.5" strokeLinejoin="round">
+                <svg
+                  aria-hidden="true"
+                  width="30"
+                  height="30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5E7360"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                >
                   <path d="M3 19l9-14 9 14z" />
                   <path d="M12 19V9" />
                 </svg>
               ),
             },
-          ].map((item, idx) => (
+          ].map((item) => (
             <button
-              key={idx}
+              key={item.title}
               type="button"
-              onClick={() => navigate('Lokale')}
+              onClick={() => navigate("Lokale")}
               className="text-left bg-[#FBF7F4] hover:bg-white hover:shadow-md transition-all border border-[#E2D5CA] rounded-[14px] p-6 flex flex-col gap-3.5 cursor-pointer text-[#241C2B]"
             >
               {item.icon}
@@ -297,12 +368,12 @@ export function MainScreen({ navigate }: ScreenProps) {
             Albo odwrotnie: niech oferty przyjdą do Ciebie
           </h2>
           <p className="m-0 mb-8 text-[17px] leading-[1.65] text-[#D5C7D0]">
-            Opisz wydarzenie jeden raz. Firmy z okolicy składają oferty, nie widząc nawzajem swoich cen.
-            Twoje dane zobaczy tylko ta firma, którą sam wybierzesz.
+            Opisz wydarzenie jeden raz. Firmy z okolicy składają oferty, nie widząc nawzajem swoich
+            cen. Twoje dane zobaczy tylko ta firma, którą sam wybierzesz.
           </p>
           <button
             type="button"
-            onClick={() => navigate('NoweZlecenie')}
+            onClick={() => navigate("NoweZlecenie")}
             className="inline-block text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-full px-[34px] py-[17px] border-0 cursor-pointer"
           >
             Opisz wydarzenie
@@ -310,7 +381,9 @@ export function MainScreen({ navigate }: ScreenProps) {
         </div>
 
         <div className="w-full lg:w-[430px] shrink-0 bg-[#3A2D42] rounded-[18px] p-[30px] flex flex-col gap-4 shadow-xl">
-          <p className="m-0 text-[13px] text-[#B9A8B6] tracking-wide">Twoje zlecenie widzą firmy jako</p>
+          <p className="m-0 text-[13px] text-[#B9A8B6] tracking-wide">
+            Twoje zlecenie widzą firmy jako
+          </p>
           <div className="bg-[#241C2B] rounded-[12px] p-[22px] flex flex-col gap-3">
             <div className="font-fraunces text-[21px] text-[#FBF7F4]">
               Komunia, powiat wrocławski
@@ -342,7 +415,8 @@ export function MainScreen({ navigate }: ScreenProps) {
         <div className="flex items-baseline justify-between mb-[34px]">
           <h2 className="m-0 font-fraunces font-medium text-[32px]">Sale w okolicy Wrocławia</h2>
           <button
-            onClick={() => navigate('Lokale')}
+            type="button"
+            onClick={() => navigate("Lokale")}
             className="text-[15px] font-semibold text-[#8A5405] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer"
           >
             Zobacz wszystkie
@@ -351,9 +425,10 @@ export function MainScreen({ navigate }: ScreenProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-[26px]">
           {/* Card 1 */}
-          <div
-            onClick={() => navigate('Profil')}
-            className="border border-[#E2D5CA] rounded-[16px] overflow-hidden bg-white flex flex-col cursor-pointer hover:shadow-lg transition-all"
+          <button
+            type="button"
+            onClick={() => navigate("Profil")}
+            className="text-left border border-[#E2D5CA] rounded-[16px] overflow-hidden bg-white flex flex-col cursor-pointer hover:shadow-lg transition-all"
           >
             <div className="h-[180px] bg-[#E4D9CF] flex items-end p-3.5 relative">
               <span className="bg-[#FBF7F4] rounded-full px-3.5 py-[7px] text-[13px] font-semibold shadow-sm">
@@ -362,7 +437,9 @@ export function MainScreen({ navigate }: ScreenProps) {
             </div>
             <div className="p-[22px] flex flex-col gap-2.5">
               <div className="font-fraunces text-[22px]">Dwór pod Lipami</div>
-              <div className="text-[14px] text-[#6A5C70]">Kobierzyce &nbsp;·&nbsp; 18 km od centrum</div>
+              <div className="text-[14px] text-[#6A5C70]">
+                Kobierzyce &nbsp;·&nbsp; 18 km od centrum
+              </div>
               <div className="flex gap-2 my-1 flex-wrap">
                 <span className="text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[6px] px-2.5 py-1">
                   do 140 osób
@@ -381,12 +458,13 @@ export function MainScreen({ navigate }: ScreenProps) {
                 <span className="text-[14px] text-[#6A5C70]">4,8 &nbsp;·&nbsp; 36 opinii</span>
               </div>
             </div>
-          </div>
+          </button>
 
           {/* Card 2 */}
-          <div
-            onClick={() => navigate('Profil')}
-            className="border border-[#E2D5CA] rounded-[16px] overflow-hidden bg-white flex flex-col cursor-pointer hover:shadow-lg transition-all"
+          <button
+            type="button"
+            onClick={() => navigate("Profil")}
+            className="text-left border border-[#E2D5CA] rounded-[16px] overflow-hidden bg-white flex flex-col cursor-pointer hover:shadow-lg transition-all"
           >
             <div className="h-[180px] bg-[#DED4DC] flex items-end p-3.5">
               <span className="bg-[#FBF7F4] rounded-full px-3.5 py-[7px] text-[13px] font-semibold shadow-sm">
@@ -395,7 +473,9 @@ export function MainScreen({ navigate }: ScreenProps) {
             </div>
             <div className="p-[22px] flex flex-col gap-2.5">
               <div className="font-fraunces text-[22px]">Stodoła Zielona Dolina</div>
-              <div className="text-[14px] text-[#6A5C70]">Sobótka &nbsp;·&nbsp; 31 km od centrum</div>
+              <div className="text-[14px] text-[#6A5C70]">
+                Sobótka &nbsp;·&nbsp; 31 km od centrum
+              </div>
               <div className="flex gap-2 my-1 flex-wrap">
                 <span className="text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[6px] px-2.5 py-1">
                   do 90 osób
@@ -414,12 +494,13 @@ export function MainScreen({ navigate }: ScreenProps) {
                 <span className="text-[14px] text-[#6A5C70]">4,6 &nbsp;·&nbsp; 12 opinii</span>
               </div>
             </div>
-          </div>
+          </button>
 
           {/* Card 3 */}
-          <div
-            onClick={() => navigate('Profil')}
-            className="border border-[#E2D5CA] rounded-[16px] overflow-hidden bg-white flex flex-col cursor-pointer hover:shadow-lg transition-all"
+          <button
+            type="button"
+            onClick={() => navigate("Profil")}
+            className="text-left border border-[#E2D5CA] rounded-[16px] overflow-hidden bg-white flex flex-col cursor-pointer hover:shadow-lg transition-all"
           >
             <div className="h-[180px] bg-[#DCE0D8] flex items-end p-3.5">
               <span className="bg-[#FBF7F4] rounded-full px-3.5 py-[7px] text-[13px] font-semibold shadow-sm">
@@ -428,7 +509,9 @@ export function MainScreen({ navigate }: ScreenProps) {
             </div>
             <div className="p-[22px] flex flex-col gap-2.5">
               <div className="font-fraunces text-[22px]">Remiza Wiejska Krzyki</div>
-              <div className="text-[14px] text-[#6A5C70]">Żórawina &nbsp;·&nbsp; 22 km od centrum</div>
+              <div className="text-[14px] text-[#6A5C70]">
+                Żórawina &nbsp;·&nbsp; 22 km od centrum
+              </div>
               <div className="flex gap-2 my-1 flex-wrap">
                 <span className="text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[6px] px-2.5 py-1">
                   do 70 osób
@@ -442,12 +525,13 @@ export function MainScreen({ navigate }: ScreenProps) {
               </div>
               <div className="flex items-baseline justify-between border-t border-[#EFE5DD] pt-3.5 mt-2">
                 <span className="text-[15px]">
-                  <strong className="text-[20px] border-b-2 border-[#F0A62E]">1 400 zł</strong> / doba
+                  <strong className="text-[20px] border-b-2 border-[#F0A62E]">1 400 zł</strong> /
+                  doba
                 </span>
                 <span className="text-[14px] text-[#6A5C70]">bez opinii</span>
               </div>
             </div>
-          </div>
+          </button>
         </div>
       </section>
 
@@ -485,7 +569,8 @@ export function MainScreen({ navigate }: ScreenProps) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-[26px]">
           <figure className="m-0 border border-[#E2D5CA] rounded-[16px] p-[26px] flex flex-col gap-4 bg-white shadow-sm">
             <blockquote className="m-0 font-fraunces text-[19px] leading-[1.55]">
-              Cena z oferty zgadzała się co do złotówki z fakturą. Po dwóch poprzednich salach to była ulga.
+              Cena z oferty zgadzała się co do złotówki z fakturą. Po dwóch poprzednich salach to
+              była ulga.
             </blockquote>
             <figcaption className="text-[14px] text-[#6A5C70] leading-[1.6]">
               Anna K. &nbsp;·&nbsp; komunia, 60 osób
@@ -496,7 +581,8 @@ export function MainScreen({ navigate }: ScreenProps) {
 
           <figure className="m-0 border border-[#E2D5CA] rounded-[16px] p-[26px] flex flex-col gap-4 bg-white shadow-sm">
             <blockquote className="m-0 font-fraunces text-[19px] leading-[1.55]">
-              Sześć ofert na DJ w jeden wieczór. Wybraliśmy nie najtańszą, tylko tę z najlepiej opisanym zakresem.
+              Sześć ofert na DJ w jeden wieczór. Wybraliśmy nie najtańszą, tylko tę z najlepiej
+              opisanym zakresem.
             </blockquote>
             <figcaption className="text-[14px] text-[#6A5C70] leading-[1.6]">
               Michał i Ola &nbsp;·&nbsp; wesele, 120 osób
@@ -517,9 +603,10 @@ export function MainScreen({ navigate }: ScreenProps) {
           </figure>
         </div>
         <p className="mt-6 mb-0 text-[14px] text-[#6A5C70]">
-          Opinię wystawia tylko osoba, której zapytanie lub zlecenie przeszło przez serwis.{' '}
+          Opinię wystawia tylko osoba, której zapytanie lub zlecenie przeszło przez serwis.{" "}
           <button
-            onClick={() => navigate('Kontakt')}
+            type="button"
+            onClick={() => navigate("Kontakt")}
             className="text-[#8A5405] hover:text-[#241C2B] underline bg-transparent border-0 cursor-pointer"
           >
             Jak weryfikujemy opinie
@@ -534,12 +621,13 @@ export function MainScreen({ navigate }: ScreenProps) {
             Prowadzisz salę albo grasz na weselach?
           </h2>
           <p className="m-0 text-[17px] text-[#4A3312]">
-            Stały abonament roczny zamiast płacenia za każdy kontakt. Jedno pozyskane zlecenie zwraca cały rok.
+            Stały abonament roczny zamiast płacenia za każdy kontakt. Jedno pozyskane zlecenie
+            zwraca cały rok.
           </p>
         </div>
         <button
           type="button"
-          onClick={() => navigate('Cennik')}
+          onClick={() => navigate("Cennik")}
           className="shrink-0 text-[16px] font-bold text-[#FBF7F4] bg-[#241C2B] hover:bg-black transition-colors rounded-full px-9 py-[18px] border-0 cursor-pointer"
         >
           Zobacz cennik

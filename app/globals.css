@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Figtree:wght@400..800&display=swap');
 
 :root {
   color-scheme: light;
@@ -7,18 +6,20 @@
 
 body {
   margin: 0;
-  background-color: #FBF7F4;
-  font-family: 'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #241C2B;
+  background-color: #fbf7f4;
+  font-family:
+    var(--font-figtree), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  color: #241c2b;
   padding-bottom: 64px;
 }
 
 .font-fraunces {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-fraunces), Georgia, serif;
 }
 
 .font-figtree {
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--font-figtree), system-ui, sans-serif;
 }
 
 /* custom scrollbar for navigation bar */
@@ -26,9 +27,9 @@ body {
   height: 6px;
 }
 #pasek::-webkit-scrollbar-thumb {
-  background: #4A3D50;
+  background: #4a3d50;
   border-radius: 4px;
 }
 #pasek::-webkit-scrollbar-track {
-  background: #241C2B;
+  background: #241c2b;
 }

@@ -1,7 +1,59 @@
+# Zależności
 node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/versions
+
+# Build
 .next/
-coverage/
-.DS_Store
-*.log
-.env*
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# Środowisko, NIGDY do repo
+.env
+.env.*
 !.env.example
+
+# Testy
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Baza
+*.sqlite
+*.sqlite3
+pgdata/
+drizzle/meta/_journal.json.bak
+
+# Narzędzia i system
+.DS_Store
+Thumbs.db
+*.pem
+*.key
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Edytor
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# Claude Code: ustawienia projektu i skille zostają w repo,
+# lokalne nadpisania i historia sesji nie.
+.claude/settings.local.json
+.claude/history/
+CLAUDE.local.md
+
+# Wdrożenia
+.vercel

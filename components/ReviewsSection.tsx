@@ -1,7 +1,8 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { ScreenId } from './types';
+import type React from "react";
+import { useState } from "react";
+import type { ScreenId } from "./types";
 
 interface Review {
   id: string;
@@ -18,39 +19,39 @@ interface Review {
 
 const INITIAL_REVIEWS: Review[] = [
   {
-    id: 'rev-1',
-    author: 'Anna K.',
-    avatar: 'AK',
+    id: "rev-1",
+    author: "Anna K.",
+    avatar: "AK",
     rating: 5,
-    date: 'maj 2026',
-    occasion: 'Komunia, 60 osób',
+    date: "maj 2026",
+    occasion: "Komunia, 60 osób",
     verified: true,
-    bookingRef: 'GS-2026-0418',
-    text: 'Cena z oferty zgadzała się co do złotówki z fakturą. Po dwóch poprzednich salach to była ulga. Właściciele niezwykle pomocni, ogród przygotowany perfekcyjnie dla dzieci, a brak korkowego przy własnych napojach to rzadkość w okolicach Wrocławia.',
+    bookingRef: "GS-2026-0418",
+    text: "Cena z oferty zgadzała się co do złotówki z fakturą. Po dwóch poprzednich salach to była ulga. Właściciele niezwykle pomocni, ogród przygotowany perfekcyjnie dla dzieci, a brak korkowego przy własnych napojach to rzadkość w okolicach Wrocławia.",
     helpfulCount: 14,
   },
   {
-    id: 'rev-2',
-    author: 'Michał i Ola',
-    avatar: 'MO',
+    id: "rev-2",
+    author: "Michał i Ola",
+    avatar: "MO",
     rating: 5,
-    date: 'sierpień 2026',
-    occasion: 'Wesele, 120 osób',
+    date: "sierpień 2026",
+    occasion: "Wesele, 120 osób",
     verified: true,
-    bookingRef: 'GS-2026-0891',
-    text: 'Zorganizowaliśmy wesele z rezerwacją noclegu dla 40 osób z rodziny. Sala balowa robi ogromne wrażenie na żywo, a akustyka jest świetna. Jedzenie z menu podstawowego przeszło nasze oczekiwania.',
+    bookingRef: "GS-2026-0891",
+    text: "Zorganizowaliśmy wesele z rezerwacją noclegu dla 40 osób z rodziny. Sala balowa robi ogromne wrażenie na żywo, a akustyka jest świetna. Jedzenie z menu podstawowego przeszło nasze oczekiwania.",
     helpfulCount: 22,
   },
   {
-    id: 'rev-3',
-    author: 'Barbara W.',
-    avatar: 'BW',
+    id: "rev-3",
+    author: "Barbara W.",
+    avatar: "BW",
     rating: 4,
-    date: 'marzec 2026',
-    occasion: 'Spotkanie rodzinne, 35 osób',
+    date: "marzec 2026",
+    occasion: "Spotkanie rodzinne, 35 osób",
     verified: true,
-    bookingRef: 'GS-2026-0112',
-    text: 'Szukałam sali z szybkim terminem realizacji. Odpowiedź z Dworu pod Lipami przyszła w 3 godziny przez serwis. Bardzo dyskretna i sprawna obsługa.',
+    bookingRef: "GS-2026-0112",
+    text: "Szukałam sali z szybkim terminem realizacji. Odpowiedź z Dworu pod Lipami przyszła w 3 godziny przez serwis. Bardzo dyskretna i sprawna obsługa.",
     helpfulCount: 8,
   },
 ];
@@ -60,12 +61,12 @@ interface ReviewsSectionProps {
   venueName?: string;
 }
 
-export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: ReviewsSectionProps) {
+export function ReviewsSection({ navigate, venueName = "Dwór pod Lipami" }: ReviewsSectionProps) {
   // User session simulation states
   // 1: 'verified' (Logged in as Anna Kowalska with completed booking)
   // 2: 'unverified' (Logged in, but no completed booking for this venue)
   // 3: 'guest' (Logged out)
-  const [userState, setUserState] = useState<'verified' | 'unverified' | 'guest'>('verified');
+  const [userState, setUserState] = useState<"verified" | "unverified" | "guest">("verified");
 
   // Reviews state
   const [reviews, setReviews] = useState<Review[]>(INITIAL_REVIEWS);
@@ -75,15 +76,15 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
   // Form state
   const [newRating, setNewRating] = useState<number>(5);
   const [hoverRating, setHoverRating] = useState<number>(0);
-  const [newOccasion, setNewOccasion] = useState('Komunia');
-  const [newText, setNewText] = useState('');
+  const [newOccasion, setNewOccasion] = useState("Komunia");
+  const [newText, setNewText] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const handleHelpful = (id: string) => {
     if (helpfulGiven[id]) return;
     setHelpfulGiven((prev) => ({ ...prev, [id]: true }));
     setReviews((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, helpfulCount: r.helpfulCount + 1 } : r))
+      prev.map((r) => (r.id === id ? { ...r, helpfulCount: r.helpfulCount + 1 } : r)),
     );
   };
 
@@ -93,26 +94,24 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
 
     const newRev: Review = {
       id: `rev-${Date.now()}`,
-      author: 'Anna Kowalska',
-      avatar: 'AK',
+      author: "Anna Kowalska",
+      avatar: "AK",
       rating: newRating,
-      date: 'październik 2026',
+      date: "październik 2026",
       occasion: `${newOccasion}, rezerwacja zrealizowana`,
       verified: true,
-      bookingRef: 'GS-2026-0418',
+      bookingRef: "GS-2026-0418",
       text: newText.trim(),
       helpfulCount: 0,
     };
 
     setReviews([newRev, ...reviews]);
-    setNewText('');
+    setNewText("");
     setSubmitSuccess(true);
     setTimeout(() => setSubmitSuccess(false), 5000);
   };
 
-  const displayedReviews = filterVerifiedOnly
-    ? reviews.filter((r) => r.verified)
-    : reviews;
+  const displayedReviews = filterVerifiedOnly ? reviews.filter((r) => r.verified) : reviews;
 
   const totalReviewsCount = 36 + (reviews.length - INITIAL_REVIEWS.length);
   const averageRating = (
@@ -132,8 +131,9 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
             Opinie i recenzje ({totalReviewsCount})
           </h2>
           <p className="m-0 mt-2 text-[15px] text-[#6A5C70] max-w-[65ch]">
-            Opinie mogą dodawać wyłącznie zalogowani użytkownicy. Klienci, których rezerwacja odbyła się przez
-            Gościnnie, otrzymują certyfikowany status <strong>Zweryfikowanego Klienta</strong>.
+            Opinie mogą dodawać wyłącznie zalogowani użytkownicy. Klienci, których rezerwacja odbyła
+            się przez Gościnnie, otrzymują certyfikowany status{" "}
+            <strong>Zweryfikowanego Klienta</strong>.
           </p>
         </div>
 
@@ -145,33 +145,33 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
           <div className="flex items-center gap-1.5 flex-wrap">
             <button
               type="button"
-              onClick={() => setUserState('verified')}
+              onClick={() => setUserState("verified")}
               className={`text-[12px] px-2.5 py-1 rounded-md cursor-pointer border-0 transition-colors ${
-                userState === 'verified'
-                  ? 'bg-[#241C2B] text-white font-bold shadow-xs'
-                  : 'bg-white text-[#241C2B] hover:bg-gray-100'
+                userState === "verified"
+                  ? "bg-[#241C2B] text-white font-bold shadow-xs"
+                  : "bg-white text-[#241C2B] hover:bg-gray-100"
               }`}
             >
               ✓ Zweryfikowany klient
             </button>
             <button
               type="button"
-              onClick={() => setUserState('unverified')}
+              onClick={() => setUserState("unverified")}
               className={`text-[12px] px-2.5 py-1 rounded-md cursor-pointer border-0 transition-colors ${
-                userState === 'unverified'
-                  ? 'bg-[#241C2B] text-white font-bold shadow-xs'
-                  : 'bg-white text-[#241C2B] hover:bg-gray-100'
+                userState === "unverified"
+                  ? "bg-[#241C2B] text-white font-bold shadow-xs"
+                  : "bg-white text-[#241C2B] hover:bg-gray-100"
               }`}
             >
               Klient bez rezerwacji
             </button>
             <button
               type="button"
-              onClick={() => setUserState('guest')}
+              onClick={() => setUserState("guest")}
               className={`text-[12px] px-2.5 py-1 rounded-md cursor-pointer border-0 transition-colors ${
-                userState === 'guest'
-                  ? 'bg-[#241C2B] text-white font-bold shadow-xs'
-                  : 'bg-white text-[#241C2B] hover:bg-gray-100'
+                userState === "guest"
+                  ? "bg-[#241C2B] text-white font-bold shadow-xs"
+                  : "bg-white text-[#241C2B] hover:bg-gray-100"
               }`}
             >
               Niezalogowany
@@ -194,6 +194,7 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
           <div className="flex items-center gap-1 my-2">
             {[1, 2, 3, 4, 5].map((star) => (
               <svg
+                aria-hidden="true"
                 key={star}
                 width="20"
                 height="20"
@@ -212,11 +213,11 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
         {/* Rating Breakdown Bars */}
         <div className="flex flex-col justify-center gap-2 md:border-r border-[#EFE5DD] md:px-6">
           {[
-            { stars: '5 gwiazdek', pct: 86, count: 31 },
-            { stars: '4 gwiazdki', pct: 11, count: 4 },
-            { stars: '3 gwiazdki', pct: 3, count: 1 },
-            { stars: '2 gwiazdki', pct: 0, count: 0 },
-            { stars: '1 gwiazdka', pct: 0, count: 0 },
+            { stars: "5 gwiazdek", pct: 86, count: 31 },
+            { stars: "4 gwiazdki", pct: 11, count: 4 },
+            { stars: "3 gwiazdki", pct: 3, count: 1 },
+            { stars: "2 gwiazdki", pct: 0, count: 0 },
+            { stars: "1 gwiazdka", pct: 0, count: 0 },
           ].map((row) => (
             <div key={row.stars} className="flex items-center gap-2.5 text-[12px] text-[#55485A]">
               <span className="w-16 shrink-0">{row.stars}</span>
@@ -235,6 +236,7 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
         <div className="flex flex-col justify-center gap-3 md:pl-6 bg-[#FBF7F4] md:bg-transparent p-4 md:p-0 rounded-xl">
           <div className="flex items-center gap-2 text-[#3F5142] font-semibold text-[14px]">
             <svg
+              aria-hidden="true"
               width="20"
               height="20"
               viewBox="0 0 24 24"
@@ -250,8 +252,8 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
             100% autentyczności
           </div>
           <p className="m-0 text-[13px] leading-[1.6] text-[#55485A]">
-            Nie pozwalamy na anonimowe ani kupione opinie. Każda recenzja z odznaką została zweryfikowana w oparciu o
-            fakturę lub potwierdzenie rezerwacji w systemie.
+            Nie pozwalamy na anonimowe ani kupione opinie. Każda recenzja z odznaką została
+            zweryfikowana w oparciu o fakturę lub potwierdzenie rezerwacji w systemie.
           </p>
           <div className="text-[12px] text-[#6A5C70]">
             Obiekt: <strong className="text-[#241C2B]">{venueName}</strong>
@@ -261,30 +263,41 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
 
       {/* Review Submission Area based on User Status */}
       <div className="border border-[#E2D5CA] rounded-[18px] bg-white p-6 sm:p-8 mb-10 shadow-sm">
-        {userState === 'guest' && (
+        {userState === "guest" && (
           <div className="text-center py-6 px-4 max-w-lg mx-auto flex flex-col items-center gap-3.5">
             <span className="w-12 h-12 rounded-full bg-[#F2E9E2] flex items-center justify-center text-[#55485A]">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <svg
+                aria-hidden="true"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
             </span>
-            <h3 className="m-0 font-fraunces font-medium text-[22px]">Zaloguj się, aby dodać recenzję</h3>
+            <h3 className="m-0 font-fraunces font-medium text-[22px]">
+              Zaloguj się, aby dodać recenzję
+            </h3>
             <p className="m-0 text-[14px] leading-[1.6] text-[#6A5C70]">
-              Dodawanie opinii jest dostępne wyłącznie dla zalogowanych użytkowników serwisu Gościnnie, aby zapewnić
-              wiarygodność i chronić lokale przed spamem.
+              Dodawanie opinii jest dostępne wyłącznie dla zalogowanych użytkowników serwisu
+              Gościnnie, aby zapewnić wiarygodność i chronić lokale przed spamem.
             </p>
             <div className="flex gap-3 mt-2">
               <button
                 type="button"
-                onClick={() => navigate('Logowanie')}
+                onClick={() => navigate("Logowanie")}
                 className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[10px] px-6 py-2.5 border-0 cursor-pointer shadow-xs"
               >
                 Przejdź do logowania
               </button>
               <button
                 type="button"
-                onClick={() => setUserState('verified')}
+                onClick={() => setUserState("verified")}
                 className="text-[14px] font-semibold text-[#241C2B] bg-white border border-[#241C2B] rounded-[10px] px-4 py-2.5 cursor-pointer hover:bg-gray-50"
               >
                 Zaloguj jako Anna K. (Demo)
@@ -293,10 +306,19 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
           </div>
         )}
 
-        {userState === 'unverified' && (
+        {userState === "unverified" && (
           <div className="py-4 px-2 max-w-xl mx-auto text-center flex flex-col items-center gap-3">
             <span className="w-12 h-12 rounded-full bg-[#F2E9E2] flex items-center justify-center text-[#8A5405]">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <svg
+                aria-hidden="true"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -306,13 +328,14 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
               Jesteś zalogowany, ale nie posiadasz zrealizowanej rezerwacji w tym lokalu
             </div>
             <p className="m-0 text-[14px] leading-[1.6] text-[#6A5C70]">
-              Zgodnie z zasadami etyki serwisu, recenzję mogą wystawić klienci, którzy zarezerwowali termin lub wysłali
-              potwierdzone zapytanie ofertowe dla obiektu <strong>{venueName}</strong>.
+              Zgodnie z zasadami etyki serwisu, recenzję mogą wystawić klienci, którzy zarezerwowali
+              termin lub wysłali potwierdzone zapytanie ofertowe dla obiektu{" "}
+              <strong>{venueName}</strong>.
             </p>
             <div className="flex gap-3 mt-1">
               <button
                 type="button"
-                onClick={() => setUserState('verified')}
+                onClick={() => setUserState("verified")}
                 className="text-[14px] text-[#8A5405] underline font-semibold cursor-pointer bg-transparent border-0"
               >
                 Przełącz na profil ze zrealizowaną rezerwacją (Anna K.)
@@ -321,7 +344,7 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
           </div>
         )}
 
-        {userState === 'verified' && (
+        {userState === "verified" && (
           <form onSubmit={handleAddReview} className="flex flex-col gap-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#EFE5DD]">
               <div>
@@ -342,7 +365,17 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
 
             {submitSuccess && (
               <div className="bg-[#E7EDE7] border border-[#5E7360] text-[#3F5142] rounded-xl p-4 text-[14px] font-semibold flex items-center gap-2">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  aria-hidden="true"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
                 Twoja opinia została pomyślnie dodana z certyfikatem zweryfikowanego klienta!
@@ -352,8 +385,16 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {/* Star Rating Selector */}
               <div className="flex flex-col gap-2">
-                <label className="text-[14px] font-semibold text-[#3E3344]">Twoja ocena ogólna</label>
-                <div className="flex items-center gap-1.5 py-1">
+                <span
+                  id="reviewssection-twoja-ocena-ogolna"
+                  className="text-[14px] font-semibold text-[#3E3344]"
+                >
+                  Twoja ocena ogólna
+                </span>
+                <fieldset
+                  aria-labelledby="reviewssection-twoja-ocena-ogolna"
+                  className="flex items-center gap-1.5 py-1"
+                >
                   {[1, 2, 3, 4, 5].map((star) => {
                     const active = (hoverRating || newRating) >= star;
                     return (
@@ -366,11 +407,12 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
                         className="p-1 cursor-pointer bg-transparent border-0 hover:scale-110 transition-transform"
                       >
                         <svg
+                          aria-hidden="true"
                           width="28"
                           height="28"
                           viewBox="0 0 24 24"
-                          fill={active ? '#F0A62E' : 'none'}
-                          stroke={active ? '#F0A62E' : '#D9CCC2'}
+                          fill={active ? "#F0A62E" : "none"}
+                          stroke={active ? "#F0A62E" : "#D9CCC2"}
                           strokeWidth="1.7"
                         >
                           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -379,9 +421,10 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
                     );
                   })}
                   <span className="ml-2 font-bold text-[16px] text-[#241C2B]">
-                    {newRating} / 5 {newRating === 5 ? '(Doskonale)' : newRating === 4 ? '(Bardzo dobrze)' : ''}
+                    {newRating} / 5{" "}
+                    {newRating === 5 ? "(Doskonale)" : newRating === 4 ? "(Bardzo dobrze)" : ""}
                   </span>
-                </div>
+                </fieldset>
               </div>
 
               {/* Occasion */}
@@ -451,8 +494,8 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
             onClick={() => setFilterVerifiedOnly(false)}
             className={`text-[13px] px-3.5 py-1.5 rounded-full border cursor-pointer transition-colors ${
               !filterVerifiedOnly
-                ? 'bg-[#241C2B] text-white border-[#241C2B] font-semibold'
-                : 'bg-white text-[#55485A] border-[#D9CCC2]'
+                ? "bg-[#241C2B] text-white border-[#241C2B] font-semibold"
+                : "bg-white text-[#55485A] border-[#D9CCC2]"
             }`}
           >
             Wszystkie ({reviews.length})
@@ -462,8 +505,8 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
             onClick={() => setFilterVerifiedOnly(true)}
             className={`text-[13px] px-3.5 py-1.5 rounded-full border cursor-pointer transition-colors ${
               filterVerifiedOnly
-                ? 'bg-[#241C2B] text-white border-[#241C2B] font-semibold'
-                : 'bg-white text-[#55485A] border-[#D9CCC2]'
+                ? "bg-[#241C2B] text-white border-[#241C2B] font-semibold"
+                : "bg-white text-[#55485A] border-[#D9CCC2]"
             }`}
           >
             ✓ Tylko zweryfikowani klienci ({reviews.filter((r) => r.verified).length})
@@ -492,7 +535,17 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
                     <span className="font-semibold text-[16px] text-[#241C2B]">{rev.author}</span>
                     {rev.verified && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-[#3F5142] bg-[#E7EDE7] px-2.5 py-0.5 rounded-full">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <svg
+                          aria-hidden="true"
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
                         Zweryfikowany klient
@@ -512,14 +565,15 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
 
               {/* Star rating */}
               <div className="flex items-center gap-1 self-start sm:self-auto">
-                {Array.from({ length: 5 }).map((_, i) => (
+                {Array.from({ length: 5 }, (_, i) => i).map((i) => (
                   <svg
-                    key={i}
+                    aria-hidden="true"
+                    key={`gwiazdka-${i}`}
                     width="16"
                     height="16"
                     viewBox="0 0 24 24"
-                    fill={i < rev.rating ? '#F0A62E' : '#EFE5DD'}
-                    stroke={i < rev.rating ? '#F0A62E' : '#EFE5DD'}
+                    fill={i < rev.rating ? "#F0A62E" : "#EFE5DD"}
+                    stroke={i < rev.rating ? "#F0A62E" : "#EFE5DD"}
                     strokeWidth="1"
                   >
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -538,7 +592,9 @@ export function ReviewsSection({ navigate, venueName = 'Dwór pod Lipami' }: Rev
                 type="button"
                 onClick={() => handleHelpful(rev.id)}
                 className={`flex items-center gap-1.5 bg-transparent border-0 cursor-pointer text-[13px] ${
-                  helpfulGiven[rev.id] ? 'text-[#3F5142] font-bold' : 'text-[#6A5C70] hover:text-[#241C2B]'
+                  helpfulGiven[rev.id]
+                    ? "text-[#3F5142] font-bold"
+                    : "text-[#6A5C70] hover:text-[#241C2B]"
                 }`}
               >
                 <span>👍</span>

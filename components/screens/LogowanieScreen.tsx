@@ -1,27 +1,28 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { ScreenProps } from '../types';
-import { Header } from '../Header';
-import { Footer } from '../Footer';
+import type React from "react";
+import { useState } from "react";
+import { Footer } from "../Footer";
+import { Header } from "../Header";
+import type { ScreenProps } from "../types";
 
 export function LogowanieScreen({ navigate }: ScreenProps) {
-  const [accountType, setAccountType] = useState<'klient' | 'firma'>('klient');
-  const [email, setEmail] = useState('anna.kowalska@example.com');
-  const [password, setPassword] = useState('password');
+  const [accountType, setAccountType] = useState<"klient" | "firma">("klient");
+  const [email, setEmail] = useState("anna.kowalska@example.com");
+  const [password, setPassword] = useState("password");
   const [remember, setRemember] = useState(true);
 
   // Demo interactive states
-  const [totpCode, setTotpCode] = useState(['4', '0', '7', '', '', '']);
-  const [newPassword, setNewPassword] = useState('SuperSilneHaslo123!');
-  const [demoAttemptCount, setDemoAttemptCount] = useState(3);
+  const [totpCode, _setTotpCode] = useState(["4", "0", "7", "", "", ""]);
+  const [newPassword, setNewPassword] = useState("SuperSilneHaslo123!");
+  const [demoAttemptCount, _setDemoAttemptCount] = useState(3);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (accountType === 'klient') {
-      navigate('PanelKlienta');
+    if (accountType === "klient") {
+      navigate("PanelKlienta");
     } else {
-      navigate('PanelFirmy');
+      navigate("PanelFirmy");
     }
   };
 
@@ -38,13 +39,13 @@ export function LogowanieScreen({ navigate }: ScreenProps) {
             <button
               type="button"
               onClick={() => {
-                setAccountType('klient');
-                setEmail('anna.kowalska@example.com');
+                setAccountType("klient");
+                setEmail("anna.kowalska@example.com");
               }}
               className={`grow text-[15px] rounded-[9px] py-2.5 font-semibold cursor-pointer border-0 transition-colors ${
-                accountType === 'klient'
-                  ? 'text-[#241C2B] bg-white border border-[#D9CCC2] shadow-xs'
-                  : 'text-[#55485A] bg-transparent'
+                accountType === "klient"
+                  ? "text-[#241C2B] bg-white border border-[#D9CCC2] shadow-xs"
+                  : "text-[#55485A] bg-transparent"
               }`}
             >
               Konto klienta
@@ -52,24 +53,26 @@ export function LogowanieScreen({ navigate }: ScreenProps) {
             <button
               type="button"
               onClick={() => {
-                setAccountType('firma');
-                setEmail('biuro@dworpodlipami.pl');
+                setAccountType("firma");
+                setEmail("biuro@dworpodlipami.pl");
               }}
               className={`grow text-[15px] rounded-[9px] py-2.5 font-semibold cursor-pointer border-0 transition-colors ${
-                accountType === 'firma'
-                  ? 'text-[#241C2B] bg-white border border-[#D9CCC2] shadow-xs'
-                  : 'text-[#55485A] bg-transparent'
+                accountType === "firma"
+                  ? "text-[#241C2B] bg-white border border-[#D9CCC2] shadow-xs"
+                  : "text-[#55485A] bg-transparent"
               }`}
             >
               Konto firmy
             </button>
           </div>
 
-          <h1 className="m-0 mb-2.5 font-fraunces font-normal text-[34px] tracking-tight">Zaloguj się</h1>
+          <h1 className="m-0 mb-2.5 font-fraunces font-normal text-[34px] tracking-tight">
+            Zaloguj się
+          </h1>
           <p className="m-0 mb-6 text-[15px] leading-[1.6] text-[#6A5C70]">
-            {accountType === 'klient'
-              ? 'Konto klienta jest bezpłatne i potrzebne tylko do zleceń oraz krótkiej listy. Przeglądanie działa bez logowania.'
-              : 'Dostęp do panelu zarządzania obiektem, giełdy zleceń i kalendarza wolnych terminów.'}
+            {accountType === "klient"
+              ? "Konto klienta jest bezpłatne i potrzebne tylko do zleceń oraz krótkiej listy. Przeglądanie działa bez logowania."
+              : "Dostęp do panelu zarządzania obiektem, giełdy zleceń i kalendarza wolnych terminów."}
           </p>
 
           <form onSubmit={handleLogin} className="flex flex-col gap-4.5">
@@ -93,7 +96,9 @@ export function LogowanieScreen({ navigate }: ScreenProps) {
                 </label>
                 <button
                   type="button"
-                  onClick={() => alert('Wpisz e-mail, aby otrzymać jednorazowy link do resetowania hasła.')}
+                  onClick={() =>
+                    alert("Wpisz e-mail, aby otrzymać jednorazowy link do resetowania hasła.")
+                  }
                   className="text-[13px] text-[#8A5405] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
                 >
                   Nie pamiętam hasła
@@ -108,7 +113,10 @@ export function LogowanieScreen({ navigate }: ScreenProps) {
               />
             </div>
 
-            <label htmlFor="log-pamietaj" className="flex items-center gap-2.5 text-[14px] text-[#3E3344] cursor-pointer">
+            <label
+              htmlFor="log-pamietaj"
+              className="flex items-center gap-2.5 text-[14px] text-[#3E3344] cursor-pointer"
+            >
               <input
                 id="log-pamietaj"
                 type="checkbox"
@@ -123,7 +131,7 @@ export function LogowanieScreen({ navigate }: ScreenProps) {
               type="submit"
               className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-4 cursor-pointer mt-1 shadow-sm"
             >
-              Zaloguj się ({accountType === 'klient' ? 'jako Klient' : 'jako Firma'})
+              Zaloguj się ({accountType === "klient" ? "jako Klient" : "jako Firma"})
             </button>
           </form>
 
@@ -135,75 +143,133 @@ export function LogowanieScreen({ navigate }: ScreenProps) {
 
           <button
             type="button"
-            onClick={() => (accountType === 'klient' ? navigate('NoweZlecenie') : navigate('RejestracjaFirmy'))}
+            onClick={() =>
+              accountType === "klient" ? navigate("NoweZlecenie") : navigate("RejestracjaFirmy")
+            }
             className="w-full text-center text-[16px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-[12px] p-3.5 hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-white"
           >
-            {accountType === 'klient' ? 'Zarejestruj się adresem e-mail' : 'Załóż profil dla swojej firmy'}
+            {accountType === "klient"
+              ? "Zarejestruj się adresem e-mail"
+              : "Załóż profil dla swojej firmy"}
           </button>
 
           <p className="mt-4.5 mb-0 text-[13px] leading-[1.65] text-[#6A5C70]">
-            Nie logujemy przez Facebooka ani Google. Jedno konto, jeden adres, jedno hasło, które trzymamy w postaci
-            skrótu argon2id i którego nie potrafimy odczytać.
+            Nie logujemy przez Facebooka ani Google. Jedno konto, jeden adres, jedno hasło, które
+            trzymamy w postaci skrótu argon2id i którego nie potrafimy odczytać.
           </p>
         </div>
 
         {/* Right Security & Rules Explainer */}
         <div className="grow w-full flex flex-col gap-5">
           <div className="border border-[#E2D5CA] rounded-[20px] bg-[#F2E9E2] p-7 sm:p-8.5 shadow-sm">
-            <h2 className="m-0 mb-5 font-fraunces font-medium text-[26px]">Co robimy z Twoimi danymi</h2>
+            <h2 className="m-0 mb-5 font-fraunces font-medium text-[26px]">
+              Co robimy z Twoimi danymi
+            </h2>
             <div className="flex flex-col gap-5">
               <div className="flex gap-3.5">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5E7360" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
+                <svg
+                  aria-hidden="true"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5E7360"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="shrink-0 mt-0.5"
+                >
                   <path d="M12 3l7.5 3.4v5c0 4.4-3.1 8.2-7.5 9.4-4.4-1.2-7.5-5-7.5-9.4v-5z" />
                   <polyline points="9 12 11.2 14.2 15.4 10" />
                 </svg>
                 <div>
-                  <div className="text-[15px] font-bold mb-1">Hasła nie da się odzyskać, tylko ustawić nowe</div>
+                  <div className="text-[15px] font-bold mb-1">
+                    Hasła nie da się odzyskać, tylko ustawić nowe
+                  </div>
                   <div className="text-[14px] leading-[1.65] text-[#55485A]">
-                    Trzymamy skrót argon2id. Nikt w serwisie, włącznie z nami, nie widzi Twojego hasła. Jeśli ktoś
-                    przyśle maila z prośbą o hasło, to nie jesteśmy my.
+                    Trzymamy skrót argon2id. Nikt w serwisie, włącznie z nami, nie widzi Twojego
+                    hasła. Jeśli ktoś przyśle maila z prośbą o hasło, to nie jesteśmy my.
                   </div>
                 </div>
               </div>
 
               <div className="flex gap-3.5">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5E7360" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
+                <svg
+                  aria-hidden="true"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5E7360"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="shrink-0 mt-0.5"
+                >
                   <path d="M12 3l7.5 3.4v5c0 4.4-3.1 8.2-7.5 9.4-4.4-1.2-7.5-5-7.5-9.4v-5z" />
                   <polyline points="9 12 11.2 14.2 15.4 10" />
                 </svg>
                 <div>
-                  <div className="text-[15px] font-bold mb-1">Sesja siedzi w ciasteczku, nie w pamięci przeglądarki</div>
+                  <div className="text-[15px] font-bold mb-1">
+                    Sesja siedzi w ciasteczku, nie w pamięci przeglądarki
+                  </div>
                   <div className="text-[14px] leading-[1.65] text-[#55485A]">
-                    HttpOnly, Secure, SameSite Lax. Skrypt na stronie nie ma do niej dostępu, więc nie da się jej
-                    wykraść wstrzykniętym kodem.
+                    HttpOnly, Secure, SameSite Lax. Skrypt na stronie nie ma do niej dostępu, więc
+                    nie da się jej wykraść wstrzykniętym kodem.
                   </div>
                 </div>
               </div>
 
               <div className="flex gap-3.5">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5E7360" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
+                <svg
+                  aria-hidden="true"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5E7360"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="shrink-0 mt-0.5"
+                >
                   <path d="M12 3l7.5 3.4v5c0 4.4-3.1 8.2-7.5 9.4-4.4-1.2-7.5-5-7.5-9.4v-5z" />
                   <polyline points="9 12 11.2 14.2 15.4 10" />
                 </svg>
                 <div>
-                  <div className="text-[15px] font-bold mb-1">Konta firmowe wymagają drugiego składnika</div>
+                  <div className="text-[15px] font-bold mb-1">
+                    Konta firmowe wymagają drugiego składnika
+                  </div>
                   <div className="text-[14px] leading-[1.65] text-[#55485A]">
-                    Za kontem firmy stoi pieniądz i dane klientów, dlatego sam login nie wystarcza. Kod z aplikacji, nie
-                    SMS, bo numer da się przejąć.
+                    Za kontem firmy stoi pieniądz i dane klientów, dlatego sam login nie wystarcza.
+                    Kod z aplikacji, nie SMS, bo numer da się przejąć.
                   </div>
                 </div>
               </div>
 
               <div className="flex gap-3.5">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5E7360" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
+                <svg
+                  aria-hidden="true"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5E7360"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="shrink-0 mt-0.5"
+                >
                   <path d="M12 3l7.5 3.4v5c0 4.4-3.1 8.2-7.5 9.4-4.4-1.2-7.5-5-7.5-9.4v-5z" />
                   <polyline points="9 12 11.2 14.2 15.4 10" />
                 </svg>
                 <div>
-                  <div className="text-[15px] font-bold mb-1">Numer telefonu klienta jest niewidoczny do końca</div>
+                  <div className="text-[15px] font-bold mb-1">
+                    Numer telefonu klienta jest niewidoczny do końca
+                  </div>
                   <div className="text-[14px] leading-[1.65] text-[#55485A]">
-                    Firma poznaje Twoje dane kontaktowe dopiero wtedy, gdy sam dodasz jej ofertę do krótkiej listy.
-                    Wcześniej filtr maskuje numery i adresy w wiadomościach.
+                    Firma poznaje Twoje dane kontaktowe dopiero wtedy, gdy sam dodasz jej ofertę do
+                    krótkiej listy. Wcześniej filtr maskuje numery i adresy w wiadomościach.
                   </div>
                 </div>
               </div>
@@ -216,7 +282,8 @@ export function LogowanieScreen({ navigate }: ScreenProps) {
                 Rejestracja klienta
               </div>
               <p className="m-0 text-[15px] leading-[1.65] text-[#3E3344]">
-                Adres e-mail, hasło, potwierdzenie z linku. Dwie minuty, bez numeru telefonu i bez karty.
+                Adres e-mail, hasło, potwierdzenie z linku. Dwie minuty, bez numeru telefonu i bez
+                karty.
               </p>
             </div>
             <span className="hidden sm:block w-[1px] bg-[#EFE5DD] shrink-0" />
@@ -225,8 +292,8 @@ export function LogowanieScreen({ navigate }: ScreenProps) {
                 Rejestracja firmy
               </div>
               <p className="m-0 text-[15px] leading-[1.65] text-[#3E3344]">
-                Dodatkowo NIP i nazwa z rejestru, potwierdzenie numeru telefonu oraz kod z aplikacji. Dopiero wtedy profil
-                może przyjmować zapytania.
+                Dodatkowo NIP i nazwa z rejestru, potwierdzenie numeru telefonu oraz kod z
+                aplikacji. Dopiero wtedy profil może przyjmować zapytania.
               </p>
             </div>
           </div>
@@ -243,29 +310,35 @@ export function LogowanieScreen({ navigate }: ScreenProps) {
           <div className="border border-[#D9CCC2] rounded-[18px] bg-white p-7 shadow-sm">
             <div className="font-fraunces font-medium text-[22px] mb-2">Kod z aplikacji</div>
             <p className="m-0 mb-5 text-[14px] leading-[1.6] text-[#6A5C70]">
-              Drugi krok logowania firmy. Sześć cyfr z aplikacji uwierzytelniającej, ważne 30 sekund.
+              Drugi krok logowania firmy. Sześć cyfr z aplikacji uwierzytelniającej, ważne 30
+              sekund.
             </p>
             <div className="flex gap-2 mb-4.5">
-              {totpCode.map((val, i) => (
-                <span
-                  key={i}
-                  className={`w-11 sm:w-12 h-14 rounded-[10px] flex items-center justify-center font-fraunces text-[24px] font-medium ${
-                    val ? 'border-[1.5px] border-[#241C2B] bg-white' : 'border-[1.5px] border-[#D9CCC2] bg-[#FAF8F6]'
-                  }`}
-                >
-                  {val}
-                </span>
-              ))}
+              {totpCode
+                .map((val, i) => ({ val, klucz: `cyfra-${i}` }))
+                .map(({ val, klucz }) => (
+                  <span
+                    key={klucz}
+                    className={`w-11 sm:w-12 h-14 rounded-[10px] flex items-center justify-center font-fraunces text-[24px] font-medium ${
+                      val
+                        ? "border-[1.5px] border-[#241C2B] bg-white"
+                        : "border-[1.5px] border-[#D9CCC2] bg-[#FAF8F6]"
+                    }`}
+                  >
+                    {val}
+                  </span>
+                ))}
             </div>
             <button
               type="button"
-              onClick={() => alert('Wprowadzono kod 407892. Uwierzytelnianie powiodło się.')}
+              onClick={() => alert("Wprowadzono kod 407892. Uwierzytelnianie powiodło się.")}
               className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-3.5 cursor-pointer w-full shadow-sm"
             >
               Potwierdź kod
             </button>
             <p className="mt-3.5 mb-0 text-[13px] leading-[1.6] text-[#6A5C70]">
-              Pięć błędnych prób wstrzymuje logowanie na kwadrans. Konto zostaje czynne, tylko ten adres musi odczekać.
+              Pięć błędnych prób wstrzymuje logowanie na kwadrans. Konto zostaje czynne, tylko ten
+              adres musi odczekać.
             </p>
           </div>
 
@@ -273,7 +346,8 @@ export function LogowanieScreen({ navigate }: ScreenProps) {
           <div className="border border-[#D9CCC2] rounded-[18px] bg-white p-7 shadow-sm">
             <div className="font-fraunces font-medium text-[22px] mb-2">Nowe hasło</div>
             <p className="m-0 mb-5 text-[14px] leading-[1.6] text-[#6A5C70]">
-              Link z maila jest jednorazowy i ważny godzinę. Po zmianie hasła wszystkie inne sesje zostają wylogowane.
+              Link z maila jest jednorazowy i ważny godzinę. Po zmianie hasła wszystkie inne sesje
+              zostają wylogowane.
             </p>
             <div className="flex flex-col gap-2 mb-4.5">
               <label htmlFor="new-haslo-demo" className="text-[14px] font-semibold text-[#3E3344]">
@@ -287,12 +361,13 @@ export function LogowanieScreen({ navigate }: ScreenProps) {
                 className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
               />
               <span className="text-[13px] text-[#6A5C70]">
-                Najmniej dwanaście znaków. Nie wymagamy znaków specjalnych, długość liczy się bardziej.
+                Najmniej dwanaście znaków. Nie wymagamy znaków specjalnych, długość liczy się
+                bardziej.
               </span>
             </div>
             <button
               type="button"
-              onClick={() => alert('Hasło zostało zaktualizowane!')}
+              onClick={() => alert("Hasło zostało zaktualizowane!")}
               className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-3.5 cursor-pointer w-full shadow-sm"
             >
               Ustaw nowe hasło
@@ -303,8 +378,8 @@ export function LogowanieScreen({ navigate }: ScreenProps) {
           <div className="border border-[#D9CCC2] rounded-[18px] bg-white p-7 shadow-sm">
             <div className="font-fraunces font-medium text-[22px] mb-2">Nieudane logowanie</div>
             <p className="m-0 mb-4.5 text-[14px] leading-[1.6] text-[#6A5C70]">
-              Komunikat jest celowo jednakowy dla złego hasła i nieistniejącego konta. Inaczej każdy mógłby sprawdzać, kto
-              ma tu konto.
+              Komunikat jest celowo jednakowy dla złego hasła i nieistniejącego konta. Inaczej każdy
+              mógłby sprawdzać, kto ma tu konto.
             </p>
             <div className="border border-[#D9CCC2] border-l-4 border-l-[#8A5405] rounded-[10px] bg-[#F2E9E2] p-4 mb-4.5">
               <div className="text-[15px] font-bold mb-1">Adres lub hasło nie pasują</div>
