@@ -162,7 +162,7 @@ export function Footer({ dark }: FooterProps) {
             href="/rejestracja-firmy"
             className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
           >
-            Dodaj swój lokal
+            Dodaj swoją firmę
           </Link>
           <Link
             href="/zlecenia"

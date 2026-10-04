@@ -127,17 +127,19 @@ export function RejestracjaFirmyScreen() {
                   Adres e-mail i hasło do panelu. Konto zakładasz raz, profil budujesz dalej.
                 </p>
 
-                {/* Na tym kroku konto dopiero powstaje, więc odnośnik prowadzi
-                    w drugą stronę: do logowania dla tych, którzy już je mają. */}
-                <p className="text-[14px] text-[#3E3344] mb-6">
-                  Masz już konto?{" "}
-                  <Link
-                    href="/logowanie"
-                    className="font-semibold text-[#8A5405] underline hover:text-[#241C2B]"
-                  >
-                    Zaloguj się
-                  </Link>
-                </p>
+                {/* Wejście do kreatora prowadzi z przycisku w nagłówku, który nie mówi,
+                    czy katalog obejmuje też usługodawców. To okienko rozwiewa wątpliwość,
+                    zanim firma zacznie wypełniać pola. */}
+                <div className="mb-6 rounded-[14px] border border-[#E2D5CA] bg-[#F2E9E2] p-5">
+                  <p className="m-0 text-[15px] font-semibold text-[#241C2B]">
+                    Zakładasz jedno konto dla swojej firmy
+                  </p>
+                  <p className="m-0 mt-1.5 text-[14px] leading-[1.6] text-[#3E3344]">
+                    Działa tak samo dla lokalu stacjonarnego i dla usługodawcy dojeżdżającego do
+                    klienta: sali, dworu, restauracji, ale też fotografa, zespołu, cateringu, DJ-a
+                    czy florysty. Rodzaj ogłoszenia wybierzesz w następnym kroku.
+                  </p>
+                </div>
 
                 <div className="space-y-4 text-[14px]">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -248,6 +250,16 @@ export function RejestracjaFirmyScreen() {
                     </select>
                   </div>
                 </div>
+
+                <p className="mt-5 mb-0 text-[14px] text-[#6A5C70]">
+                  Masz już konto?{" "}
+                  <Link
+                    href="/logowanie"
+                    className="font-semibold text-[#8A5405] underline hover:text-[#241C2B]"
+                  >
+                    Zaloguj się
+                  </Link>
+                </p>
               </div>
             </div>
 

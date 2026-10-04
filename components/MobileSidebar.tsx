@@ -171,7 +171,7 @@ export function MobileSidebar({ isOpen, onClose, variant = "public" }: MobileSid
                     className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#F0A62E] hover:bg-[#e29922] transition-colors text-[#241C2B] font-bold text-[14px] border-0 cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Dodaj swój lokal</span>
+                    <span>Dodaj swoją firmę</span>
                   </Link>
                 </div>
               )}

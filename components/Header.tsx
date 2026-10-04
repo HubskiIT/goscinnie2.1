@@ -360,7 +360,7 @@ export function Header({ variant }: HeaderProps) {
             href="/rejestracja-firmy"
             className="text-[14px] sm:text-[15px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-full px-4 sm:px-5 py-2 sm:py-[10px] hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-transparent hidden md:inline"
           >
-            Dodaj swój lokal
+            Dodaj swoją firmę
           </Link>
 
           {/* Mobile Hamburger Button to slide out the sidebar */}
