@@ -127,6 +127,18 @@ export function RejestracjaFirmyScreen() {
                   Adres e-mail i hasło do panelu. Konto zakładasz raz, profil budujesz dalej.
                 </p>
 
+                {/* Na tym kroku konto dopiero powstaje, więc odnośnik prowadzi
+                    w drugą stronę: do logowania dla tych, którzy już je mają. */}
+                <p className="text-[14px] text-[#3E3344] mb-6">
+                  Masz już konto?{" "}
+                  <Link
+                    href="/logowanie"
+                    className="font-semibold text-[#8A5405] underline hover:text-[#241C2B]"
+                  >
+                    Zaloguj się
+                  </Link>
+                </p>
+
                 <div className="space-y-4 text-[14px]">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>

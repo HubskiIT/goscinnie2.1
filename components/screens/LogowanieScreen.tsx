@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import { KomunikatFormularza } from "@/components/KomunikatFormularza";
 import { zaloguj } from "@/lib/akcje/formularze";
@@ -8,7 +8,6 @@ import { KOMUNIKAT_W_BUDOWIE, STAN_POCZATKOWY } from "@/lib/formularze";
 
 export function LogowanieScreen() {
   const [stanLogowania, akcjaLogowania] = useActionState(zaloguj, STAN_POCZATKOWY);
-  const router = useRouter();
   const [accountType, setAccountType] = useState<"klient" | "firma">("klient");
   const [email, setEmail] = useState("anna.kowalska@example.com");
   const [password, setPassword] = useState("password");
@@ -133,21 +132,18 @@ export function LogowanieScreen() {
 
           <div className="flex items-center gap-3.5 my-6">
             <span className="grow h-[1px] bg-[#EFE5DD]" />
-            <span className="text-[13px] text-[#6A5C70]">nie masz konta</span>
+            <span className="text-[13px] text-[#6A5C70]">nie masz jeszcze konta</span>
             <span className="grow h-[1px] bg-[#EFE5DD]" />
           </div>
 
-          <button
-            type="button"
-            onClick={() =>
-              router.push(accountType === "klient" ? "/dodaj-zlecenie" : "/rejestracja-firmy")
-            }
-            className="w-full text-center text-[16px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-[12px] p-3.5 hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-white"
+          <Link
+            href={accountType === "klient" ? "/dodaj-zlecenie" : "/rejestracja-firmy"}
+            className="block w-full text-center text-[16px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-[12px] p-3.5 hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-white"
           >
             {accountType === "klient"
               ? "Zarejestruj się adresem e-mail"
               : "Załóż profil dla swojej firmy"}
-          </button>
+          </Link>
 
           <p className="mt-4.5 mb-0 text-[13px] leading-[1.65] text-[#6A5C70]">
             Nie logujemy przez Facebooka ani Google. Jedno konto, jeden adres, jedno hasło, które
