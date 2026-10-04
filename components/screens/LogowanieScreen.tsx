@@ -1,10 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type React from "react";
-import { useState } from "react";
+import { useActionState, useState } from "react";
+import { KomunikatFormularza } from "@/components/KomunikatFormularza";
+import { zaloguj } from "@/lib/akcje/formularze";
+import { KOMUNIKAT_W_BUDOWIE, STAN_POCZATKOWY } from "@/lib/formularze";
 
 export function LogowanieScreen() {
+  const [stanLogowania, akcjaLogowania] = useActionState(zaloguj, STAN_POCZATKOWY);
   const router = useRouter();
   const [accountType, setAccountType] = useState<"klient" | "firma">("klient");
   const [email, setEmail] = useState("anna.kowalska@example.com");
@@ -15,11 +18,6 @@ export function LogowanieScreen() {
   const [totpCode, _setTotpCode] = useState(["4", "0", "7", "", "", ""]);
   const [newPassword, setNewPassword] = useState("SuperSilneHaslo123!");
   const [demoAttemptCount, _setDemoAttemptCount] = useState(3);
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    router.push(accountType === "klient" ? "/moje" : "/panel");
-  };
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
@@ -43,6 +41,10 @@ export function LogowanieScreen() {
             >
               Konto klienta
             </button>
+            <div className="mb-4">
+              <KomunikatFormularza stan={stanLogowania} />
+            </div>
+
             <button
               type="button"
               onClick={() => {
@@ -68,13 +70,14 @@ export function LogowanieScreen() {
               : "Dostęp do panelu zarządzania obiektem, giełdy zleceń i kalendarza wolnych terminów."}
           </p>
 
-          <form onSubmit={handleLogin} className="flex flex-col gap-4.5">
+          <form action={akcjaLogowania} className="flex flex-col gap-4.5">
             <div className="flex flex-col gap-2">
               <label htmlFor="log-mail" className="text-[14px] font-semibold text-[#3E3344]">
                 Adres e-mail
               </label>
               <input
                 id="log-mail"
+                name="log-mail"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -89,9 +92,7 @@ export function LogowanieScreen() {
                 </label>
                 <button
                   type="button"
-                  onClick={() =>
-                    alert("Wpisz e-mail, aby otrzymać jednorazowy link do resetowania hasła.")
-                  }
+                  onClick={() => alert(KOMUNIKAT_W_BUDOWIE)}
                   className="text-[13px] text-[#8A5405] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
                 >
                   Nie pamiętam hasła
@@ -99,6 +100,7 @@ export function LogowanieScreen() {
               </div>
               <input
                 id="log-haslo"
+                name="log-haslo"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -112,6 +114,7 @@ export function LogowanieScreen() {
             >
               <input
                 id="log-pamietaj"
+                name="log-pamietaj"
                 type="checkbox"
                 checked={remember}
                 onChange={(e) => setRemember(e.target.checked)}
@@ -324,7 +327,7 @@ export function LogowanieScreen() {
             </div>
             <button
               type="button"
-              onClick={() => alert("Wprowadzono kod 407892. Uwierzytelnianie powiodło się.")}
+              onClick={() => alert(KOMUNIKAT_W_BUDOWIE)}
               className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-3.5 cursor-pointer w-full shadow-sm"
             >
               Potwierdź kod
@@ -348,6 +351,7 @@ export function LogowanieScreen() {
               </label>
               <input
                 id="new-haslo-demo"
+                name="new-haslo-demo"
                 type="text"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -360,7 +364,7 @@ export function LogowanieScreen() {
             </div>
             <button
               type="button"
-              onClick={() => alert("Hasło zostało zaktualizowane!")}
+              onClick={() => alert(KOMUNIKAT_W_BUDOWIE)}
               className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-3.5 cursor-pointer w-full shadow-sm"
             >
               Ustaw nowe hasło

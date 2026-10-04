@@ -1,9 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
+import { useActionState, useState } from "react";
+import { KomunikatFormularza } from "@/components/KomunikatFormularza";
+import { wyslijZlecenie } from "@/lib/akcje/formularze";
+import { STAN_POCZATKOWY } from "@/lib/formularze";
 
 export function NoweZlecenieScreen() {
+  const [stan, akcja] = useActionState(wyslijZlecenie, STAN_POCZATKOWY);
   const [currentStep, setCurrentStep] = useState(2);
   const [date, setDate] = useState("12.06.2027");
   const [guests, setGuests] = useState("80");
@@ -130,8 +133,11 @@ export function NoweZlecenieScreen() {
           </div>
 
           {/* Form Card */}
-          <div className="border border-[#D9CCC2] rounded-[20px] bg-white p-7 sm:p-9 shadow-sm">
-            {currentStep === 1 && (
+          <form
+            action={akcja}
+            className="border border-[#D9CCC2] rounded-[20px] bg-white p-7 sm:p-9 shadow-sm"
+          >
+            <div className={currentStep === 1 ? "" : "hidden"}>
               <div>
                 <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">Wybierz okazję</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
@@ -149,117 +155,118 @@ export function NoweZlecenieScreen() {
                   )}
                 </div>
               </div>
-            )}
+            </div>
 
-            {currentStep === 2 && (
-              <>
-                <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">
-                  Szczegóły wydarzenia
-                </h2>
+            <div className={currentStep === 2 ? "" : "hidden"}>
+              <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">
+                Szczegóły wydarzenia
+              </h2>
 
-                <div className="flex flex-col sm:flex-row gap-4 mb-5">
-                  <div className="grow flex flex-col gap-2">
-                    <label htmlFor="z-data" className="text-[14px] font-semibold text-[#3E3344]">
-                      Data wydarzenia
-                    </label>
-                    <input
-                      id="z-data"
-                      type="text"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
-                    />
-                    <span className="text-[13px] text-[#6A5C70]">
-                      Nie znasz jeszcze daty? Wpisz miesiąc.
-                    </span>
-                  </div>
-                  <div className="w-full sm:w-[220px] flex flex-col gap-2">
-                    <label htmlFor="z-osoby" className="text-[14px] font-semibold text-[#3E3344]">
-                      Liczba osób
-                    </label>
-                    <input
-                      id="z-osoby"
-                      type="text"
-                      value={guests}
-                      onChange={(e) => setGuests(e.target.value)}
-                      className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
-                    />
-                    <span className="text-[13px] text-[#6A5C70]">Może być przybliżona.</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4 mb-5">
-                  <div className="grow flex flex-col gap-2">
-                    <label htmlFor="z-miasto" className="text-[14px] font-semibold text-[#3E3344]">
-                      Miejscowość
-                    </label>
-                    <input
-                      id="z-miasto"
-                      type="text"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
-                    />
-                  </div>
-                  <div className="w-full sm:w-[260px] flex flex-col gap-2">
-                    <label htmlFor="z-promien" className="text-[14px] font-semibold text-[#3E3344]">
-                      Jak daleko możesz dojechać
-                    </label>
-                    <input
-                      id="z-promien"
-                      type="text"
-                      value={radius}
-                      onChange={(e) => setRadius(e.target.value)}
-                      className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2 mb-5">
-                  <label htmlFor="z-opis" className="text-[14px] font-semibold text-[#3E3344]">
-                    Czego szukasz, własnymi słowami
+              <div className="flex flex-col sm:flex-row gap-4 mb-5">
+                <div className="grow flex flex-col gap-2">
+                  <label htmlFor="z-data" className="text-[14px] font-semibold text-[#3E3344]">
+                    Data wydarzenia
                   </label>
-                  <textarea
-                    id="z-opis"
-                    rows={4}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="text-[16px] leading-[1.7] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-4 w-full box-border"
+                  <input
+                    id="z-data"
+                    name="z-data"
+                    type="text"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
                   />
-                  <div className="flex justify-between text-[13px] text-[#6A5C70]">
-                    <span>Im konkretniej, tym trafniejsze oferty.</span>
-                    <span>{description.length} z 2000 znaków</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2.5 mb-7">
-                  <span className="text-[14px] font-semibold text-[#3E3344]">
-                    Czego potrzebujesz
+                  <span className="text-[13px] text-[#6A5C70]">
+                    Nie znasz jeszcze daty? Wpisz miesiąc.
                   </span>
-                  <div className="flex gap-2.5 flex-wrap">
-                    {tags.map((t) => {
-                      const isSelected = selectedTags.includes(t);
-                      return (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => toggleTag(t)}
-                          className={`text-[14px] rounded-full px-4 py-2 cursor-pointer transition-colors ${
-                            isSelected
-                              ? "font-semibold text-[#241C2B] bg-white border-[1.5px] border-[#241C2B] shadow-sm"
-                              : "text-[#3E3344] bg-white border border-[#D9CCC2] hover:border-[#241C2B]"
-                          }`}
-                        >
-                          {t}
-                        </button>
-                      );
-                    })}
-                  </div>
                 </div>
-              </>
-            )}
+                <div className="w-full sm:w-[220px] flex flex-col gap-2">
+                  <label htmlFor="z-osoby" className="text-[14px] font-semibold text-[#3E3344]">
+                    Liczba osób
+                  </label>
+                  <input
+                    id="z-osoby"
+                    name="z-osoby"
+                    type="text"
+                    value={guests}
+                    onChange={(e) => setGuests(e.target.value)}
+                    className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
+                  />
+                  <span className="text-[13px] text-[#6A5C70]">Może być przybliżona.</span>
+                </div>
+              </div>
 
-            {currentStep === 3 && (
+              <div className="flex flex-col sm:flex-row gap-4 mb-5">
+                <div className="grow flex flex-col gap-2">
+                  <label htmlFor="z-miasto" className="text-[14px] font-semibold text-[#3E3344]">
+                    Miejscowość
+                  </label>
+                  <input
+                    id="z-miasto"
+                    name="z-miasto"
+                    type="text"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
+                  />
+                </div>
+                <div className="w-full sm:w-[260px] flex flex-col gap-2">
+                  <label htmlFor="z-promien" className="text-[14px] font-semibold text-[#3E3344]">
+                    Jak daleko możesz dojechać
+                  </label>
+                  <input
+                    id="z-promien"
+                    name="z-promien"
+                    type="text"
+                    value={radius}
+                    onChange={(e) => setRadius(e.target.value)}
+                    className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 mb-5">
+                <label htmlFor="z-opis" className="text-[14px] font-semibold text-[#3E3344]">
+                  Czego szukasz, własnymi słowami
+                </label>
+                <textarea
+                  id="z-opis"
+                  name="z-opis"
+                  rows={4}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="text-[16px] leading-[1.7] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-4 w-full box-border"
+                />
+                <div className="flex justify-between text-[13px] text-[#6A5C70]">
+                  <span>Im konkretniej, tym trafniejsze oferty.</span>
+                  <span>{description.length} z 2000 znaków</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2.5 mb-7">
+                <span className="text-[14px] font-semibold text-[#3E3344]">Czego potrzebujesz</span>
+                <div className="flex gap-2.5 flex-wrap">
+                  {tags.map((t) => {
+                    const isSelected = selectedTags.includes(t);
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => toggleTag(t)}
+                        className={`text-[14px] rounded-full px-4 py-2 cursor-pointer transition-colors ${
+                          isSelected
+                            ? "font-semibold text-[#241C2B] bg-white border-[1.5px] border-[#241C2B] shadow-sm"
+                            : "text-[#3E3344] bg-white border border-[#D9CCC2] hover:border-[#241C2B]"
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className={currentStep === 3 ? "" : "hidden"}>
               <div className="mb-6">
                 <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">Szacowany budżet</h2>
                 <div className="flex flex-col gap-2 mb-4">
@@ -268,6 +275,7 @@ export function NoweZlecenieScreen() {
                   </label>
                   <input
                     id="z-budzet"
+                    name="z-budzet"
                     type="text"
                     value={budget}
                     onChange={(e) => setBudget(e.target.value)}
@@ -278,9 +286,9 @@ export function NoweZlecenieScreen() {
                   </span>
                 </div>
               </div>
-            )}
+            </div>
 
-            {currentStep === 4 && (
+            <div className={currentStep === 4 ? "" : "hidden"}>
               <div className="mb-6">
                 <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">Dane kontaktowe</h2>
                 <p className="text-[15px] text-[#55485A] mb-4">
@@ -289,28 +297,24 @@ export function NoweZlecenieScreen() {
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
-                    <label
-                      htmlFor="nowezleceniescreen-imie"
-                      className="text-[14px] font-semibold text-[#3E3344]"
-                    >
+                    <label htmlFor="z-imie" className="text-[14px] font-semibold text-[#3E3344]">
                       Imię
                     </label>
                     <input
-                      id="nowezleceniescreen-imie"
+                      id="z-imie"
+                      name="z-imie"
                       type="text"
                       defaultValue="Anna"
                       className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label
-                      htmlFor="nowezleceniescreen-adres-e-mail"
-                      className="text-[14px] font-semibold text-[#3E3344]"
-                    >
+                    <label htmlFor="z-mail" className="text-[14px] font-semibold text-[#3E3344]">
                       Adres e-mail
                     </label>
                     <input
-                      id="nowezleceniescreen-adres-e-mail"
+                      id="z-mail"
+                      name="z-mail"
                       type="email"
                       defaultValue="anna.kowalska@example.com"
                       className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5"
@@ -318,7 +322,7 @@ export function NoweZlecenieScreen() {
                   </div>
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Actions */}
             <div className="flex items-center gap-4 pt-4 border-t border-[#EFE5DD]">
@@ -335,12 +339,12 @@ export function NoweZlecenieScreen() {
                       : "Dalej, kontakt"}
                 </button>
               ) : (
-                <Link
-                  href="/moje"
+                <button
+                  type="submit"
                   className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-4 cursor-pointer shadow-sm"
                 >
                   Opublikuj zlecenie
-                </Link>
+                </button>
               )}
 
               {currentStep > 1 && (
@@ -352,12 +356,12 @@ export function NoweZlecenieScreen() {
                   Wróć
                 </button>
               )}
-
-              <span className="ml-auto text-[13px] text-[#6A5C70] hidden sm:inline">
-                Zapisujemy po każdym kroku. Możesz wrócić później.
-              </span>
             </div>
-          </div>
+
+            <div className="pt-4">
+              <KomunikatFormularza stan={stan} />
+            </div>
+          </form>
         </div>
 
         {/* Aside: Live preview */}

@@ -1,18 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import type React from "react";
-import { useState } from "react";
+import { useActionState, useState } from "react";
+import { KomunikatFormularza } from "@/components/KomunikatFormularza";
 import { zlote } from "@/content/format";
 import { type Lokal, pobierzLokale } from "@/content/ogloszenia";
+import { wyslijZapytanie } from "@/lib/akcje/formularze";
+import { STAN_POCZATKOWY } from "@/lib/formularze";
 
 interface ZapytanieScreenProps {
   lokal: Lokal;
 }
 
 export function ZapytanieScreen({ lokal }: ZapytanieScreenProps) {
-  const router = useRouter();
+  const [stan, akcja] = useActionState(wyslijZapytanie, STAN_POCZATKOWY);
   const [recipients, setRecipients] = useState(() =>
     pobierzLokale()
       .filter((lokal) => lokal.status === "active")
@@ -30,14 +31,6 @@ export function ZapytanieScreen({ lokal }: ZapytanieScreenProps) {
   };
 
   const checkedCount = recipients.filter((r) => r.checked).length;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert(
-      `Zapytanie zostało pomyślnie wysłane do ${checkedCount} obiektów. Odpowiedzi otrzymasz w panelu wiadomości.`,
-    );
-    router.push("/wiadomosci");
-  };
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
@@ -69,7 +62,7 @@ export function ZapytanieScreen({ lokal }: ZapytanieScreenProps) {
           </p>
 
           <form
-            onSubmit={handleSubmit}
+            action={akcja}
             className="border border-[#D9CCC2] rounded-[20px] bg-white p-7 sm:p-8 shadow-sm"
           >
             <div className="flex flex-col sm:flex-row gap-4 mb-5">
@@ -79,6 +72,7 @@ export function ZapytanieScreen({ lokal }: ZapytanieScreenProps) {
                 </label>
                 <input
                   id="q-okazja"
+                  name="q-okazja"
                   type="text"
                   defaultValue="Komunia"
                   className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
@@ -90,6 +84,7 @@ export function ZapytanieScreen({ lokal }: ZapytanieScreenProps) {
                 </label>
                 <input
                   id="q-data"
+                  name="q-data"
                   type="text"
                   defaultValue="12.06.2027"
                   className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
@@ -101,6 +96,7 @@ export function ZapytanieScreen({ lokal }: ZapytanieScreenProps) {
                 </label>
                 <input
                   id="q-osoby"
+                  name="q-osoby"
                   type="text"
                   defaultValue="80"
                   className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
@@ -114,6 +110,7 @@ export function ZapytanieScreen({ lokal }: ZapytanieScreenProps) {
               </label>
               <textarea
                 id="q-tresc"
+                name="q-tresc"
                 rows={4}
                 defaultValue="Dzień dobry, czy mają Państwo wolny ten termin i czy sala jest wtedy na wyłączność? Interesuje nas też, czy można przynieść własny tort."
                 className="text-[16px] leading-[1.7] text-[#241C2B] border-[1.5px] border-[#D9CCC2] rounded-[10px] p-4 w-full box-border"
@@ -127,6 +124,7 @@ export function ZapytanieScreen({ lokal }: ZapytanieScreenProps) {
                 </label>
                 <input
                   id="q-imie"
+                  name="q-imie"
                   type="text"
                   defaultValue="Anna"
                   className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
@@ -138,6 +136,7 @@ export function ZapytanieScreen({ lokal }: ZapytanieScreenProps) {
                 </label>
                 <input
                   id="q-mail"
+                  name="q-mail"
                   type="email"
                   defaultValue="anna.kowalska@example.com"
                   className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
@@ -168,6 +167,10 @@ export function ZapytanieScreen({ lokal }: ZapytanieScreenProps) {
             </div>
 
             <div className="flex items-center gap-4">
+              <div className="mb-4">
+                <KomunikatFormularza stan={stan} />
+              </div>
+
               <button
                 type="submit"
                 className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-4 cursor-pointer shadow-sm"

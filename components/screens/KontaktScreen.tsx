@@ -1,28 +1,13 @@
 "use client";
 
-import type React from "react";
-import { useState } from "react";
+import { useActionState } from "react";
+import { KomunikatFormularza } from "@/components/KomunikatFormularza";
+import { wyslijKontakt, wyslijZgloszenie } from "@/lib/akcje/formularze";
+import { STAN_POCZATKOWY, wartoscPola } from "@/lib/formularze";
 
 export function KontaktScreen() {
-  const [topic, setTopic] = useState("Pytanie o abonament");
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-
-  const [reportUrl, setReportUrl] = useState("goscinnie.pl/sale/...");
-  const [reportReason, setReportReason] = useState("Wpis podszywa się pod moją firmę");
-
-  const handleContactSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert("Wiadomość została wysłana! Odpowiemy w ciągu 24 godzin.");
-    setMessage("");
-  };
-
-  const handleReportSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert(
-      "Zgłoszenie treści zostało przyjęte do weryfikacji. Dziękujemy za dbałość o jakość serwisu.",
-    );
-  };
+  const [stanKontaktu, akcjaKontaktu] = useActionState(wyslijKontakt, STAN_POCZATKOWY);
+  const [stanZgloszenia, akcjaZgloszenia] = useActionState(wyslijZgloszenie, STAN_POCZATKOWY);
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
@@ -38,7 +23,7 @@ export function KontaktScreen() {
         <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Main Contact Form */}
           <form
-            onSubmit={handleContactSubmit}
+            action={akcjaKontaktu}
             className="grow w-full border border-[#D9CCC2] rounded-[20px] bg-white p-7 sm:p-8.5 shadow-sm"
           >
             <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">Napisz do nas</h2>
@@ -50,9 +35,9 @@ export function KontaktScreen() {
                 </label>
                 <input
                   id="k-temat"
+                  name="k-temat"
+                  defaultValue={wartoscPola(stanKontaktu, "k-temat")}
                   type="text"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
                   className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
                 />
               </div>
@@ -62,11 +47,11 @@ export function KontaktScreen() {
                 </label>
                 <input
                   id="k-mail"
+                  name="k-mail"
+                  defaultValue={wartoscPola(stanKontaktu, "k-mail")}
                   type="email"
                   required
                   placeholder="twoj@email.pl"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
                   className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
                 />
               </div>
@@ -78,13 +63,17 @@ export function KontaktScreen() {
               </label>
               <textarea
                 id="k-tresc"
+                name="k-tresc"
+                defaultValue={wartoscPola(stanKontaktu, "k-tresc")}
                 rows={5}
                 required
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
                 placeholder="W czym możemy pomóc?"
                 className="text-[16px] leading-[1.6] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-4 w-full box-border resize-none"
               />
+            </div>
+
+            <div className="mb-4">
+              <KomunikatFormularza stan={stanKontaktu} />
             </div>
 
             <button
@@ -98,7 +87,7 @@ export function KontaktScreen() {
           {/* Right Cards: Report + Service info */}
           <div className="w-full lg:w-[480px] shrink-0 flex flex-col gap-5">
             <form
-              onSubmit={handleReportSubmit}
+              action={akcjaZgloszenia}
               className="border border-[#D9CCC2] rounded-[20px] bg-white p-7 sm:p-8 shadow-sm"
             >
               <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">Zgłoś treść</h2>
@@ -115,9 +104,9 @@ export function KontaktScreen() {
                   </label>
                   <input
                     id="z-adres"
+                    name="z-adres"
+                    defaultValue={wartoscPola(stanZgloszenia, "z-adres")}
                     type="text"
-                    value={reportUrl}
-                    onChange={(e) => setReportUrl(e.target.value)}
                     className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
                   />
                 </div>
@@ -127,12 +116,16 @@ export function KontaktScreen() {
                   </label>
                   <input
                     id="z-powod"
+                    name="z-powod"
+                    defaultValue={wartoscPola(stanZgloszenia, "z-powod")}
                     type="text"
-                    value={reportReason}
-                    onChange={(e) => setReportReason(e.target.value)}
                     className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
                   />
                 </div>
+              </div>
+
+              <div className="mb-4">
+                <KomunikatFormularza stan={stanZgloszenia} />
               </div>
 
               <button

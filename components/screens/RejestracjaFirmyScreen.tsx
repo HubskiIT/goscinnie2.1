@@ -1,12 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useActionState, useState } from "react";
+import { KomunikatFormularza } from "@/components/KomunikatFormularza";
+import { wyslijRejestracje } from "@/lib/akcje/formularze";
+import { STAN_POCZATKOWY } from "@/lib/formularze";
+
+type Krok = 1 | 2 | 3 | 4 | 5 | 6;
+
+/** Kolejność kroków z punktu 5.3 planu: konto, rodzaj, profil, dane firmy, cena, publikacja. */
+const NAZWY_KROKOW = [
+  "Konto",
+  "Rodzaj ogłoszenia",
+  "Budowa profilu",
+  "Dane firmy",
+  "Cena i okres",
+  "Publikacja",
+] as const;
+
+const KROKOW = NAZWY_KROKOW.length;
 
 export function RejestracjaFirmyScreen() {
-  const router = useRouter();
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [stan, akcja] = useActionState(wyslijRejestracje, STAN_POCZATKOWY);
+  const [step, setStep] = useState<Krok>(1);
 
   // Step 1: Account & Type
   const [accountType, setAccountType] = useState<"lokal" | "usluga">("lokal");
@@ -43,10 +59,7 @@ export function RejestracjaFirmyScreen() {
   };
 
   const handleNext = () => {
-    if (step < 4) setStep((prev) => (prev + 1) as 1 | 2 | 3 | 4);
-    else {
-      router.push("/panel");
-    }
+    if (step < KROKOW) setStep((prev) => (prev + 1) as Krok);
   };
 
   return (
@@ -76,42 +89,72 @@ export function RejestracjaFirmyScreen() {
           </div>
 
           <div className="flex items-center gap-2 text-[14px] font-bold text-[#6A5C70] bg-[#F2E9E2] px-4 py-2 rounded-full border border-[#E2D5CA]">
-            Krok {step} z 4:{" "}
-            {step === 1
-              ? "Konto i rodzaj"
-              : step === 2
-                ? "Kreator profilu"
-                : step === 3
-                  ? "Weryfikacja firmy"
-                  : "Publikacja"}
+            Krok {step} z {KROKOW}: {NAZWY_KROKOW[step - 1]}
           </div>
         </div>
 
         {/* Step Indicator Progress Bar */}
-        <div className="grid grid-cols-4 gap-2.5 mb-10">
-          <div
-            className={`h-2 rounded-full transition-colors ${step >= 1 ? "bg-[#241C2B]" : "bg-[#E2D5CA]"}`}
-          />
-          <div
-            className={`h-2 rounded-full transition-colors ${step >= 2 ? "bg-[#241C2B]" : "bg-[#E2D5CA]"}`}
-          />
-          <div
-            className={`h-2 rounded-full transition-colors ${step >= 3 ? "bg-[#241C2B]" : "bg-[#E2D5CA]"}`}
-          />
-          <div
-            className={`h-2 rounded-full transition-colors ${step >= 4 ? "bg-[#241C2B]" : "bg-[#E2D5CA]"}`}
-          />
+        <div className="grid grid-cols-6 gap-2.5 mb-10">
+          {NAZWY_KROKOW.map((nazwa, numer) => (
+            <div
+              key={nazwa}
+              className={`h-2 rounded-full transition-colors ${
+                step >= numer + 1 ? "bg-[#241C2B]" : "bg-[#E2D5CA]"
+              }`}
+            />
+          ))}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           {/* Main Wizard Card */}
-          <div className="lg:col-span-8 border border-[#E2D5CA] rounded-[20px] bg-white p-7 sm:p-9 shadow-xs">
+          <form
+            action={akcja}
+            className="lg:col-span-8 border border-[#E2D5CA] rounded-[20px] bg-white p-7 sm:p-9 shadow-xs"
+          >
             {/* Step 1: Konto i rodzaj */}
-            {step === 1 && (
+            <div className={step === 1 ? "" : "hidden"}>
               <div>
-                <h2 className="font-fraunces text-[24px] font-medium mb-2">
-                  1. Konto i rodzaj działalności
-                </h2>
+                <h2 className="font-fraunces text-[24px] font-medium mb-2">1. Konto</h2>
+                <p className="text-[14px] text-[#6A5C70] mb-6">
+                  Adres e-mail i hasło do panelu. Konto zakładasz raz, profil budujesz dalej.
+                </p>
+
+                <div className="space-y-4 text-[14px]">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="f-email" className="block text-[#6A5C70] font-medium mb-1.5">
+                        Adres e-mail konta
+                      </label>
+                      <input
+                        id="f-email"
+                        name="f-email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] outline-none focus:border-[#241C2B]"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="f-haslo" className="block text-[#6A5C70] font-medium mb-1.5">
+                        Hasło do panelu
+                      </label>
+                      <input
+                        id="f-haslo"
+                        name="f-haslo"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] outline-none focus:border-[#241C2B]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={step === 2 ? "" : "hidden"}>
+              <div>
+                <h2 className="font-fraunces text-[24px] font-medium mb-2">2. Rodzaj ogłoszenia</h2>
                 <p className="text-[14px] text-[#6A5C70] mb-6">
                   Wybierz, czy prowadzisz lokal stacjonarny, czy jesteś mobilnym usługodawcą
                   dojeżdżającym do klienta.
@@ -159,13 +202,14 @@ export function RejestracjaFirmyScreen() {
                 <div className="space-y-4 text-[14px]">
                   <div>
                     <label
-                      htmlFor="rejestracjafirmyscreen-glowna-kategoria"
+                      htmlFor="f-kategoria"
                       className="block text-[#6A5C70] font-medium mb-1.5"
                     >
                       Główna kategoria
                     </label>
                     <select
-                      id="rejestracjafirmyscreen-glowna-kategoria"
+                      id="f-kategoria"
+                      name="f-kategoria"
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
                       className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] bg-white outline-none focus:border-[#241C2B]"
@@ -180,47 +224,14 @@ export function RejestracjaFirmyScreen() {
                       <option>Dekoracje i florystyka</option>
                     </select>
                   </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label
-                        htmlFor="rejestracjafirmyscreen-adres-e-mail-konta"
-                        className="block text-[#6A5C70] font-medium mb-1.5"
-                      >
-                        Adres e-mail konta
-                      </label>
-                      <input
-                        id="rejestracjafirmyscreen-adres-e-mail-konta"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] outline-none focus:border-[#241C2B]"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="rejestracjafirmyscreen-haslo-do-panelu"
-                        className="block text-[#6A5C70] font-medium mb-1.5"
-                      >
-                        Hasło do panelu
-                      </label>
-                      <input
-                        id="rejestracjafirmyscreen-haslo-do-panelu"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] outline-none focus:border-[#241C2B]"
-                      />
-                    </div>
-                  </div>
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Step 2: Kreator profilu */}
-            {step === 2 && (
+            <div className={step === 3 ? "" : "hidden"}>
               <div>
-                <h2 className="font-fraunces text-[24px] font-medium mb-2">2. Treść profilu</h2>
+                <h2 className="font-fraunces text-[24px] font-medium mb-2">3. Budowa profilu</h2>
                 <p className="text-[14px] text-[#6A5C70] mb-6">
                   Zasada Gościnnie: profil musi zawierać obowiązkową cenę „od”, aby klienci nie
                   musieli dzwonić w ciemno.
@@ -229,14 +240,12 @@ export function RejestracjaFirmyScreen() {
                 <div className="space-y-4 text-[14px]">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label
-                        htmlFor="rejestracjafirmyscreen-nazwa-profilu-obiektu-lub-firmy"
-                        className="block text-[#6A5C70] font-medium mb-1.5"
-                      >
+                      <label htmlFor="f-nazwa" className="block text-[#6A5C70] font-medium mb-1.5">
                         Nazwa profilu (obiektu lub firmy)
                       </label>
                       <input
-                        id="rejestracjafirmyscreen-nazwa-profilu-obiektu-lub-firmy"
+                        id="f-nazwa"
+                        name="f-nazwa"
                         type="text"
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
@@ -245,13 +254,14 @@ export function RejestracjaFirmyScreen() {
                     </div>
                     <div>
                       <label
-                        htmlFor="rejestracjafirmyscreen-miejscowosc-i-powiat"
+                        htmlFor="f-miejscowosc"
                         className="block text-[#6A5C70] font-medium mb-1.5"
                       >
                         Miejscowość i powiat
                       </label>
                       <input
-                        id="rejestracjafirmyscreen-miejscowosc-i-powiat"
+                        id="f-miejscowosc"
+                        name="f-miejscowosc"
                         type="text"
                         value={town}
                         onChange={(e) => setTown(e.target.value)}
@@ -262,14 +272,12 @@ export function RejestracjaFirmyScreen() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label
-                        htmlFor="rejestracjafirmyscreen-cena-od-pole-obowiazkowe"
-                        className="block text-[#6A5C70] font-medium mb-1.5"
-                      >
+                      <label htmlFor="f-cena" className="block text-[#6A5C70] font-medium mb-1.5">
                         Cena od (pole obowiązkowe)
                       </label>
                       <input
-                        id="rejestracjafirmyscreen-cena-od-pole-obowiazkowe"
+                        id="f-cena"
+                        name="f-cena"
                         type="text"
                         value={priceFrom}
                         onChange={(e) => setPriceFrom(e.target.value)}
@@ -279,13 +287,14 @@ export function RejestracjaFirmyScreen() {
                     </div>
                     <div>
                       <label
-                        htmlFor="rejestracjafirmyscreen-accounttype-lokal-pojemnosc-sali-zasieg-dojazdu-km"
+                        htmlFor="f-pojemnosc"
                         className="block text-[#6A5C70] font-medium mb-1.5"
                       >
                         {accountType === "lokal" ? "Pojemność sali" : "Zasięg dojazdu (km)"}
                       </label>
                       <input
-                        id="rejestracjafirmyscreen-accounttype-lokal-pojemnosc-sali-zasieg-dojazdu-km"
+                        id="f-pojemnosc"
+                        name="f-pojemnosc"
                         type="text"
                         value={capacity}
                         onChange={(e) => setCapacity(e.target.value)}
@@ -295,14 +304,12 @@ export function RejestracjaFirmyScreen() {
                   </div>
 
                   <div>
-                    <label
-                      htmlFor="rejestracjafirmyscreen-krotki-opis-dla-gosci"
-                      className="block text-[#6A5C70] font-medium mb-1.5"
-                    >
+                    <label htmlFor="f-opis" className="block text-[#6A5C70] font-medium mb-1.5">
                       Krótki opis dla gości
                     </label>
                     <textarea
-                      id="rejestracjafirmyscreen-krotki-opis-dla-gosci"
+                      id="f-opis"
+                      name="f-opis"
                       rows={3}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
@@ -320,13 +327,13 @@ export function RejestracjaFirmyScreen() {
                   </div>
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Step 3: Weryfikacja firmy */}
-            {step === 3 && (
+            <div className={step === 4 ? "" : "hidden"}>
               <div>
                 <h2 className="font-fraunces text-[24px] font-medium mb-2">
-                  3. Weryfikacja działalności (NIP i SMS)
+                  4. Dane firmy (NIP i telefon)
                 </h2>
                 <p className="text-[14px] text-[#6A5C70] mb-6">
                   Weryfikujemy NIP w rejestrze Ministerstwa Finansów oraz numer telefonu, aby
@@ -335,15 +342,13 @@ export function RejestracjaFirmyScreen() {
 
                 <div className="space-y-5 text-[14px]">
                   <div>
-                    <label
-                      htmlFor="rejestracjafirmyscreen-numer-nip-firmy"
-                      className="block text-[#6A5C70] font-medium mb-1.5"
-                    >
+                    <label htmlFor="f-nip" className="block text-[#6A5C70] font-medium mb-1.5">
                       Numer NIP firmy
                     </label>
                     <div className="flex gap-2">
                       <input
-                        id="rejestracjafirmyscreen-numer-nip-firmy"
+                        id="f-nip"
+                        name="f-nip"
                         type="text"
                         value={nip}
                         onChange={(e) => setNip(e.target.value)}
@@ -366,15 +371,13 @@ export function RejestracjaFirmyScreen() {
                   </div>
 
                   <div>
-                    <label
-                      htmlFor="rejestracjafirmyscreen-numer-telefonu-komorkowego-do-zapytan"
-                      className="block text-[#6A5C70] font-medium mb-1.5"
-                    >
+                    <label htmlFor="f-telefon" className="block text-[#6A5C70] font-medium mb-1.5">
                       Numer telefonu komórkowego do zapytań
                     </label>
                     <div className="flex gap-2">
                       <input
-                        id="rejestracjafirmyscreen-numer-telefonu-komorkowego-do-zapytan"
+                        id="f-telefon"
+                        name="f-telefon"
                         type="tel"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
@@ -396,44 +399,19 @@ export function RejestracjaFirmyScreen() {
                   </div>
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Step 4: Cena i publikacja */}
-            {step === 4 && (
+            <div className={step === 5 ? "" : "hidden"}>
               <div>
                 <h2 className="font-fraunces text-[24px] font-medium mb-2">
-                  4. Wybór planu i publikacja
+                  5. Cena i okres rozliczenia
                 </h2>
                 <p className="text-[14px] text-[#6A5C70] mb-6">
-                  Wybierz plan abonamentowy lub rozpocznij od 30 dni bezpłatnej próby bez podawania
-                  karty.
+                  Wybierz plan i okres rozliczenia dla swojej kategorii.
                 </p>
 
-                {/* 30 Days Trial Option */}
-                <button
-                  type="button"
-                  onClick={() => setUseTrial(!useTrial)}
-                  className={`text-left border-2 rounded-[16px] p-5 mb-6 cursor-pointer transition-all ${
-                    useTrial
-                      ? "border-[#5E7360] bg-[#E7EDE7]/40 ring-2 ring-[#5E7360]/20"
-                      : "border-[#E2D5CA] bg-[#FAF6F2]"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-bold text-[16px] text-[#241C2B]">
-                      ★ Chcę najpierw 30 dni bezpłatnej próby
-                    </span>
-                    <span className="text-[13px] font-bold text-[#5E7360] bg-white px-2.5 py-0.5 rounded-full border border-[#D9CCC2]">
-                      0 zł / 30 dni
-                    </span>
-                  </div>
-                  <p className="text-[13px] text-[#55485A] leading-[1.5] m-0">
-                    Profil staje się natychmiast publiczny w katalogu. Nie wymagamy podawania karty
-                    płatniczej.
-                  </p>
-                </button>
-
-                {!useTrial && (
+                {
                   <div className="space-y-4">
                     <div>
                       <span
@@ -497,16 +475,49 @@ export function RejestracjaFirmyScreen() {
                       </fieldset>
                     </div>
                   </div>
-                )}
+                }
               </div>
-            )}
+            </div>
+
+            <div className={step === 6 ? "" : "hidden"}>
+              <div>
+                <h2 className="font-fraunces text-[24px] font-medium mb-2">6. Publikacja</h2>
+                <p className="text-[14px] text-[#6A5C70] mb-6">
+                  Sprawdź, co zobaczy klient, i opublikuj profil.
+                </p>
+
+                {/* 30 Days Trial Option */}
+                <button
+                  type="button"
+                  onClick={() => setUseTrial(!useTrial)}
+                  className={`text-left border-2 rounded-[16px] p-5 mb-6 cursor-pointer transition-all ${
+                    useTrial
+                      ? "border-[#5E7360] bg-[#E7EDE7]/40 ring-2 ring-[#5E7360]/20"
+                      : "border-[#E2D5CA] bg-[#FAF6F2]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-bold text-[16px] text-[#241C2B]">
+                      ★ Chcę najpierw 30 dni bezpłatnej próby
+                    </span>
+                    <span className="text-[13px] font-bold text-[#5E7360] bg-white px-2.5 py-0.5 rounded-full border border-[#D9CCC2]">
+                      0 zł / 30 dni
+                    </span>
+                  </div>
+                  <p className="text-[13px] text-[#55485A] leading-[1.5] m-0">
+                    Profil staje się natychmiast publiczny w katalogu. Nie wymagamy podawania karty
+                    płatniczej.
+                  </p>
+                </button>
+              </div>
+            </div>
 
             {/* Stepper Navigation Buttons */}
             <div className="mt-8 pt-6 border-t border-[#EFE5DD] flex justify-between items-center">
               {step > 1 ? (
                 <button
                   type="button"
-                  onClick={() => setStep((prev) => (prev - 1) as 1 | 2 | 3 | 4)}
+                  onClick={() => setStep((prev) => (prev - 1) as Krok)}
                   className="text-[14px] font-semibold text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
                 >
                   ← Wstecz
@@ -516,18 +527,22 @@ export function RejestracjaFirmyScreen() {
               )}
 
               <button
-                type="button"
-                onClick={handleNext}
+                type={step === KROKOW ? "submit" : "button"}
+                onClick={step === KROKOW ? undefined : handleNext}
                 className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-3.5 cursor-pointer shadow-xs"
               >
-                {step === 4
+                {step === KROKOW
                   ? useTrial
                     ? "Aktywuj 30 dni próby"
-                    : "Przejdź do panelu firmy"
+                    : "Opublikuj profil"
                   : "Dalej →"}
               </button>
             </div>
-          </div>
+
+            <div className="pt-4">
+              <KomunikatFormularza stan={stan} />
+            </div>
+          </form>
 
           {/* Right Live Preview Card */}
           <aside className="lg:col-span-4 sticky top-6">

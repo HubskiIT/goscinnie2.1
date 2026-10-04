@@ -1,30 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import type React from "react";
-import { useState } from "react";
+import { useActionState, useState } from "react";
+import { KomunikatFormularza } from "@/components/KomunikatFormularza";
 import { StanPusty } from "@/components/StanPusty";
 import { dataDluga, zlote } from "@/content/format";
 import { pobierzZlecenia } from "@/content/ogloszenia";
+import { wyslijOferte } from "@/lib/akcje/formularze";
+import { STAN_POCZATKOWY } from "@/lib/formularze";
 
 const ZLECENIE = pobierzZlecenia()[0];
 
 export function ZleceniaScreen() {
+  const [stanOferty, akcjaOferty] = useActionState(wyslijOferte, STAN_POCZATKOWY);
   const [isSubscriber, setIsSubscriber] = useState(true);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [offerPrice, setOfferPrice] = useState("14 400 zł");
   const [offerScope, setOfferScope] = useState(
     "Menu komunijne 180 zł/osobę, sala balowa na wyłączność, ogród z placem zabaw, własny tort bez opłaty.",
   );
-  const [offerSubmitted, setOfferSubmitted] = useState(false);
-
-  const handleSendOffer = (e: React.FormEvent) => {
-    e.preventDefault();
-    setOfferSubmitted(true);
-    setTimeout(() => {
-      setOfferModalOpen(false);
-    }, 1800);
-  };
 
   if (ZLECENIE === undefined) {
     return (
@@ -231,19 +225,13 @@ export function ZleceniaScreen() {
                 </p>
 
                 <div className="flex flex-wrap items-center gap-4">
-                  {offerSubmitted ? (
-                    <span className="text-[15px] font-bold text-[#3F5142] bg-[#E7EDE7] rounded-[10px] px-5 py-3">
-                      ✓ Twoja oferta została wysłana ({offerPrice})
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setOfferModalOpen(true)}
-                      className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-7 py-3.5 cursor-pointer shadow-xs"
-                    >
-                      Złóż ofertę
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setOfferModalOpen(true)}
+                    className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-7 py-3.5 cursor-pointer shadow-xs"
+                  >
+                    Złóż ofertę
+                  </button>
                   <span className="text-[13px] text-[#6A5C70]">
                     Jedna oferta na zlecenie. Konkurencja nie widzi Twojej ceny.
                   </span>
@@ -348,92 +336,84 @@ export function ZleceniaScreen() {
               Klient widzi wszystkie oferty obok siebie. Żadna inna firma nie zobaczy Twojej ceny.
             </p>
 
-            {offerSubmitted ? (
-              <div className="text-center py-8">
-                <span className="w-14 h-14 rounded-full bg-[#E7EDE7] text-[#5E7360] text-2xl font-bold flex items-center justify-center mx-auto mb-3">
-                  ✓
+            <form action={akcjaOferty} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="o-cena"
+                  className="block text-[13px] font-bold text-[#6A5C70] uppercase mb-1"
+                >
+                  Cena łączna brutto za całe zamówienie
+                </label>
+                <input
+                  id="o-cena"
+                  name="o-cena"
+                  type="text"
+                  value={offerPrice}
+                  onChange={(e) => setOfferPrice(e.target.value)}
+                  required
+                  className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[16px] font-semibold text-[#241C2B] outline-none focus:border-[#241C2B]"
+                />
+                <span className="text-[12px] text-[#8B7F91]">
+                  Budżet klienta wynosi: do 18 000 zł
                 </span>
-                <h3 className="font-fraunces text-[22px] font-medium mb-2">
-                  Oferta została przekazana!
-                </h3>
-                <p className="text-[14px] text-[#6A5C70]">
-                  Gdy klient doda Twoją ofertę do krótkiej listy, otrzymasz powiadomienie z danymi
-                  kontaktowymi.
-                </p>
               </div>
-            ) : (
-              <form onSubmit={handleSendOffer} className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="zleceniascreen-cena-laczna-brutto-za-cale-zamowienie"
-                    className="block text-[13px] font-bold text-[#6A5C70] uppercase mb-1"
-                  >
-                    Cena łączna brutto za całe zamówienie
-                  </label>
-                  <input
-                    id="zleceniascreen-cena-laczna-brutto-za-cale-zamowienie"
-                    type="text"
-                    value={offerPrice}
-                    onChange={(e) => setOfferPrice(e.target.value)}
-                    required
-                    className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[16px] font-semibold text-[#241C2B] outline-none focus:border-[#241C2B]"
-                  />
-                  <span className="text-[12px] text-[#8B7F91]">
-                    Budżet klienta wynosi: do 18 000 zł
-                  </span>
+
+              <div>
+                <label
+                  htmlFor="o-zakres"
+                  className="block text-[13px] font-bold text-[#6A5C70] uppercase mb-1"
+                >
+                  Zakres oferty i co zawiera cena
+                </label>
+                <textarea
+                  id="o-zakres"
+                  name="o-zakres"
+                  rows={3}
+                  value={offerScope}
+                  onChange={(e) => setOfferScope(e.target.value)}
+                  required
+                  className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[14px] text-[#241C2B] outline-none focus:border-[#241C2B]"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="o-waznosc"
+                  className="block text-[13px] font-bold text-[#6A5C70] uppercase mb-1"
+                >
+                  Termin ważności oferty
+                </label>
+                <select
+                  id="o-waznosc"
+                  name="o-waznosc"
+                  className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[14px] text-[#241C2B] outline-none focus:border-[#241C2B] bg-white"
+                >
+                  <option>Ważna przez 14 dni</option>
+                  <option>Ważna przez 7 dni</option>
+                  <option>Ważna przez 30 dni</option>
+                </select>
+              </div>
+
+              <div className="pt-3 flex gap-3">
+                <div className="mb-4">
+                  <KomunikatFormularza stan={stanOferty} />
                 </div>
 
-                <div>
-                  <label
-                    htmlFor="zleceniascreen-zakres-oferty-i-co-zawiera-cena"
-                    className="block text-[13px] font-bold text-[#6A5C70] uppercase mb-1"
-                  >
-                    Zakres oferty i co zawiera cena
-                  </label>
-                  <textarea
-                    id="zleceniascreen-zakres-oferty-i-co-zawiera-cena"
-                    rows={3}
-                    value={offerScope}
-                    onChange={(e) => setOfferScope(e.target.value)}
-                    required
-                    className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[14px] text-[#241C2B] outline-none focus:border-[#241C2B]"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="zleceniascreen-termin-waznosci-oferty"
-                    className="block text-[13px] font-bold text-[#6A5C70] uppercase mb-1"
-                  >
-                    Termin ważności oferty
-                  </label>
-                  <select
-                    id="zleceniascreen-termin-waznosci-oferty"
-                    className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[14px] text-[#241C2B] outline-none focus:border-[#241C2B] bg-white"
-                  >
-                    <option>Ważna przez 14 dni</option>
-                    <option>Ważna przez 7 dni</option>
-                    <option>Ważna przez 30 dni</option>
-                  </select>
-                </div>
-
-                <div className="pt-3 flex gap-3">
-                  <button
-                    type="submit"
-                    className="grow text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-3.5 cursor-pointer shadow-xs text-center"
-                  >
-                    Wyślij ofertę do klienta
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOfferModalOpen(false)}
-                    className="text-[14px] text-[#6A5C70] hover:text-[#241C2B] border border-[#D9CCC2] rounded-[12px] px-5 py-3.5 bg-transparent cursor-pointer"
-                  >
-                    Anuluj
-                  </button>
-                </div>
-              </form>
-            )}
+                <button
+                  type="submit"
+                  className="grow text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-3.5 cursor-pointer shadow-xs text-center"
+                >
+                  Wyślij ofertę do klienta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOfferModalOpen(false)}
+                  className="text-[14px] text-[#6A5C70] hover:text-[#241C2B] border border-[#D9CCC2] rounded-[12px] px-5 py-3.5 bg-transparent cursor-pointer"
+                >
+                  Anuluj
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

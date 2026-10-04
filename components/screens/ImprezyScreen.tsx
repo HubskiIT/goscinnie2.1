@@ -162,7 +162,7 @@ export function ImprezyScreen() {
           </p>
           <button
             type="button"
-            onClick={() => alert("Wszystkie nadchodzące imprezy w tym regionie zostały wczytane.")}
+            disabled
             className="text-[15px] font-semibold text-[#241C2B] bg-white border-[1.5px] border-[#241C2B] rounded-[10px] px-6 py-3 cursor-pointer"
           >
             Pokaż następne 18

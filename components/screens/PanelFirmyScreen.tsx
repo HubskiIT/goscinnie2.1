@@ -309,7 +309,7 @@ export function PanelFirmyScreen() {
                   {!item.done && (
                     <button
                       type="button"
-                      onClick={() => alert(`Przejdź do edycji: ${item.title}`)}
+                      disabled
                       className="ml-auto text-[14px] font-semibold text-[#8A5405] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer"
                     >
                       Uzupełnij

@@ -1,19 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import type React from "react";
-import { useState } from "react";
+import { useActionState, useState } from "react";
+import { KomunikatFormularza } from "@/components/KomunikatFormularza";
 import { pobierzLokale } from "@/content/ogloszenia";
+import { wyslijZamowienieAbonamentu } from "@/lib/akcje/formularze";
+import { STAN_POCZATKOWY } from "@/lib/formularze";
 
 const NAZWA_FIRMY = pobierzLokale().find((lokal) => lokal.status === "active")?.nazwa ?? "";
 
 export function ZamowienieAbonamentuScreen() {
+  const [stanAbonamentu, akcjaAbonamentu] = useActionState(
+    wyslijZamowienieAbonamentu,
+    STAN_POCZATKOWY,
+  );
   const [selectedClass, setSelectedClass] = useState<"A" | "B" | "C">("A");
   const [selectedPlan, setSelectedPlan] = useState<"start" | "pelny" | "wyrozniony">("pelny");
   const [period, setPeriod] = useState<"miesiac" | "pol_roku" | "rok">("rok");
   const [paymentMethod, setPaymentMethod] = useState<"card" | "blik" | "p24">("card");
   const [agreed, setAgreed] = useState(true);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const isSuccess = false;
   const [isTrialSuccess, setIsTrialSuccess] = useState(false);
 
   // Prices from Oct 3, 2026 spec
@@ -41,12 +47,6 @@ export function ZamowienieAbonamentuScreen() {
   const netPrice = priceTable[selectedClass][selectedPlan][period];
   const vat = Math.round(netPrice * 0.23);
   const grossPrice = netPrice + vat;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!agreed) return;
-    setIsSuccess(true);
-  };
 
   const handleStartTrial = () => {
     setIsTrialSuccess(true);
@@ -152,7 +152,7 @@ export function ZamowienieAbonamentuScreen() {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form action={akcjaAbonamentu} className="space-y-6">
                 {/* 1. Class & Plan Selection */}
                 <div className="border border-[#E2D5CA] rounded-[20px] bg-white p-7 shadow-xs">
                   <h2 className="font-fraunces text-[22px] font-medium mb-4">
@@ -298,42 +298,36 @@ export function ZamowienieAbonamentuScreen() {
                   </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[14px]">
                     <div>
-                      <label
-                        htmlFor="zamowienieabonamentuscreen-nip-firmy"
-                        className="block text-[#6A5C70] mb-1.5 font-medium"
-                      >
+                      <label htmlFor="a-nip" className="block text-[#6A5C70] mb-1.5 font-medium">
                         NIP firmy
                       </label>
                       <input
-                        id="zamowienieabonamentuscreen-nip-firmy"
+                        id="a-nip"
+                        name="a-nip"
                         type="text"
                         defaultValue="8971234567"
                         className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] focus:border-[#241C2B] outline-none"
                       />
                     </div>
                     <div>
-                      <label
-                        htmlFor="zamowienieabonamentuscreen-nazwa-pelna-podmiotu"
-                        className="block text-[#6A5C70] mb-1.5 font-medium"
-                      >
+                      <label htmlFor="a-nazwa" className="block text-[#6A5C70] mb-1.5 font-medium">
                         Nazwa pełna podmiotu
                       </label>
                       <input
-                        id="zamowienieabonamentuscreen-nazwa-pelna-podmiotu"
+                        id="a-nazwa"
+                        name="a-nazwa"
                         type="text"
                         defaultValue={NAZWA_FIRMY}
                         className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] focus:border-[#241C2B] outline-none"
                       />
                     </div>
                     <div>
-                      <label
-                        htmlFor="zamowienieabonamentuscreen-ulica-i-numer"
-                        className="block text-[#6A5C70] mb-1.5 font-medium"
-                      >
+                      <label htmlFor="a-ulica" className="block text-[#6A5C70] mb-1.5 font-medium">
                         Ulica i numer
                       </label>
                       <input
-                        id="zamowienieabonamentuscreen-ulica-i-numer"
+                        id="a-ulica"
+                        name="a-ulica"
                         type="text"
                         defaultValue="ul. Pałacowa 4"
                         className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] focus:border-[#241C2B] outline-none"
@@ -341,27 +335,26 @@ export function ZamowienieAbonamentuScreen() {
                     </div>
                     <div>
                       <label
-                        htmlFor="zamowienieabonamentuscreen-kod-pocztowy-i-miasto"
+                        htmlFor="a-kod-miasto"
                         className="block text-[#6A5C70] mb-1.5 font-medium"
                       >
                         Kod pocztowy i miasto
                       </label>
                       <input
-                        id="zamowienieabonamentuscreen-kod-pocztowy-i-miasto"
+                        id="a-kod-miasto"
+                        name="a-kod-miasto"
                         type="text"
                         defaultValue="55-040 Kobierzyce"
                         className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] focus:border-[#241C2B] outline-none"
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label
-                        htmlFor="zamowienieabonamentuscreen-e-mail-do-faktury-i-ksef"
-                        className="block text-[#6A5C70] mb-1.5 font-medium"
-                      >
+                      <label htmlFor="a-email" className="block text-[#6A5C70] mb-1.5 font-medium">
                         E-mail do faktury (i KSeF)
                       </label>
                       <input
-                        id="zamowienieabonamentuscreen-e-mail-do-faktury-i-ksef"
+                        id="a-email"
+                        name="a-email"
                         type="email"
                         defaultValue="ksiegowosc@dworpodlipami.pl"
                         className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] focus:border-[#241C2B] outline-none"
@@ -427,6 +420,10 @@ export function ZamowienieAbonamentuScreen() {
                       rocznych.
                     </span>
                   </label>
+                </div>
+
+                <div className="mb-4">
+                  <KomunikatFormularza stan={stanAbonamentu} />
                 </div>
 
                 <button
