@@ -18,6 +18,7 @@ import { APIError, createAuthMiddleware } from "better-auth/api";
 import { db } from "@/lib/db";
 import { accounts, sessions, verifications } from "@/lib/db/schema/sesje";
 import { users } from "@/lib/db/schema/tozsamosc";
+import { leniwy } from "@/lib/leniwy";
 import { adresIp, kluczIp, kluczKonta, LIMIT_PO_IP, LIMIT_PO_KONCIE, zuzyjProbe } from "./limity";
 
 /**
@@ -34,106 +35,111 @@ const ARGON2 = {
   parallelism: 1,
 } as const;
 
-const sekret = process.env.BETTER_AUTH_SECRET;
-if (!sekret) {
-  throw new Error("Brak BETTER_AUTH_SECRET. Skopiuj .env.example do .env i uzupełnij.");
-}
+function utworzAuth() {
+  const sekret = process.env.BETTER_AUTH_SECRET;
+  if (!sekret) {
+    throw new Error("Brak BETTER_AUTH_SECRET. Skopiuj .env.example do .env i uzupełnij.");
+  }
 
-export const auth = betterAuth({
-  secret: sekret,
-  baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+  return betterAuth({
+    secret: sekret,
+    baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
 
-  database: drizzleAdapter(db, {
-    provider: "pg",
-    schema: {
-      user: users,
-      session: sessions,
-      account: accounts,
-      verification: verifications,
-    },
-  }),
+    database: drizzleAdapter(db, {
+      provider: "pg",
+      schema: {
+        user: users,
+        session: sessions,
+        account: accounts,
+        verification: verifications,
+      },
+    }),
 
-  advanced: {
-    database: {
-      // Identyfikatory generuje Postgres przez gen_random_uuid(), tak jak
-      // w całej reszcie schematu. Bez tego better-auth wstawiałby własne
-      // ciągi znaków do kolumn typu uuid.
-      generateId: false,
-    },
-    cookies: {
-      session_token: {
-        attributes: {
-          httpOnly: true,
-          sameSite: "lax",
-          path: "/",
+    advanced: {
+      database: {
+        // Identyfikatory generuje Postgres przez gen_random_uuid(), tak jak
+        // w całej reszcie schematu. Bez tego better-auth wstawiałby własne
+        // ciągi znaków do kolumn typu uuid.
+        generateId: false,
+      },
+      cookies: {
+        session_token: {
+          attributes: {
+            httpOnly: true,
+            sameSite: "lax",
+            path: "/",
+          },
         },
       },
-    },
-    useSecureCookies: process.env.NODE_ENV === "production",
-  },
-
-  emailAndPassword: {
-    enabled: true,
-    minPasswordLength: 12,
-    // Potwierdzenie maila wchodzi razem z wysyłką poczty, na razie wyłączone.
-    requireEmailVerification: false,
-    password: {
-      hash: (haslo) => hash(haslo, ARGON2),
-      verify: ({ hash: skrot, password }) => verify(skrot, password, ARGON2),
+      useSecureCookies: process.env.NODE_ENV === "production",
     },
 
-    /**
-     * Wysyłka poczty nie jest jeszcze podłączona, więc link do resetu trafia
-     * do logu serwera. To wystarcza lokalnie i nie zmienia tego, co widzi
-     * pytający: odpowiedź resetu jest identyczna niezależnie od tego, czy
-     * konto istnieje, więc ta funkcja po prostu nie zostaje wywołana dla
-     * nieistniejącego maila i nikt się o tym nie dowie.
-     *
-     * DO ZROBIENIA: podłączyć nadawcę poczty, zanim to pojedzie na produkcję.
-     */
-    sendResetPassword: async ({ user, url }) => {
-      console.info(`[reset hasła] ${user.email}: ${url}`);
+    emailAndPassword: {
+      enabled: true,
+      minPasswordLength: 12,
+      // Potwierdzenie maila wchodzi razem z wysyłką poczty, na razie wyłączone.
+      requireEmailVerification: false,
+      password: {
+        hash: (haslo) => hash(haslo, ARGON2),
+        verify: ({ hash: skrot, password }) => verify(skrot, password, ARGON2),
+      },
+
+      /**
+       * Wysyłka poczty nie jest jeszcze podłączona, więc link do resetu trafia
+       * do logu serwera. To wystarcza lokalnie i nie zmienia tego, co widzi
+       * pytający: odpowiedź resetu jest identyczna niezależnie od tego, czy
+       * konto istnieje, więc ta funkcja po prostu nie zostaje wywołana dla
+       * nieistniejącego maila i nikt się o tym nie dowie.
+       *
+       * DO ZROBIENIA: podłączyć nadawcę poczty, zanim to pojedzie na produkcję.
+       */
+      sendResetPassword: async ({ user, url }) => {
+        console.info(`[reset hasła] ${user.email}: ${url}`);
+      },
     },
-  },
 
-  session: {
-    // Siedem dni, odświeżane co dobę przy aktywności.
-    expiresIn: 60 * 60 * 24 * 7,
-    updateAge: 60 * 60 * 24,
-  },
+    session: {
+      // Siedem dni, odświeżane co dobę przy aktywności.
+      expiresIn: 60 * 60 * 24 * 7,
+      updateAge: 60 * 60 * 24,
+    },
 
-  // Nazwy tabel w bazie biorą się z obiektów Drizzle podanych wyżej w `schema`,
-  // więc `modelName` byłoby drugim, rozjeżdżającym się źródłem tej samej nazwy.
+    // Nazwy tabel w bazie biorą się z obiektów Drizzle podanych wyżej w `schema`,
+    // więc `modelName` byłoby drugim, rozjeżdżającym się źródłem tej samej nazwy.
 
-  hooks: {
-    /**
-     * Limity prób logowania. Liczymy każdą próbę, nie tylko nieudaną, bo do
-     * policzenia nieudanych trzeba by najpierw sprawdzić hasło, a to znaczy
-     * wykonać argon2id. Wtedy sam limit stawałby się kosztowny dokładnie
-     * wtedy, kiedy najbardziej go potrzeba.
-     */
-    before: createAuthMiddleware(async (kontekst) => {
-      if (kontekst.path !== "/sign-in/email") return;
+    hooks: {
+      /**
+       * Limity prób logowania. Liczymy każdą próbę, nie tylko nieudaną, bo do
+       * policzenia nieudanych trzeba by najpierw sprawdzić hasło, a to znaczy
+       * wykonać argon2id. Wtedy sam limit stawałby się kosztowny dokładnie
+       * wtedy, kiedy najbardziej go potrzeba.
+       */
+      before: createAuthMiddleware(async (kontekst) => {
+        if (kontekst.path !== "/sign-in/email") return;
 
-      const cialo = kontekst.body as { email?: unknown } | undefined;
-      const email = typeof cialo?.email === "string" ? cialo.email : null;
-      const ip = adresIp(kontekst.headers ?? new Headers());
+        const cialo = kontekst.body as { email?: unknown } | undefined;
+        const email = typeof cialo?.email === "string" ? cialo.email : null;
+        const ip = adresIp(kontekst.headers ?? new Headers());
 
-      const poIp = await zuzyjProbe(kluczIp(ip), LIMIT_PO_IP);
-      const poKoncie = email
-        ? await zuzyjProbe(kluczKonta(email), LIMIT_PO_KONCIE)
-        : { wolno: true, zuzyte: 0 };
+        const poIp = await zuzyjProbe(kluczIp(ip), LIMIT_PO_IP);
+        const poKoncie = email
+          ? await zuzyjProbe(kluczKonta(email), LIMIT_PO_KONCIE)
+          : { wolno: true, zuzyte: 0 };
 
-      if (!poIp.wolno || !poKoncie.wolno) {
-        // Komunikat jest celowo taki sam w obu przypadkach. Rozróżnienie
-        // „za dużo prób z tego adresu” od „za dużo prób do tego konta”
-        // mówiłoby atakującemu, czy trafił w istniejące konto.
-        throw new APIError("TOO_MANY_REQUESTS", {
-          message: "Za dużo prób logowania. Spróbuj ponownie za kilkanaście minut.",
-        });
-      }
-    }),
-  },
-});
+        if (!poIp.wolno || !poKoncie.wolno) {
+          // Komunikat jest celowo taki sam w obu przypadkach. Rozróżnienie
+          // „za dużo prób z tego adresu” od „za dużo prób do tego konta”
+          // mówiłoby atakującemu, czy trafił w istniejące konto.
+          throw new APIError("TOO_MANY_REQUESTS", {
+            message: "Za dużo prób logowania. Spróbuj ponownie za kilkanaście minut.",
+          });
+        }
+      }),
+    },
+  });
+}
+
+/** Konfiguracja powstaje przy pierwszym użyciu, nie przy wczytaniu modułu. */
+export const auth = leniwy(utworzAuth);
 
 export type Sesja = typeof auth.$Infer.Session;

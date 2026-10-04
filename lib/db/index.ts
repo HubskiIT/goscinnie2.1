@@ -1,15 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { leniwy } from "@/lib/leniwy";
 import * as schema from "./schema";
-
-const url = process.env.DATABASE_URL;
-if (!url) {
-  throw new Error(
-    "Brak DATABASE_URL. Lokalnie: cp .env.example do .env i pnpm db:up. " +
-      "Na produkcji: ustaw tę zmienną w konfiguracji projektu, adresem puli " +
-      "połączeń (u Supabase port 6543). Patrz docs/decyzje/007.",
-  );
-}
 
 /**
  * Czy łączymy się przez pulę połączeń w trybie transakcyjnym.
@@ -36,19 +28,32 @@ function przezPuleTransakcyjna(adres: string): boolean {
   }
 }
 
-const client = postgres(url, {
-  // Instrukcje przygotowane wyłączone za pulą. Poza nią zostają włączone,
-  // bo lokalnie i przy migracjach nic ich nie psuje, a są szybsze.
-  prepare: !przezPuleTransakcyjna(url),
-  /*
-   * Limit połączeń na jedną instancję funkcji.
-   *
-   * Domyślne dziesięć razy liczba instancji bezserwerowych to prosta droga
-   * do wyczerpania limitu bazy. Przy puli po drugiej stronie jedno połączenie
-   * na instancję w zupełności wystarcza.
-   */
-  max: przezPuleTransakcyjna(url) ? 1 : 10,
-});
+function polacz() {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error(
+      "Brak DATABASE_URL. Lokalnie: cp .env.example do .env i pnpm db:up. " +
+        "Na produkcji: ustaw tę zmienną w konfiguracji projektu, adresem puli " +
+        "połączeń (u Supabase port 6543). Patrz docs/decyzje/007.",
+    );
+  }
 
-export const db = drizzle(client, { schema, casing: "snake_case" });
+  const client = postgres(url, {
+    // Instrukcje przygotowane wyłączone za pulą. Poza nią zostają włączone,
+    // bo lokalnie i przy migracjach nic ich nie psuje, a są szybsze.
+    prepare: !przezPuleTransakcyjna(url),
+    /*
+     * Limit połączeń na jedną instancję funkcji.
+     *
+     * Domyślne dziesięć razy liczba instancji bezserwerowych to prosta droga
+     * do wyczerpania limitu bazy. Przy puli po drugiej stronie jedno połączenie
+     * na instancję w zupełności wystarcza.
+     */
+    max: przezPuleTransakcyjna(url) ? 1 : 10,
+  });
+  return drizzle(client, { schema, casing: "snake_case" });
+}
+
+/** Połączenie powstaje przy pierwszym użyciu, nie przy wczytaniu modułu. */
+export const db = leniwy(polacz);
 export { schema };
