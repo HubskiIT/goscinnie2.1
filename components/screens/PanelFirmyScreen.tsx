@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { pobierzLokale } from "@/content/ogloszenia";
+
+const NAZWA_FIRMY = pobierzLokale().find((lokal) => lokal.status === "active")?.nazwa ?? "";
 
 export function PanelFirmyScreen() {
   const [internalCalendar, setInternalCalendar] = useState<
@@ -42,7 +45,7 @@ export function PanelFirmyScreen() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-7">
           <div>
             <h1 className="m-0 mb-1.5 font-fraunces font-normal text-[32px] sm:text-[40px] tracking-tight">
-              Dwór pod Lipami
+              {NAZWA_FIRMY}
             </h1>
             <p className="m-0 text-[15px] text-[#6A5C70]">
               Kobierzyce &nbsp;·&nbsp; plan Start do 14.03.2027 &nbsp;·&nbsp;{" "}

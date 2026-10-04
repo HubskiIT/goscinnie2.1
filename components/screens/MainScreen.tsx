@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { EtykietaPrzykladu } from "@/components/EtykietaPrzykladu";
+import { zlote } from "@/content/format";
+import { pobierzLokale } from "@/content/ogloszenia";
 
 export function MainScreen() {
   const [selectedPlace, setSelectedPlace] = useState("sali");
@@ -416,111 +419,49 @@ export function MainScreen() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-[26px]">
-          {/* Card 1 */}
-          <Link
-            href="/f/dwor-pod-lipami"
-            className="text-left border border-[#E2D5CA] rounded-[16px] overflow-hidden bg-white flex flex-col cursor-pointer hover:shadow-lg transition-all"
-          >
-            <div className="h-[180px] bg-[#E4D9CF] flex items-end p-3.5 relative">
-              <span className="bg-[#FBF7F4] rounded-full px-3.5 py-[7px] text-[13px] font-semibold shadow-sm">
-                Wolne soboty w czerwcu
-              </span>
-            </div>
-            <div className="p-[22px] flex flex-col gap-2.5">
-              <div className="font-fraunces text-[22px]">Dwór pod Lipami</div>
-              <div className="text-[14px] text-[#6A5C70]">
-                Kobierzyce &nbsp;·&nbsp; 18 km od centrum
-              </div>
-              <div className="flex gap-2 my-1 flex-wrap">
-                <span className="text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[6px] px-2.5 py-1">
-                  do 140 osób
-                </span>
-                <span className="text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[6px] px-2.5 py-1">
-                  ogród
-                </span>
-                <span className="text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[6px] px-2.5 py-1">
-                  nocleg
-                </span>
-              </div>
-              <div className="flex items-baseline justify-between border-t border-[#EFE5DD] pt-3.5 mt-2">
-                <span className="text-[15px]">
-                  <strong className="text-[20px] border-b-2 border-[#F0A62E]">320 zł</strong> / os.
-                </span>
-                <span className="text-[14px] text-[#6A5C70]">4,8 &nbsp;·&nbsp; 36 opinii</span>
-              </div>
-            </div>
-          </Link>
-
-          {/* Card 2 */}
-          <Link
-            href="/f/dwor-pod-lipami"
-            className="text-left border border-[#E2D5CA] rounded-[16px] overflow-hidden bg-white flex flex-col cursor-pointer hover:shadow-lg transition-all"
-          >
-            <div className="h-[180px] bg-[#DED4DC] flex items-end p-3.5">
-              <span className="bg-[#FBF7F4] rounded-full px-3.5 py-[7px] text-[13px] font-semibold shadow-sm">
-                Odpowiada tego samego dnia
-              </span>
-            </div>
-            <div className="p-[22px] flex flex-col gap-2.5">
-              <div className="font-fraunces text-[22px]">Stodoła Zielona Dolina</div>
-              <div className="text-[14px] text-[#6A5C70]">
-                Sobótka &nbsp;·&nbsp; 31 km od centrum
-              </div>
-              <div className="flex gap-2 my-1 flex-wrap">
-                <span className="text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[6px] px-2.5 py-1">
-                  do 90 osób
-                </span>
-                <span className="text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[6px] px-2.5 py-1">
-                  parkiet
-                </span>
-                <span className="text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[6px] px-2.5 py-1">
-                  bez alkoholu
-                </span>
-              </div>
-              <div className="flex items-baseline justify-between border-t border-[#EFE5DD] pt-3.5 mt-2">
-                <span className="text-[15px]">
-                  <strong className="text-[20px] border-b-2 border-[#F0A62E]">210 zł</strong> / os.
-                </span>
-                <span className="text-[14px] text-[#6A5C70]">4,6 &nbsp;·&nbsp; 12 opinii</span>
-              </div>
-            </div>
-          </Link>
-
-          {/* Card 3 */}
-          <Link
-            href="/f/dwor-pod-lipami"
-            className="text-left border border-[#E2D5CA] rounded-[16px] overflow-hidden bg-white flex flex-col cursor-pointer hover:shadow-lg transition-all"
-          >
-            <div className="h-[180px] bg-[#DCE0D8] flex items-end p-3.5">
-              <span className="bg-[#FBF7F4] rounded-full px-3.5 py-[7px] text-[13px] font-semibold shadow-sm">
-                Nowa w serwisie
-              </span>
-            </div>
-            <div className="p-[22px] flex flex-col gap-2.5">
-              <div className="font-fraunces text-[22px]">Remiza Wiejska Krzyki</div>
-              <div className="text-[14px] text-[#6A5C70]">
-                Żórawina &nbsp;·&nbsp; 22 km od centrum
-              </div>
-              <div className="flex gap-2 my-1 flex-wrap">
-                <span className="text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[6px] px-2.5 py-1">
-                  do 70 osób
-                </span>
-                <span className="text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[6px] px-2.5 py-1">
-                  parking
-                </span>
-                <span className="text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[6px] px-2.5 py-1">
-                  własny catering
-                </span>
-              </div>
-              <div className="flex items-baseline justify-between border-t border-[#EFE5DD] pt-3.5 mt-2">
-                <span className="text-[15px]">
-                  <strong className="text-[20px] border-b-2 border-[#F0A62E]">1 400 zł</strong> /
-                  doba
-                </span>
-                <span className="text-[14px] text-[#6A5C70]">bez opinii</span>
-              </div>
-            </div>
-          </Link>
+          {pobierzLokale()
+            .filter((lokal) => lokal.status === "active")
+            .map((lokal) => (
+              <Link
+                key={lokal.slug}
+                href={`/f/${lokal.slug}`}
+                className="text-left border border-[#E2D5CA] rounded-[16px] overflow-hidden bg-white flex flex-col cursor-pointer hover:shadow-lg transition-all"
+              >
+                <div className="h-[180px] bg-[#E4D9CF]" />
+                <div className="p-[22px] flex flex-col gap-2.5">
+                  <div className="font-fraunces text-[22px]">{lokal.nazwa}</div>
+                  <div className="text-[14px] text-[#6A5C70]">
+                    {lokal.miejscowosc.nazwa} &nbsp;·&nbsp; {lokal.miejscowosc.odlegloscOdCentrumKm}{" "}
+                    km od centrum
+                  </div>
+                  {lokal.przykladowe ? (
+                    <div>
+                      <EtykietaPrzykladu />
+                    </div>
+                  ) : null}
+                  <div className="flex gap-2 my-1 flex-wrap">
+                    {lokal.udogodnienia.map((udogodnienie) => (
+                      <span
+                        key={udogodnienie}
+                        className="text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[6px] px-2.5 py-1"
+                      >
+                        {udogodnienie}
+                      </span>
+                    ))}
+                  </div>
+                  {lokal.cenaOdGrosze === null ? null : (
+                    <div className="flex items-baseline justify-between border-t border-[#EFE5DD] pt-3.5 mt-2">
+                      <span className="text-[15px]">
+                        <strong className="text-[20px] border-b-2 border-[#F0A62E]">
+                          {zlote(lokal.cenaOdGrosze)}
+                        </strong>{" "}
+                        {lokal.jednostkaCeny}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ))}
         </div>
       </section>
 

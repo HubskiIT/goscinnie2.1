@@ -2,8 +2,16 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { EtykietaPrzykladu } from "@/components/EtykietaPrzykladu";
+import { dataDluga, dzienTygodnia, zlote } from "@/content/format";
+import type { Impreza, Lokal } from "@/content/ogloszenia";
 
-export function ImprezaScreen() {
+interface ImprezaScreenProps {
+  impreza: Impreza;
+  lokal: Lokal;
+}
+
+export function ImprezaScreen({ impreza, lokal }: ImprezaScreenProps) {
   const [ticketCount, setTicketCount] = useState(2);
   const [tableType, setTableType] = useState("wspólny");
 
@@ -42,10 +50,10 @@ export function ImprezaScreen() {
         <main className="grow w-full">
           <div className="flex items-center gap-3 mb-3.5 flex-wrap">
             <span className="text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[8px] px-3 py-1.5 font-medium">
-              Andrzejki
+              {impreza.okazja}
             </span>
             <span className="text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[8px] px-3 py-1.5 font-medium">
-              sobota
+              {dzienTygodnia(impreza.data)}
             </span>
             <span className="text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[8px] px-3 py-1.5 font-medium">
               dla dorosłych
@@ -53,17 +61,24 @@ export function ImprezaScreen() {
           </div>
 
           <h1 className="m-0 mb-3 font-fraunces font-normal text-[36px] sm:text-[46px] tracking-tight">
-            Andrzejki pod Lipami
+            {impreza.nazwa}
           </h1>
+
+          {impreza.przykladowe ? (
+            <div className="mb-4">
+              <EtykietaPrzykladu />
+            </div>
+          ) : null}
           <p className="m-0 mb-8 text-[17px] text-[#6A5C70]">
-            29 listopada 2026, 19:00 do 3:00 &nbsp;·&nbsp;{" "}
+            {dataDluga(impreza.data)}, {impreza.godzinaOd} do {impreza.godzinaDo} &nbsp;·&nbsp;{" "}
             <Link
               href="/f/dwor-pod-lipami"
               className="text-[#8A5405] hover:text-[#241C2B] underline bg-transparent border-0 cursor-pointer p-0 font-inherit"
             >
-              Dwór pod Lipami
+              {lokal.nazwa}
             </Link>
-            , Kobierzyce, 18 km od centrum Wrocławia
+            , {lokal.miejscowosc.nazwa}, {lokal.miejscowosc.odlegloscOdCentrumKm} km od centrum
+            Wrocławia
           </p>
 
           <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">O imprezie</h2>
@@ -210,7 +225,9 @@ export function ImprezaScreen() {
         <aside className="w-full lg:w-[360px] shrink-0">
           <div className="border border-[#D9CCC2] rounded-[20px] bg-white p-[26px] flex flex-col gap-4 shadow-sm">
             <div>
-              <span className="font-fraunces text-[34px] font-medium">180 zł</span>{" "}
+              <span className="font-fraunces text-[34px] font-medium">
+                {zlote(impreza.cenaBiletuGrosze)}
+              </span>{" "}
               <span className="text-[15px] text-[#6A5C70]">od osoby</span>
             </div>
             <div className="h-[1px] bg-[#EFE5DD]" />
@@ -272,7 +289,7 @@ export function ImprezaScreen() {
             <div className="text-[14px] text-[#6A5C70] flex justify-between pt-1">
               <span>Suma:</span>
               <strong className="text-[16px] text-[#241C2B] font-bold">
-                {ticketCount * 180} zł
+                {zlote(ticketCount * impreza.cenaBiletuGrosze)}
               </strong>
             </div>
 

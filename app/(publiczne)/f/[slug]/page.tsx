@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ProfilScreen } from "@/components/screens/ProfilScreen";
 import { WpisBezProfiluScreen } from "@/components/screens/WpisBezProfiluScreen";
-import { PRZYKLADY } from "@/lib/trasy";
+import { pobierzLokal } from "@/content/ogloszenia";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -10,25 +10,22 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  if (slug === PRZYKLADY.wpisBezProfilu) {
-    return {
-      title: "Stary Spichlerz",
-      description: "Wpis w katalogu Gościnnie. Firma nie prowadzi jeszcze profilu.",
-    };
-  }
-  if (slug === PRZYKLADY.lokal) {
-    return {
-      title: "Dwór pod Lipami",
-      description: "Profil lokalu w katalogu Gościnnie.",
-    };
-  }
-  return { title: "Nie ma takiej strony" };
+  const lokal = pobierzLokal(slug);
+  if (!lokal) return { title: "Nie ma takiej strony" };
+  return {
+    title: lokal.nazwa,
+    description:
+      lokal.status === "visitcard"
+        ? "Wpis w katalogu Gościnnie. Firma nie prowadzi jeszcze profilu."
+        : "Profil lokalu w katalogu Gościnnie.",
+  };
 }
 
 export default async function Strona({ params }: Props) {
   const { slug } = await params;
-  // Do Etapu 2 rozpoznajemy tylko dwa przykładowe ogłoszenia z punktu 6 planu.
-  if (slug === PRZYKLADY.wpisBezProfilu) return <WpisBezProfiluScreen />;
-  if (slug === PRZYKLADY.lokal) return <ProfilScreen />;
-  notFound();
+  const lokal = pobierzLokal(slug);
+  if (!lokal) notFound();
+  // Firma, która nie przejęła jeszcze wpisu, dostaje wersję "przejmij profil".
+  if (lokal.status === "visitcard") return <WpisBezProfiluScreen lokal={lokal} />;
+  return <ProfilScreen lokal={lokal} />;
 }

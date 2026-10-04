@@ -2,8 +2,15 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { EtykietaPrzykladu } from "@/components/EtykietaPrzykladu";
+import { zlote } from "@/content/format";
+import type { Lokal } from "@/content/ogloszenia";
 
-export function ProfilScreen() {
+interface ProfilScreenProps {
+  lokal: Lokal;
+}
+
+export function ProfilScreen({ lokal }: ProfilScreenProps) {
   const [selectedOccasion, setSelectedOccasion] = useState("Komunia");
   const [selectedDate, setSelectedDate] = useState("12.06.2027");
   const [selectedGuests, setSelectedGuests] = useState("80");
@@ -64,7 +71,7 @@ export function ProfilScreen() {
         >
           Sale weselne i lokale
         </Link>{" "}
-        &nbsp;›&nbsp; Wrocław i okolice &nbsp;›&nbsp; Dwór pod Lipami
+        &nbsp;›&nbsp; Wrocław i okolice &nbsp;›&nbsp; {lokal.nazwa}
       </div>
 
       {/* Photo Gallery Mosaic */}
@@ -80,7 +87,7 @@ export function ProfilScreen() {
         <div className="grid grid-rows-2 gap-1.5">
           <div className="bg-[#DED4DC] relative flex items-end p-3">
             <span className="text-[11px] font-semibold bg-white/80 px-2.5 py-1 rounded">
-              Sala balowa (do 140 osób)
+              Sala balowa (do {lokal.pojemnoscMax} osób)
             </span>
           </div>
           <div className="bg-[#DCE0D8] relative flex items-end p-3">
@@ -136,22 +143,22 @@ export function ProfilScreen() {
             </div>
 
             <h1 className="m-0 mb-3 font-fraunces font-normal text-[36px] sm:text-[46px] tracking-tight">
-              Dwór pod Lipami
+              {lokal.nazwa}
             </h1>
             <p className="m-0 mb-5 text-[16px] text-[#6A5C70]">
-              Kobierzyce, 18 km od centrum Wrocławia (powiat wrocławski) &nbsp;·&nbsp;{" "}
-              <a
-                href="#opinie"
-                className="text-[#8A5405] hover:text-[#241C2B] font-semibold underline"
-              >
-                ★ 4,8 (36 zweryfikowanych opinii)
-              </a>{" "}
-              &nbsp;·&nbsp; Odpowiada średnio w 3,5 godziny
+              {lokal.miejscowosc.nazwa}, {lokal.miejscowosc.odlegloscOdCentrumKm} km od centrum
+              Wrocławia (powiat {lokal.miejscowosc.powiat})
             </p>
+
+            {lokal.przykladowe ? (
+              <div className="mb-5">
+                <EtykietaPrzykladu />
+              </div>
+            ) : null}
 
             <div className="flex gap-2 flex-wrap mb-6">
               <span className="text-[14px] text-[#3F5142] bg-[#E7EDE7] rounded-[8px] px-3 py-1.5">
-                do 140 osób
+                do {lokal.pojemnoscMax} osób
               </span>
               <span className="text-[14px] text-[#3F5142] bg-[#E7EDE7] rounded-[8px] px-3 py-1.5">
                 sala na wyłączność
@@ -175,7 +182,7 @@ export function ProfilScreen() {
 
             <h2 className="m-0 mb-3 font-fraunces font-medium text-[24px]">O obiekcie</h2>
             <p className="m-0 text-[16px] leading-[1.75] text-[#3E3344] max-w-[70ch]">
-              Dwór z 1902 roku z salą balową na 140 osób i osobną salą kameralną na 40 gości.
+              {lokal.opis}
               Prowadzimy obiekt rodzinnie od czternastu lat. Obsługujemy wesela, komunie, chrzciny,
               jubileusze i przyjęcia firmowe. Menu ustalamy indywidualnie, dopuszczamy własny tort
               bez opłat oraz własny alkohol bez korkowego. Obiekt otacza stary park z aleją lipową i
@@ -210,7 +217,9 @@ export function ProfilScreen() {
                 <span className="col-span-2 font-medium">
                   Komunia i chrzciny (obiad 3 dania + bufet zimny)
                 </span>
-                <strong className="font-bold text-[#241C2B]">180 zł</strong>
+                <strong className="font-bold text-[#241C2B]">
+                  {lokal.cenaOdGrosze === null ? "Cena niepodana" : zlote(lokal.cenaOdGrosze)}
+                </strong>
                 <span className="text-[#6A5C70]">osoba</span>
               </div>
               <div className="grid grid-cols-4 p-4 px-5 border-t border-[#EFE5DD] text-[15px]">
@@ -245,7 +254,9 @@ export function ProfilScreen() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               <div className="border border-[#E2D5CA] bg-white rounded-[14px] p-5 shadow-2xs">
                 <div className="text-[13px] text-[#6A5C70] mb-1">Miejsca siedzące</div>
-                <div className="text-[24px] font-bold text-[#241C2B]">30 – 140 osób</div>
+                <div className="text-[24px] font-bold text-[#241C2B]">
+                  {lokal.pojemnoscMin} – {lokal.pojemnoscMax} osób
+                </div>
                 <div className="text-[13px] text-[#55485A]">stoły okrągłe lub tradycyjne</div>
               </div>
               <div className="border border-[#E2D5CA] bg-white rounded-[14px] p-5 shadow-2xs">
@@ -407,24 +418,23 @@ export function ProfilScreen() {
           <section id="dojazd" className="scroll-mt-20 border-t border-[#E2D5CA] pt-10">
             <h2 className="m-0 mb-3 font-fraunces font-medium text-[26px]">Lokalizacja i dojazd</h2>
             <p className="text-[15px] text-[#6A5C70] mb-5">
-              Dwór pod Lipami, ul. Pałacowa 4, 55-040 Kobierzyce · 18 km na południe od centrum
-              Wrocławia (trasa DK8 / S8).
+              {lokal.nazwa}, {lokal.miejscowosc.nazwa}, powiat {lokal.miejscowosc.powiat} ·{" "}
+              {lokal.miejscowosc.odlegloscOdCentrumKm} km od centrum Wrocławia. Dokładny adres
+              podajemy po potwierdzeniu rezerwacji.
             </p>
 
-            <div className="border border-[#E2D5CA] rounded-[18px] overflow-hidden bg-[#F2E9E2] relative h-[260px] flex items-center justify-center p-6 shadow-xs">
-              <div className="text-center z-10 bg-white/95 backdrop-blur rounded-[16px] p-6 max-w-[420px] shadow-sm border border-[#E2D5CA]">
-                <div className="w-8 h-8 rounded-full bg-[#F0A62E] text-[#241C2B] font-bold flex items-center justify-center mx-auto mb-2 text-[14px]">
-                  📍
-                </div>
-                <div className="font-fraunces font-medium text-[18px] mb-1">Dwór pod Lipami</div>
-                <div className="text-[13px] text-[#6A5C70] mb-3">
-                  ul. Pałacowa 4, 55-040 Kobierzyce
-                </div>
-                <div className="inline-block text-[12px] font-semibold text-[#5E7360] bg-[#E7EDE7] px-3 py-1 rounded-full">
-                  Dojazd z Bielan Wrocławskich: 12 min
-                </div>
-              </div>
-            </div>
+            {/* Decyzja z 3 października 2026: mapy nie ma na żadnej stronie.
+                Zamiast niej adres tekstem i odnośnik do zewnętrznej nawigacji. */}
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                `${lokal.nazwa}, ${lokal.miejscowosc.nazwa}`,
+              )}`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-block text-[15px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-[10px] px-5 py-2.5 hover:bg-[#241C2B] hover:text-white transition-colors"
+            >
+              Wyznacz trasę
+            </a>
           </section>
 
           {/* Section 9: Imprezy w obiekcie */}
@@ -435,7 +445,7 @@ export function ProfilScreen() {
                   Nadchodzące imprezy w tym obiekcie
                 </h2>
                 <p className="text-[15px] text-[#6A5C70] m-0">
-                  Otwarte wieczory tematyczne i bale organizowane przez Dwór pod Lipami.
+                  Otwarte wieczory tematyczne i bale organizowane przez {lokal.nazwa}.
                 </p>
               </div>
               <Link

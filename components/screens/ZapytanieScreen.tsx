@@ -4,35 +4,26 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
+import { zlote } from "@/content/format";
+import { type Lokal, pobierzLokale } from "@/content/ogloszenia";
 
-export function ZapytanieScreen() {
+interface ZapytanieScreenProps {
+  lokal: Lokal;
+}
+
+export function ZapytanieScreen({ lokal }: ZapytanieScreenProps) {
   const router = useRouter();
-  const [recipients, setRecipients] = useState<
-    { id: number; name: string; loc: string; price: string; checked: boolean }[]
-  >([
-    { id: 1, name: "Dwór pod Lipami", loc: "Kobierzyce, 18 km", price: "od 180 zł", checked: true },
-    {
-      id: 2,
-      name: "Sala Pod Kasztanem",
-      loc: "Psie Pole, 7 km",
-      price: "od 145 zł",
-      checked: true,
-    },
-    {
-      id: 3,
-      name: "Folwark Zielona Brama",
-      loc: "Siechnice, 14 km",
-      price: "od 210 zł",
-      checked: true,
-    },
-    {
-      id: 4,
-      name: "Restauracja Nad Odrą",
-      loc: "Stare Miasto, 1 km",
-      price: "od 120 zł",
-      checked: false,
-    },
-  ]);
+  const [recipients, setRecipients] = useState(() =>
+    pobierzLokale()
+      .filter((lokal) => lokal.status === "active")
+      .map((lokal, indeks) => ({
+        id: indeks + 1,
+        name: lokal.nazwa,
+        loc: `${lokal.miejscowosc.nazwa}, ${lokal.miejscowosc.odlegloscOdCentrumKm} km`,
+        price: lokal.cenaOdGrosze === null ? "Cena niepodana" : `od ${zlote(lokal.cenaOdGrosze)}`,
+        checked: true,
+      })),
+  );
 
   const toggleRecipient = (id: number) => {
     setRecipients((prev) => prev.map((r) => (r.id === id ? { ...r, checked: !r.checked } : r)));
@@ -61,10 +52,10 @@ export function ZapytanieScreen() {
             </Link>{" "}
             &nbsp;›&nbsp;{" "}
             <Link
-              href="/f/dwor-pod-lipami"
+              href={`/f/${lokal.slug}`}
               className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
             >
-              Dwór pod Lipami
+              {lokal.nazwa}
             </Link>{" "}
             &nbsp;›&nbsp; Zapytanie
           </p>

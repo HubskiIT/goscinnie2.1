@@ -3,6 +3,11 @@
 import Link from "next/link";
 import type React from "react";
 import { useState } from "react";
+import { StanPusty } from "@/components/StanPusty";
+import { dataDluga, zlote } from "@/content/format";
+import { pobierzZlecenia } from "@/content/ogloszenia";
+
+const ZLECENIE = pobierzZlecenia()[0];
 
 export function ZleceniaScreen() {
   const [isSubscriber, setIsSubscriber] = useState(true);
@@ -20,6 +25,16 @@ export function ZleceniaScreen() {
       setOfferModalOpen(false);
     }, 1800);
   };
+
+  if (ZLECENIE === undefined) {
+    return (
+      <StanPusty
+        tytul="Giełda zleceń"
+        opis="Nie ma jeszcze żadnego zlecenia. Dodaj swoje, a firmy zgłoszą się same."
+        akcja={{ etykieta: "Dodaj zlecenie", adres: "/dodaj-zlecenie" }}
+      />
+    );
+  }
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
@@ -169,7 +184,7 @@ export function ZleceniaScreen() {
           <article className="border border-[#E2D5CA] rounded-[18px] bg-white p-6 sm:p-7 shadow-xs">
             <div className="flex items-start justify-between gap-5 mb-5">
               <h3 className="m-0 font-fraunces font-medium text-[23px]">
-                Komunia, 80 osób, powiat wrocławski
+                {ZLECENIE.okazja}, {ZLECENIE.liczbaGosci} osób, powiat {ZLECENIE.powiat}
               </h3>
               <span className="shrink-0 text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[8px] px-3 py-1.5 font-semibold">
                 zamyka się za 4 dni
@@ -179,24 +194,26 @@ export function ZleceniaScreen() {
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 py-4 border-y border-[#EFE5DD] mb-5">
               <div>
                 <div className="text-[12px] text-[#6A5C70] mb-1">Okazja</div>
-                <div className="text-[15px] font-semibold">Komunia</div>
+                <div className="text-[15px] font-semibold">{ZLECENIE.okazja}</div>
               </div>
               <div>
                 <div className="text-[12px] text-[#6A5C70] mb-1">Data wydarzenia</div>
-                <div className="text-[15px] font-semibold">12.06.2027</div>
+                <div className="text-[15px] font-semibold">{dataDluga(ZLECENIE.data)}</div>
               </div>
               <div>
                 <div className="text-[12px] text-[#6A5C70] mb-1">Liczba osób</div>
-                <div className="text-[15px] font-semibold">80</div>
+                <div className="text-[15px] font-semibold">{ZLECENIE.liczbaGosci}</div>
               </div>
               <div>
                 <div className="text-[12px] text-[#6A5C70] mb-1">Lokalizacja</div>
-                <div className="text-[15px] font-semibold">powiat wrocławski + 25 km</div>
+                <div className="text-[15px] font-semibold">powiat {ZLECENIE.powiat}</div>
               </div>
               <div>
                 <div className="text-[12px] text-[#6A5C70] mb-1">Budżet klienta</div>
                 {isSubscriber ? (
-                  <div className="text-[15px] font-bold text-[#3F5142]">do 18 000 zł</div>
+                  <div className="text-[15px] font-bold text-[#3F5142]">
+                    {ZLECENIE.budzetGrosze === null ? "nie podano" : zlote(ZLECENIE.budzetGrosze)}
+                  </div>
                 ) : (
                   <div className="text-[13px] text-[#8B7F91] font-semibold italic">
                     w abonamencie (402)
@@ -262,81 +279,6 @@ export function ZleceniaScreen() {
               </>
             )}
           </article>
-
-          {/* Order 2: Wesele */}
-          <article className="border border-[#E2D5CA] rounded-[18px] bg-white p-6 sm:p-7 shadow-xs">
-            <div className="flex items-start justify-between gap-5 mb-5">
-              <h3 className="m-0 font-fraunces font-medium text-[23px]">
-                Wesele, 130 osób, powiat oławski
-              </h3>
-              <span className="shrink-0 text-[13px] text-[#55485A] bg-[#F2E9E2] rounded-[8px] px-3 py-1.5 font-medium">
-                otwarte 2 dni temu
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 py-4 border-y border-[#EFE5DD] mb-5">
-              <div>
-                <div className="text-[12px] text-[#6A5C70] mb-1">Okazja</div>
-                <div className="text-[15px] font-semibold">Wesele</div>
-              </div>
-              <div>
-                <div className="text-[12px] text-[#6A5C70] mb-1">Data wydarzenia</div>
-                <div className="text-[15px] font-semibold">04.09.2027</div>
-              </div>
-              <div>
-                <div className="text-[12px] text-[#6A5C70] mb-1">Liczba osób</div>
-                <div className="text-[15px] font-semibold">130</div>
-              </div>
-              <div>
-                <div className="text-[12px] text-[#6A5C70] mb-1">Lokalizacja</div>
-                <div className="text-[15px] font-semibold">powiat oławski + 30 km</div>
-              </div>
-              <div>
-                <div className="text-[12px] text-[#6A5C70] mb-1">Budżet</div>
-                <div className="text-[15px] font-bold text-[#3F5142]">45 000 – 60 000 zł</div>
-              </div>
-            </div>
-
-            <p className="m-0 mb-5 text-[16px] leading-[1.7] text-[#3E3344] max-w-[78ch]">
-              Planujemy wesele na początek września 2027. Zależy nam na pięknej sali z klimatem,
-              możliwością zorganizowania zaślubin w plenerze oraz noclegach dla około 50 gości
-              przyjezdnych.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-4">
-              <button
-                type="button"
-                onClick={() => setOfferModalOpen(true)}
-                className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-7 py-3.5 cursor-pointer shadow-xs"
-              >
-                Złóż ofertę
-              </button>
-              <span className="text-[13px] text-[#6A5C70]">Maksymalnie 10 ofert na zlecenie.</span>
-            </div>
-          </article>
-
-          {/* Order 3: Already submitted */}
-          <article className="border border-[#E2D5CA] rounded-[18px] bg-white p-5 sm:px-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
-            <div className="grow">
-              <h3 className="m-0 mb-1 font-fraunces font-medium text-[20px]">
-                Chrzciny, 45 osób, Wrocław
-              </h3>
-              <p className="m-0 text-[14px] text-[#6A5C70]">
-                16.05.2027 &nbsp;·&nbsp; Wrocław &nbsp;·&nbsp; Twoja oferta została złożona
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="shrink-0 text-[13px] font-semibold text-[#3F5142] bg-[#E7EDE7] rounded-[8px] px-3.5 py-2">
-                ✓ Oferta złożona
-              </span>
-              <Link
-                href="/moje"
-                className="shrink-0 text-[14px] font-semibold text-[#241C2B] border border-[#241C2B] rounded-[8px] px-4 py-2 hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-transparent"
-              >
-                Podejrzyj
-              </Link>
-            </div>
-          </article>
         </div>
 
         {/* Aside: Information for Vendors */}
@@ -396,7 +338,7 @@ export function ZleceniaScreen() {
             </button>
 
             <span className="text-[12px] font-bold tracking-wider uppercase text-[#5E7360] bg-[#E7EDE7] px-3 py-1 rounded-full mb-2 inline-block">
-              Zlecenie: Komunia, 80 osób (powiat wrocławski)
+              Zlecenie: {ZLECENIE.okazja}, {ZLECENIE.liczbaGosci} osób (powiat {ZLECENIE.powiat})
             </span>
 
             <h2 className="font-fraunces text-[26px] font-medium mb-2">

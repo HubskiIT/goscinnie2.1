@@ -3,6 +3,9 @@
 import Link from "next/link";
 import type React from "react";
 import { useState } from "react";
+import { pobierzLokale } from "@/content/ogloszenia";
+
+const NAZWA_FIRMY = pobierzLokale().find((lokal) => lokal.status === "active")?.nazwa ?? "";
 
 export function ZamowienieAbonamentuScreen() {
   const [selectedClass, setSelectedClass] = useState<"A" | "B" | "C">("A");
@@ -72,7 +75,7 @@ export function ZamowienieAbonamentuScreen() {
             </h1>
             <p className="text-[16px] text-[#3E3344] leading-[1.6] mb-6">
               Abonament planu <strong>{selectedPlan.toUpperCase()}</strong> dla obiektu{" "}
-              <strong>Dwór pod Lipami</strong> został aktywowany. Faktura VAT{" "}
+              <strong>{NAZWA_FIRMY}</strong> został aktywowany. Faktura VAT{" "}
               <strong>GOS/2026/0412</strong> została wysłana na adres księgowy oraz do systemu KSeF.
             </p>
             <div className="border border-[#E2D5CA] rounded-[14px] bg-[#FAF6F2] p-4 text-left mb-7 text-[14px] space-y-1.5">
@@ -318,7 +321,7 @@ export function ZamowienieAbonamentuScreen() {
                       <input
                         id="zamowienieabonamentuscreen-nazwa-pelna-podmiotu"
                         type="text"
-                        defaultValue="Dwór pod Lipami Sp. z o.o."
+                        defaultValue={NAZWA_FIRMY}
                         className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] focus:border-[#241C2B] outline-none"
                       />
                     </div>
@@ -446,7 +449,7 @@ export function ZamowienieAbonamentuScreen() {
                 <div className="space-y-3 text-[14px] mb-5">
                   <div className="flex justify-between">
                     <span className="text-[#6A5C70]">Obiekt / profil:</span>
-                    <strong className="text-[#241C2B]">Dwór pod Lipami</strong>
+                    <strong className="text-[#241C2B]">{NAZWA_FIRMY}</strong>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#6A5C70]">Klasa i plan:</span>

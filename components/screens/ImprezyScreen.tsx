@@ -1,108 +1,32 @@
 "use client";
 
 import Link from "next/link";
+import { EtykietaPrzykladu } from "@/components/EtykietaPrzykladu";
+import { dzienTygodnia, zlote } from "@/content/format";
+import { pobierzImprezy, pobierzLokal } from "@/content/ogloszenia";
+
+const MIESIAC = new Intl.DateTimeFormat("pl-PL", { month: "short" });
+
 import { useState } from "react";
 
 export function ImprezyScreen() {
-  const [selectedTag, setSelectedTag] = useState("Andrzejki");
+  const [selectedTag] = useState("Andrzejki");
 
-  const occasionTags = [
-    { name: "Andrzejki", date: "29 listopada", count: "24 imprezy" },
-    { name: "Mikołajki", date: "6 grudnia", count: "11 imprez" },
-    { name: "Wigilie firmowe", date: "grudzień", count: "17 imprez" },
-    { name: "Sylwester", date: "31 grudnia", count: "38 imprez" },
-    { name: "Karnawał", date: "styczeń i luty", count: "9 imprez" },
-    { name: "Walentynki", date: "14 lutego", count: "14 imprez" },
-    { name: "Ostatki", date: "17 lutego", count: "6 imprez" },
-    { name: "Dzień Kobiet", date: "8 marca", count: "8 imprez" },
-  ];
-
-  const events = [
-    {
-      id: 1,
-      day: "29",
-      month: "lis",
-      title: "Andrzejki pod Lipami",
-      place: "Dwór pod Lipami, Kobierzyce",
-      time: "sobota, 19:00 do 3:00",
-      tags: ["kolacja", "DJ", "wróżby"],
-      badge: "wolne 24 miejsca",
-      badgeColor: "text-[#3F5142] bg-[#E7EDE7]",
-      price: "180 zł",
-      bgColor: "bg-[#E4D9CF]",
-      soldOut: false,
-    },
-    {
-      id: 2,
-      day: "29",
-      month: "lis",
-      title: "Wróżby i winyle",
-      place: "Restauracja Nad Odrą, Wrocław",
-      time: "sobota, 20:00 do 2:00",
-      tags: ["bufet", "open bar"],
-      badge: "ostatnie 6 miejsc",
-      badgeColor: "text-[#8A5405] bg-white border border-[#E2D5CA]",
-      price: "140 zł",
-      bgColor: "bg-[#DED4DC]",
-      soldOut: false,
-    },
-    {
-      id: 3,
-      day: "28",
-      month: "lis",
-      title: "Andrzejkowy bal rodzinny",
-      place: "Folwark Zielona Brama, Siechnice",
-      time: "piątek, 18:00 do 1:00",
-      tags: ["dla dzieci", "animator"],
-      badge: "wolne 48 miejsc",
-      badgeColor: "text-[#3F5142] bg-[#E7EDE7]",
-      price: "120 zł",
-      bgColor: "bg-[#DCE0D8]",
-      soldOut: false,
-    },
-    {
-      id: 4,
-      day: "29",
-      month: "lis",
-      title: "Noc wróżb",
-      place: "Sala Pod Kasztanem, Wrocław",
-      time: "sobota, 19:30 do 3:00",
-      tags: ["kolacja", "zespół na żywo"],
-      badge: "wyprzedane",
-      badgeColor: "text-[#8B7F91] bg-[#EDE6E9]",
-      price: "165 zł",
-      bgColor: "bg-[#E8DED2]",
-      soldOut: true,
-    },
-    {
-      id: 5,
-      day: "06",
-      month: "gru",
-      title: "Mikołajki dla najmłodszych",
-      place: "Folwark Zielona Brama, Siechnice",
-      time: "sobota, 11:00 do 15:00",
-      tags: ["dla dzieci", "paczka", "podwieczorek"],
-      badge: "wolne 32 miejsca",
-      badgeColor: "text-[#3F5142] bg-[#E7EDE7]",
-      price: "60 zł",
-      bgColor: "bg-[#D9CCC2]",
-      soldOut: false,
-    },
-    {
-      id: 6,
-      day: "31",
-      month: "gru",
-      title: "Sylwester w ogrodzie",
-      place: "Dwór pod Lipami, Kobierzyce",
-      time: "wtorek, 20:00 do 5:00",
-      tags: ["kolacja", "open bar", "nocleg"],
-      badge: "wolne 70 miejsc",
-      badgeColor: "text-[#3F5142] bg-[#E7EDE7]",
-      price: "420 zł",
-      bgColor: "bg-[#E7EDE7]",
-      soldOut: false,
-    },
-  ];
+  const events = pobierzImprezy().map((impreza) => {
+    const data = new Date(impreza.data);
+    const lokal = pobierzLokal(impreza.lokalSlug);
+    return {
+      slug: impreza.slug,
+      day: String(data.getDate()),
+      month: MIESIAC.format(data),
+      title: impreza.nazwa,
+      place: lokal === undefined ? "" : `${lokal.nazwa}, ${lokal.miejscowosc.nazwa}`,
+      time: `${dzienTygodnia(impreza.data)}, ${impreza.godzinaOd} do ${impreza.godzinaDo}`,
+      tags: impreza.dlaDoroslych ? ["dla dorosłych"] : [],
+      price: zlote(impreza.cenaBiletuGrosze),
+      przykladowe: impreza.przykladowe,
+    };
+  });
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
@@ -123,38 +47,11 @@ export function ImprezyScreen() {
             </p>
           </div>
           <div className="shrink-0 text-left md:text-right">
-            <div className="font-fraunces text-[34px] font-medium">63 imprezy</div>
+            <div className="font-fraunces text-[34px] font-medium">
+              {events.length} {events.length === 1 ? "impreza" : "imprezy"}
+            </div>
             <div className="text-[14px] text-[#6A5C70]">w najbliższych trzech miesiącach</div>
           </div>
-        </div>
-
-        {/* Occasion Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-          {occasionTags.map((o) => {
-            const isSelected = selectedTag === o.name;
-            return (
-              <button
-                key={o.name}
-                type="button"
-                onClick={() => setSelectedTag(o.name)}
-                className={`rounded-[14px] p-4 text-left flex flex-col gap-1.5 cursor-pointer transition-all border-0 ${
-                  isSelected
-                    ? "bg-[#F0A62E] text-[#241C2B] shadow-sm"
-                    : "bg-white border border-[#E2D5CA] text-[#241C2B] hover:border-[#241C2B]"
-                }`}
-              >
-                <span className="font-fraunces font-medium text-[20px]">{o.name}</span>
-                <span
-                  className={`text-[13px] font-semibold ${isSelected ? "text-[#241C2B]" : "text-[#6A5C70]"}`}
-                >
-                  {o.date}
-                </span>
-                <span className={`text-[13px] ${isSelected ? "text-[#241C2B]" : "text-[#6A5C70]"}`}>
-                  {o.count}
-                </span>
-              </button>
-            );
-          })}
         </div>
       </section>
 
@@ -195,10 +92,10 @@ export function ImprezyScreen() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {events.map((e) => (
             <article
-              key={e.id}
+              key={e.slug}
               className="border border-[#E2D5CA] rounded-[18px] bg-white overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow"
             >
-              <div className={`h-[152px] ${e.bgColor} relative`}>
+              <div className="h-[152px] bg-[#E4D9CF] relative">
                 <div className="absolute top-3.5 left-3.5 bg-[#FBF7F4] rounded-[12px] px-3 py-2 text-center shadow-sm">
                   <div className="font-fraunces text-[22px] font-medium leading-none">{e.day}</div>
                   <div className="text-[11px] font-bold tracking-wider uppercase text-[#6A5C70] mt-0.5">
@@ -210,7 +107,7 @@ export function ImprezyScreen() {
               <div className="p-5 sm:p-[22px] flex flex-col grow">
                 <h3 className="m-0 mb-1.5 font-fraunces font-medium text-[21px]">
                   <Link
-                    href="/imprezy/andrzejki-pod-lipami"
+                    href={`/imprezy/${e.slug}`}
                     className="text-[#241C2B] hover:text-[#8A5405] text-left bg-transparent border-0 cursor-pointer p-0 font-inherit"
                   >
                     {e.title}
@@ -233,13 +130,11 @@ export function ImprezyScreen() {
                   ))}
                 </div>
 
-                <div className="mb-4">
-                  <span
-                    className={`text-[13px] rounded-[8px] px-2.5 py-1.5 font-medium ${e.badgeColor}`}
-                  >
-                    {e.badge}
-                  </span>
-                </div>
+                {e.przykladowe ? (
+                  <div className="mb-4">
+                    <EtykietaPrzykladu />
+                  </div>
+                ) : null}
 
                 <div className="mt-auto pt-3 flex items-end justify-between gap-3 border-t border-[#EFE5DD]">
                   <div>
@@ -247,18 +142,12 @@ export function ImprezyScreen() {
                     <div className="text-[13px] text-[#6A5C70]">od osoby</div>
                   </div>
 
-                  {e.soldOut ? (
-                    <span className="text-[15px] text-[#8B7F91] border-[1.5px] border-[#D9CCC2] rounded-[10px] px-4 py-2 font-medium">
-                      Brak miejsc
-                    </span>
-                  ) : (
-                    <Link
-                      href="/imprezy/andrzejki-pod-lipami"
-                      className="text-[15px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-[10px] px-4 py-2 hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-transparent"
-                    >
-                      Zobacz szczegóły
-                    </Link>
-                  )}
+                  <Link
+                    href={`/imprezy/${e.slug}`}
+                    className="text-[15px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-[10px] px-4 py-2 hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-transparent"
+                  >
+                    Zobacz szczegóły
+                  </Link>
                 </div>
               </div>
             </article>
@@ -285,32 +174,10 @@ export function ImprezyScreen() {
       <section className="shrink-0 px-6 sm:px-12 md:px-[130px] pt-10 flex flex-col lg:flex-row gap-5 items-stretch">
         <div className="grow border border-[#E2D5CA] rounded-[20px] bg-white p-7 sm:p-8 shadow-sm">
           <h2 className="m-0 mb-2 font-fraunces font-medium text-[26px]">Rozkład roku</h2>
-          <p className="m-0 mb-6 text-[15px] leading-[1.6] text-[#6A5C70]">
+          <p className="m-0 text-[15px] leading-[1.6] text-[#6A5C70]">
             Sezon imprez otwartych nie pokrywa się z weselnym. To są dwa różne szczyty i dwa różne
             powody, żeby lokal opłacał abonament cały rok.
           </p>
-
-          <div className="flex gap-2.5 items-end justify-between pt-4">
-            {[
-              { month: "lis", count: 24, height: 54 },
-              { month: "gru", count: 38, height: 86 },
-              { month: "sty", count: 9, height: 22 },
-              { month: "lut", count: 20, height: 46 },
-              { month: "mar", count: 8, height: 20 },
-              { month: "kwi", count: 5, height: 13 },
-            ].map((bar) => (
-              <div key={bar.month} className="flex flex-col items-center gap-2 grow">
-                <div className="w-full h-[86px] flex items-end justify-center">
-                  <div
-                    style={{ height: `${bar.height}px` }}
-                    className="w-full max-w-10 rounded-t-[8px] bg-[#5E7360]"
-                  />
-                </div>
-                <div className="text-[13px] font-semibold">{bar.month}</div>
-                <div className="text-[12px] text-[#6A5C70]">{bar.count}</div>
-              </div>
-            ))}
-          </div>
         </div>
 
         <div className="w-full lg:w-[400px] shrink-0 border border-[#E2D5CA] rounded-[20px] bg-[#F2E9E2] p-7 sm:p-8">

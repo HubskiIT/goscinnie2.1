@@ -15,7 +15,7 @@ export function RejestracjaFirmyScreen() {
   const [password, setPassword] = useState("********");
 
   // Step 2: Profile Content
-  const [displayName, setDisplayName] = useState("Dwór pod Lipami");
+  const [displayName, setDisplayName] = useState("");
   const [town, setTown] = useState("Kobierzyce, k. Wrocławia");
   const [priceFrom, setPriceFrom] = useState("180 zł");
   const [capacity, setCapacity] = useState("do 140 osób");
@@ -220,9 +220,7 @@ export function RejestracjaFirmyScreen() {
             {/* Step 2: Kreator profilu */}
             {step === 2 && (
               <div>
-                <h2 className="font-fraunces text-[24px] font-medium mb-2">
-                  2. Treść i wizytówka profilu
-                </h2>
+                <h2 className="font-fraunces text-[24px] font-medium mb-2">2. Treść profilu</h2>
                 <p className="text-[14px] text-[#6A5C70] mb-6">
                   Zasada Gościnnie: profil musi zawierać obowiązkową cenę „od”, aby klienci nie
                   musieli dzwonić w ciemno.

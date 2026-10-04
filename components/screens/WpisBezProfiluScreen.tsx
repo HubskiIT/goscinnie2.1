@@ -1,6 +1,11 @@
 import Link from "next/link";
+import type { Lokal } from "@/content/ogloszenia";
 
-export function WpisBezProfiluScreen() {
+interface WpisBezProfiluScreenProps {
+  lokal: Lokal;
+}
+
+export function WpisBezProfiluScreen({ lokal }: WpisBezProfiluScreenProps) {
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
       <main className="grow px-6 sm:px-12 md:px-[130px] pt-10 pb-16">
@@ -12,7 +17,8 @@ export function WpisBezProfiluScreen() {
           >
             Lokale
           </Link>{" "}
-          &nbsp;›&nbsp; Powiat trzebnicki &nbsp;›&nbsp; Stary Spichlerz (Wpis z rejestru)
+          &nbsp;›&nbsp; Powiat {lokal.miejscowosc.powiat} &nbsp;›&nbsp; {lokal.nazwa} (wpis z
+          rejestru)
         </p>
 
         {/* Notice Banner */}
@@ -46,10 +52,11 @@ export function WpisBezProfiluScreen() {
                 Sale weselne i okolicznościowe
               </span>
               <h1 className="m-0 font-fraunces font-normal text-[36px] sm:text-[44px] tracking-tight">
-                Stary Spichlerz
+                {lokal.nazwa}
               </h1>
               <p className="m-0 mt-2 text-[16px] text-[#6A5C70]">
-                Trzebnica · ul. Polna 12, 55-100 Trzebnica (powiat trzebnicki, 24 km od Wrocławia)
+                {lokal.miejscowosc.nazwa}, powiat {lokal.miejscowosc.powiat} ·{" "}
+                {lokal.miejscowosc.odlegloscOdCentrumKm} km od Wrocławia
               </p>
             </div>
 
@@ -89,10 +96,10 @@ export function WpisBezProfiluScreen() {
                 Zarządzasz tym miejscem?
               </h3>
               <p className="text-[14px] text-[#55485A] leading-[1.6] mb-4">
-                Przejmij profil obiektu <strong>Stary Spichlerz</strong>. Otrzymasz:
+                Przejmij profil obiektu <strong>{lokal.nazwa}</strong>. Otrzymasz:
               </p>
               <ul className="text-[14px] text-[#3E3344] space-y-2 mb-6 pl-4">
-                <li>✓ Pełną wizytówkę z 30 zdjęciami, cennikiem i kalendarzem</li>
+                <li>✓ Pełny profil ze zdjęciami, cennikiem i kalendarzem</li>
                 <li>✓ Dostęp do zleceń od klientów szukających sali w Twoim powiecie</li>
                 <li>✓ Formularz bezpośrednich zapytań bez prowizji od umów</li>
                 <li>
@@ -123,7 +130,7 @@ export function WpisBezProfiluScreen() {
               href="/f/dwor-pod-lipami"
               className="text-[14px] font-semibold text-[#241C2B] bg-[#F2E9E2] hover:bg-[#EADFD6] transition-colors border-0 rounded-[10px] px-5 py-2.5 cursor-pointer"
             >
-              Zobacz przykładowy profil: Dwór pod Lipami →
+              Zobacz przykładowy profil →
             </Link>
             <Link
               href="/cennik"

@@ -1,9 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { pobierzLokale } from "@/content/ogloszenia";
+
+const ROZMOWY = pobierzLokale()
+  .filter((lokal) => lokal.status === "active")
+  .map((lokal) => ({ nazwa: lokal.nazwa }));
+
+const PIERWSZA_ROZMOWA = ROZMOWY[0]?.nazwa ?? "";
 
 export function WiadomosciScreen() {
-  const [selectedChat, setSelectedChat] = useState("Dwór pod Lipami");
+  const [selectedChat, setSelectedChat] = useState(PIERWSZA_ROZMOWA);
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -69,74 +76,25 @@ export function WiadomosciScreen() {
         <div className="w-full lg:w-[360px] shrink-0 border border-[#E2D5CA] rounded-[18px] bg-white overflow-hidden shadow-sm flex flex-col">
           <div className="p-4.5 px-5 border-b border-[#E2D5CA] text-[16px] font-bold">Rozmowy</div>
 
-          <button
-            type="button"
-            onClick={() => setSelectedChat("Dwór pod Lipami")}
-            className={`text-left flex gap-3.5 p-4 px-4.5 cursor-pointer transition-colors border-b border-[#EFE5DD] ${
-              selectedChat === "Dwór pod Lipami"
-                ? "bg-[#F2E9E2] border-l-4 border-l-[#241C2B]"
-                : "bg-transparent border-l-4 border-l-transparent hover:bg-[#FAF8F6]"
-            }`}
-          >
-            <span className="w-10.5 h-10.5 rounded-[10px] bg-[#E4D9CF] shrink-0 flex items-center justify-center font-bold text-[#241C2B]">
-              D
-            </span>
-            <div className="grow min-w-0">
-              <div className="flex justify-between gap-2.5">
-                <span className="text-[15px] font-semibold truncate">Dwór pod Lipami</span>
-                <span className="text-[12px] text-[#6A5C70] shrink-0">14:20</span>
+          {ROZMOWY.map((rozmowa) => (
+            <button
+              key={rozmowa.nazwa}
+              type="button"
+              onClick={() => setSelectedChat(rozmowa.nazwa)}
+              className={`text-left flex gap-3.5 p-4 px-4.5 cursor-pointer transition-colors border-b border-[#EFE5DD] ${
+                selectedChat === rozmowa.nazwa
+                  ? "bg-[#F2E9E2] border-l-4 border-l-[#241C2B]"
+                  : "bg-transparent border-l-4 border-l-transparent hover:bg-[#FAF8F6]"
+              }`}
+            >
+              <span className="w-10.5 h-10.5 rounded-[10px] bg-[#E4D9CF] shrink-0 flex items-center justify-center font-bold text-[#241C2B]">
+                {rozmowa.nazwa.charAt(0)}
+              </span>
+              <div className="grow min-w-0">
+                <span className="text-[15px] font-semibold truncate block">{rozmowa.nazwa}</span>
               </div>
-              <div className="text-[13px] text-[#6A5C70] mt-0.5 truncate">
-                Potwierdzamy termin, czekamy na...
-              </div>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSelectedChat("Sala Pod Kasztanem")}
-            className={`text-left flex gap-3.5 p-4 px-4.5 cursor-pointer transition-colors border-b border-[#EFE5DD] ${
-              selectedChat === "Sala Pod Kasztanem"
-                ? "bg-[#F2E9E2] border-l-4 border-l-[#241C2B]"
-                : "bg-transparent border-l-4 border-l-transparent hover:bg-[#FAF8F6]"
-            }`}
-          >
-            <span className="w-10.5 h-10.5 rounded-[10px] bg-[#DED4DC] shrink-0 flex items-center justify-center font-bold text-[#241C2B]">
-              S
-            </span>
-            <div className="grow min-w-0">
-              <div className="flex justify-between gap-2.5">
-                <span className="text-[15px] font-semibold truncate">Sala Pod Kasztanem</span>
-                <span className="text-[12px] text-[#6A5C70] shrink-0">wczoraj</span>
-              </div>
-              <div className="text-[13px] text-[#6A5C70] mt-0.5 truncate">
-                Dzień dobry, termin jest wolny
-              </div>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSelectedChat("Folwark Zielona Brama")}
-            className={`text-left flex gap-3.5 p-4 px-4.5 cursor-pointer transition-colors border-b border-[#EFE5DD] ${
-              selectedChat === "Folwark Zielona Brama"
-                ? "bg-[#F2E9E2] border-l-4 border-l-[#241C2B]"
-                : "bg-transparent border-l-4 border-l-transparent hover:bg-[#FAF8F6]"
-            }`}
-          >
-            <span className="w-10.5 h-10.5 rounded-[10px] bg-[#DCE0D8] shrink-0 flex items-center justify-center font-bold text-[#241C2B]">
-              F
-            </span>
-            <div className="grow min-w-0">
-              <div className="flex justify-between gap-2.5">
-                <span className="text-[15px] font-semibold truncate">Folwark Zielona Brama</span>
-                <span className="text-[12px] text-[#6A5C70] shrink-0">28 paź</span>
-              </div>
-              <div className="text-[13px] text-[#6A5C70] mt-0.5 truncate">
-                Przesyłam menu komunijne
-              </div>
-            </div>
-          </button>
+            </button>
+          ))}
         </div>
 
         {/* Right chat message thread */}

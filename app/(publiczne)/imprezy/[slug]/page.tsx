@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ImprezaScreen } from "@/components/screens/ImprezaScreen";
-import { PRZYKLADY } from "@/lib/trasy";
+import { pobierzImpreze, pobierzLokal } from "@/content/ogloszenia";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -9,15 +9,19 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  if (slug !== PRZYKLADY.impreza) return { title: "Nie ma takiej strony" };
+  const impreza = pobierzImpreze(slug);
+  if (!impreza) return { title: "Nie ma takiej strony" };
   return {
-    title: "Andrzejki pod Lipami",
+    title: impreza.nazwa,
     description: "Impreza organizowana przez lokal w Gościnnie.",
   };
 }
 
 export default async function Strona({ params }: Props) {
   const { slug } = await params;
-  if (slug !== PRZYKLADY.impreza) notFound();
-  return <ImprezaScreen />;
+  const impreza = pobierzImpreze(slug);
+  if (!impreza) notFound();
+  const lokal = pobierzLokal(impreza.lokalSlug);
+  if (!lokal) notFound();
+  return <ImprezaScreen impreza={impreza} lokal={lokal} />;
 }
