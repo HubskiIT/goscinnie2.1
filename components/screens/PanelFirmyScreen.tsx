@@ -128,7 +128,7 @@ export function PanelFirmyScreen() {
                   adres: "/moje",
                 },
                 {
-                  title: "Zapytanie bezpośrednie, Anna K.",
+                  title: "Zapytanie bezpośrednie od klienta",
                   date: "12.06.2027",
                   guests: "80 osób",
                   badge: "odpowiedz do jutra",
