@@ -49,24 +49,25 @@ export function UslugodawcyScreen({ kategoria: slugKategorii }: UslugodawcyScree
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen font-figtree">
       {/* Header z aktywnym stanem Usługodawcy ^ */}
 
-      {/* Kategorie usługodawców: 14 ze specyfikacji, bez podkategorii i bez liczników */}
+      {/* Kategorie usługodawców ze specyfikacji, bez podkategorii i bez liczników */}
       <section className="shrink-0 px-6 sm:px-10 lg:px-[130px] pt-6 pb-4">
         <div className="border border-[#E2D5CA] rounded-[24px] bg-white shadow-md overflow-hidden flex flex-col lg:flex-row">
           <div className="grow p-6 lg:p-7">
             <h2 className="m-0 mb-5 font-fraunces font-normal text-[26px] sm:text-[28px] text-[#241C2B] tracking-tight">
               Kogo szukasz
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-3">
+            <ul className="m-0 p-0 list-none flex flex-wrap gap-2.5">
               {kategorie.map((kategoria) => (
-                <Link
-                  key={kategoria.slug}
-                  href={`/uslugodawcy/${kategoria.slug}/wroclaw`}
-                  className="text-[15px] text-[#3E3344] hover:text-[#241C2B] hover:underline"
-                >
-                  {kategoria.nazwa}
-                </Link>
+                <li key={kategoria.slug}>
+                  <Link
+                    href={`/uslugodawcy/${kategoria.slug}/wroclaw`}
+                    className="block text-[15px] text-[#3E3344] bg-[#FBF7F4] border border-[#E2D5CA] hover:border-[#241C2B] hover:text-[#241C2B] transition-colors rounded-full px-4 py-2"
+                  >
+                    {kategoria.nazwa}
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
           {/* PRAWA KOLUMNA: KARTA "POTRZEBUJESZ KILKU NARAZ?" */}
           <div className="w-full lg:w-[320px] shrink-0 p-6 lg:p-7 flex items-center">

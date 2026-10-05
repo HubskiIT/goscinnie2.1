@@ -1,18 +1,24 @@
-"use client";
-
 import Link from "next/link";
 import { EtykietaPrzykladu } from "@/components/EtykietaPrzykladu";
+import { PasekFiltrow } from "@/components/PasekFiltrow";
 import { dzienTygodnia, zlote } from "@/content/format";
-import { pobierzImprezy, pobierzLokal } from "@/content/ogloszenia";
+import { type Impreza, pobierzLokal } from "@/content/ogloszenia";
+import { type KryteriaImprez, PARAMETRY_IMPREZ } from "@/lib/filtry";
 
 const MIESIAC = new Intl.DateTimeFormat("pl-PL", { month: "short" });
 
-import { useState } from "react";
+interface ImprezyScreenProps {
+  imprezy: readonly Impreza[];
+  kryteria: KryteriaImprez;
+}
 
-export function ImprezyScreen() {
-  const [selectedTag] = useState("Andrzejki");
-
-  const events = pobierzImprezy().map((impreza) => {
+export function ImprezyScreen({ imprezy, kryteria }: ImprezyScreenProps) {
+  const sąFiltry =
+    kryteria.okazja !== null ||
+    kryteria.miejscowosc !== null ||
+    kryteria.od !== null ||
+    kryteria.do !== null;
+  const events = imprezy.map((impreza) => {
     const data = new Date(impreza.data);
     const lokal = pobierzLokal(impreza.lokalSlug);
     return {
@@ -55,40 +61,53 @@ export function ImprezyScreen() {
         </div>
       </section>
 
-      {/* Filter Bar */}
+      {/* Filtry: stan w adresie, filtrowanie po stronie serwera */}
       <section className="shrink-0 px-6 sm:px-12 md:px-[130px] pt-[30px]">
-        <div className="border-[1.5px] border-[#D9CCC2] rounded-[16px] bg-white flex flex-col lg:flex-row items-stretch overflow-hidden shadow-sm">
-          <div className="grow flex flex-col justify-center gap-1 px-5 py-3 border-b lg:border-b-0 lg:border-r border-[#EFE5DD]">
-            <span className="text-[12px] text-[#6A5C70]">Okazja</span>
-            <span className="text-[15px] font-semibold text-[#241C2B]">{selectedTag}</span>
-          </div>
-          <div className="grow flex flex-col justify-center gap-1 px-5 py-3 border-b lg:border-b-0 lg:border-r border-[#EFE5DD]">
-            <span className="text-[12px] text-[#6A5C70]">Miasto</span>
-            <span className="text-[15px] font-semibold text-[#241C2B]">Wrocław</span>
-          </div>
-          <div className="grow flex flex-col justify-center gap-1 px-5 py-3 border-b lg:border-b-0 lg:border-r border-[#EFE5DD]">
-            <span className="text-[12px] text-[#6A5C70]">Data</span>
-            <span className="text-[15px] font-semibold text-[#241C2B]">28 lub 29 listopada</span>
-          </div>
-          <div className="w-full lg:w-[190px] flex flex-col justify-center gap-1 px-5 py-3 border-b lg:border-b-0 lg:border-r border-[#EFE5DD]">
-            <span className="text-[12px] text-[#6A5C70]">Cena do</span>
-            <span className="text-[15px] font-semibold text-[#241C2B]">200 zł / os.</span>
-          </div>
-          <div className="w-full lg:w-[210px] flex flex-col justify-center gap-1 px-5 py-3 border-b lg:border-b-0 lg:border-r border-[#EFE5DD]">
-            <span className="text-[12px] text-[#6A5C70]">Rodzaj wejścia</span>
-            <span className="text-[15px] font-semibold text-[#241C2B]">stolik dla dwóch</span>
-          </div>
-          <button
-            type="button"
-            className="m-2 rounded-[10px] px-8 py-3.5 bg-white border-[1.5px] border-[#241C2B] hover:bg-[#241C2B] hover:text-white transition-colors text-[16px] font-semibold text-[#241C2B] cursor-pointer shrink-0"
-          >
-            Szukaj
-          </button>
-        </div>
+        <PasekFiltrow
+          adres="/imprezy"
+          pola={[
+            {
+              nazwa: PARAMETRY_IMPREZ.okazja,
+              etykieta: "Okazja",
+              rodzaj: "okazja",
+              wartosc: kryteria.okazja ?? "",
+            },
+            {
+              nazwa: PARAMETRY_IMPREZ.miejscowosc,
+              etykieta: "Miejscowość",
+              rodzaj: "tekst",
+              wartosc: kryteria.miejscowosc ?? "",
+              podpowiedz: "np. Wrocław",
+            },
+            {
+              nazwa: PARAMETRY_IMPREZ.od,
+              etykieta: "Od",
+              rodzaj: "data",
+              wartosc: kryteria.od ?? "",
+            },
+            {
+              nazwa: PARAMETRY_IMPREZ.do,
+              etykieta: "Do",
+              rodzaj: "data",
+              wartosc: kryteria.do ?? "",
+            },
+          ]}
+        />
       </section>
 
       {/* Events Grid */}
       <section className="grow px-6 sm:px-12 md:px-[130px] pt-7">
+        {events.length === 0 ? (
+          <p className="m-0 rounded-[18px] border border-dashed border-[#D9CCC2] bg-[#FBF7F4] p-8 text-center text-[15px] leading-[1.7] text-[#6A5C70]">
+            {sąFiltry
+              ? "Żadna impreza nie pasuje do tych filtrów."
+              : "Nie ma jeszcze żadnej zapowiedzianej imprezy."}{" "}
+            <Link href="/imprezy" className="font-semibold text-[#8A5405] underline">
+              {sąFiltry ? "Wyczyść filtry" : "Odśwież listę"}
+            </Link>
+          </p>
+        ) : null}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {events.map((e) => (
             <article

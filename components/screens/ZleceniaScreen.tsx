@@ -3,15 +3,20 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { KomunikatFormularza } from "@/components/KomunikatFormularza";
-import { StanPusty } from "@/components/StanPusty";
+import { PasekFiltrow } from "@/components/PasekFiltrow";
 import { dataDluga, zlote } from "@/content/format";
-import { pobierzZlecenia } from "@/content/ogloszenia";
+import type { Zlecenie } from "@/content/ogloszenia";
 import { wyslijOferte } from "@/lib/akcje/formularze";
+import { type KryteriaZlecen, PARAMETRY_ZLECEN } from "@/lib/filtry";
 import { STAN_POCZATKOWY } from "@/lib/formularze";
 
-const ZLECENIE = pobierzZlecenia()[0];
+interface ZleceniaScreenProps {
+  zlecenia: readonly Zlecenie[];
+  kryteria: KryteriaZlecen;
+}
 
-export function ZleceniaScreen() {
+export function ZleceniaScreen({ zlecenia, kryteria }: ZleceniaScreenProps) {
+  const ZLECENIE = zlecenia[0];
   const [stanOferty, akcjaOferty] = useActionState(wyslijOferte, STAN_POCZATKOWY);
   const [isSubscriber, setIsSubscriber] = useState(true);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
@@ -20,15 +25,11 @@ export function ZleceniaScreen() {
     "Menu komunijne 180 zł/osobę, sala balowa na wyłączność, ogród z placem zabaw, własny tort bez opłaty.",
   );
 
-  if (ZLECENIE === undefined) {
-    return (
-      <StanPusty
-        tytul="Giełda zleceń"
-        opis="Nie ma jeszcze żadnego zlecenia. Dodaj swoje, a firmy zgłoszą się same."
-        akcja={{ etykieta: "Dodaj zlecenie", adres: "/dodaj-zlecenie" }}
-      />
-    );
-  }
+  const sąFiltry =
+    kryteria.okazja !== null ||
+    kryteria.powiat !== null ||
+    kryteria.od !== null ||
+    kryteria.do !== null;
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
@@ -77,196 +78,156 @@ export function ZleceniaScreen() {
             </p>
           </div>
           <div className="shrink-0 text-left md:text-right">
-            <div className="font-fraunces text-[34px] font-medium">46 otwartych</div>
-            <div className="text-[14px] text-[#6A5C70]">w Twoich kategoriach</div>
+            <div className="font-fraunces text-[34px] font-medium">
+              {zlecenia.length} {zlecenia.length === 1 ? "otwarte" : "otwartych"}
+            </div>
+            <div className="text-[14px] text-[#6A5C70]">
+              {kryteria.okazja === null && kryteria.powiat === null
+                ? "na giełdzie"
+                : "pasujących do filtrów"}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Filter bar */}
+      {/* Filtry: stan w adresie, filtrowanie po stronie serwera */}
       <section className="shrink-0 px-6 sm:px-12 md:px-[130px] pt-7">
-        <div className="border-[1.5px] border-[#D9CCC2] rounded-[16px] bg-white flex flex-col lg:flex-row items-stretch overflow-hidden shadow-2xs">
-          <div className="grow flex flex-col justify-center gap-1 px-5 py-3 border-b lg:border-b-0 lg:border-r border-[#EFE5DD]">
-            <span className="text-[12px] text-[#6A5C70]">Kategoria</span>
-            <span className="flex items-center justify-between text-[15px] font-semibold text-[#241C2B]">
-              Sale weselne i okolicznościowe
-              <svg
-                aria-hidden="true"
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#6A5C70"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              >
-                <polyline points="5 9 12 16 19 9" />
-              </svg>
-            </span>
-          </div>
-
-          <div className="grow flex flex-col justify-center gap-1 px-5 py-3 border-b lg:border-b-0 lg:border-r border-[#EFE5DD]">
-            <span className="text-[12px] text-[#6A5C70]">Województwo / powiat</span>
-            <span className="flex items-center justify-between text-[15px] font-semibold text-[#241C2B]">
-              dolnośląskie (powiat wrocławski)
-              <svg
-                aria-hidden="true"
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#6A5C70"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              >
-                <polyline points="5 9 12 16 19 9" />
-              </svg>
-            </span>
-          </div>
-
-          <div className="grow flex flex-col justify-center gap-1 px-5 py-3 border-b lg:border-b-0 lg:border-r border-[#EFE5DD]">
-            <span className="text-[12px] text-[#6A5C70]">Okazja</span>
-            <span className="flex items-center justify-between text-[15px] font-semibold text-[#241C2B]">
-              Wszystkie uroczystości
-              <svg
-                aria-hidden="true"
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#6A5C70"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              >
-                <polyline points="5 9 12 16 19 9" />
-              </svg>
-            </span>
-          </div>
-
-          <div className="grow flex flex-col justify-center gap-1 px-5 py-3 border-b lg:border-b-0 lg:border-r border-[#EFE5DD]">
-            <span className="text-[12px] text-[#6A5C70]">Termin</span>
-            <span className="flex items-center justify-between text-[15px] font-semibold text-[#241C2B]">
-              Czerwiec – Wrzesień 2027
-              <svg
-                aria-hidden="true"
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#6A5C70"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              >
-                <polyline points="5 9 12 16 19 9" />
-              </svg>
-            </span>
-          </div>
-
-          <button
-            type="button"
-            className="p-4 px-6 bg-[#241C2B] text-[#FBF7F4] font-semibold text-[15px] cursor-pointer hover:bg-[#3E3344] transition-colors border-0"
-          >
-            Filtruj
-          </button>
-        </div>
+        <PasekFiltrow
+          adres="/zlecenia"
+          pola={[
+            {
+              nazwa: PARAMETRY_ZLECEN.okazja,
+              etykieta: "Okazja",
+              rodzaj: "okazja",
+              wartosc: kryteria.okazja ?? "",
+            },
+            {
+              nazwa: PARAMETRY_ZLECEN.powiat,
+              etykieta: "Powiat",
+              rodzaj: "tekst",
+              wartosc: kryteria.powiat ?? "",
+              podpowiedz: "np. wrocławski",
+            },
+            {
+              nazwa: PARAMETRY_ZLECEN.od,
+              etykieta: "Termin od",
+              rodzaj: "data",
+              wartosc: kryteria.od ?? "",
+            },
+            {
+              nazwa: PARAMETRY_ZLECEN.do,
+              etykieta: "Termin do",
+              rodzaj: "data",
+              wartosc: kryteria.do ?? "",
+            },
+          ]}
+        />
       </section>
 
       {/* Listing and Aside */}
       <section className="grow px-6 sm:px-12 md:px-[130px] pt-7 flex flex-col lg:flex-row gap-[34px] items-start pb-16">
         <div className="grow w-full flex flex-col gap-[18px]">
-          {/* Order 1: Primary Target */}
-          <article className="border border-[#E2D5CA] rounded-[18px] bg-white p-6 sm:p-7 shadow-xs">
-            <div className="flex items-start justify-between gap-5 mb-5">
-              <h3 className="m-0 font-fraunces font-medium text-[23px]">
-                {ZLECENIE.okazja}, {ZLECENIE.liczbaGosci} osób, powiat {ZLECENIE.powiat}
-              </h3>
-              <span className="shrink-0 text-[13px] text-[#3F5142] bg-[#E7EDE7] rounded-[8px] px-3 py-1.5 font-semibold">
-                zamyka się za 4 dni
-              </span>
-            </div>
+          {ZLECENIE === undefined ? (
+            <p className="m-0 rounded-[18px] border border-dashed border-[#D9CCC2] bg-[#FBF7F4] p-8 text-center text-[15px] leading-[1.7] text-[#6A5C70]">
+              {sąFiltry
+                ? "Żadne zlecenie nie pasuje do tych filtrów."
+                : "Nie ma jeszcze żadnego zlecenia na giełdzie."}{" "}
+              <Link href="/zlecenia" className="font-semibold text-[#8A5405] underline">
+                {sąFiltry ? "Wyczyść filtry" : "Odśwież listę"}
+              </Link>
+            </p>
+          ) : (
+            <article className="border border-[#E2D5CA] rounded-[18px] bg-white p-6 sm:p-7 shadow-xs">
+              <div className="flex items-start justify-between gap-5 mb-5">
+                <h3 className="m-0 font-fraunces font-medium text-[23px]">
+                  {ZLECENIE.okazja}, {ZLECENIE.liczbaGosci} osób, powiat {ZLECENIE.powiat}
+                </h3>
+              </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 py-4 border-y border-[#EFE5DD] mb-5">
-              <div>
-                <div className="text-[12px] text-[#6A5C70] mb-1">Okazja</div>
-                <div className="text-[15px] font-semibold">{ZLECENIE.okazja}</div>
-              </div>
-              <div>
-                <div className="text-[12px] text-[#6A5C70] mb-1">Data wydarzenia</div>
-                <div className="text-[15px] font-semibold">{dataDluga(ZLECENIE.data)}</div>
-              </div>
-              <div>
-                <div className="text-[12px] text-[#6A5C70] mb-1">Liczba osób</div>
-                <div className="text-[15px] font-semibold">{ZLECENIE.liczbaGosci}</div>
-              </div>
-              <div>
-                <div className="text-[12px] text-[#6A5C70] mb-1">Lokalizacja</div>
-                <div className="text-[15px] font-semibold">powiat {ZLECENIE.powiat}</div>
-              </div>
-              <div>
-                <div className="text-[12px] text-[#6A5C70] mb-1">Budżet klienta</div>
-                {isSubscriber ? (
-                  <div className="text-[15px] font-bold text-[#3F5142]">
-                    {ZLECENIE.budzetGrosze === null ? "nie podano" : zlote(ZLECENIE.budzetGrosze)}
-                  </div>
-                ) : (
-                  <div className="text-[13px] text-[#8B7F91] font-semibold italic">
-                    w abonamencie (402)
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {isSubscriber ? (
-              <>
-                <p className="m-0 mb-5 text-[16px] leading-[1.7] text-[#3E3344] max-w-[78ch]">
-                  Szukamy sali na komunię córki. Osiemdziesięciu gości, w tym dwadzieścioro dzieci,
-                  więc przydałby się kąt do zabawy albo ogród. Zależy nam na sali na wyłączność i na
-                  własnym torcie bez opłaty. Początek około trzynastej, planujemy do dwudziestej.
-                </p>
-
-                <div className="flex flex-wrap items-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setOfferModalOpen(true)}
-                    className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-7 py-3.5 cursor-pointer shadow-xs"
-                  >
-                    Złóż ofertę
-                  </button>
-                  <span className="text-[13px] text-[#6A5C70]">
-                    Jedna oferta na zlecenie. Konkurencja nie widzi Twojej ceny.
-                  </span>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 py-4 border-y border-[#EFE5DD] mb-5">
+                <div>
+                  <div className="text-[12px] text-[#6A5C70] mb-1">Okazja</div>
+                  <div className="text-[15px] font-semibold">{ZLECENIE.okazja}</div>
                 </div>
-              </>
-            ) : (
-              <>
-                <div className="relative mb-5">
-                  <p className="m-0 text-[16px] leading-[1.7] text-[#3E3344] max-w-[78ch] select-none">
+                <div>
+                  <div className="text-[12px] text-[#6A5C70] mb-1">Data wydarzenia</div>
+                  <div className="text-[15px] font-semibold">{dataDluga(ZLECENIE.data)}</div>
+                </div>
+                <div>
+                  <div className="text-[12px] text-[#6A5C70] mb-1">Liczba osób</div>
+                  <div className="text-[15px] font-semibold">{ZLECENIE.liczbaGosci}</div>
+                </div>
+                <div>
+                  <div className="text-[12px] text-[#6A5C70] mb-1">Lokalizacja</div>
+                  <div className="text-[15px] font-semibold">powiat {ZLECENIE.powiat}</div>
+                </div>
+                <div>
+                  <div className="text-[12px] text-[#6A5C70] mb-1">Budżet klienta</div>
+                  {isSubscriber ? (
+                    <div className="text-[15px] font-bold text-[#3F5142]">
+                      {ZLECENIE.budzetGrosze === null ? "nie podano" : zlote(ZLECENIE.budzetGrosze)}
+                    </div>
+                  ) : (
+                    <div className="text-[13px] text-[#8B7F91] font-semibold italic">
+                      w abonamencie (402)
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {isSubscriber ? (
+                <>
+                  <p className="m-0 mb-5 text-[16px] leading-[1.7] text-[#3E3344] max-w-[78ch]">
                     Szukamy sali na komunię córki. Osiemdziesięciu gości, w tym dwadzieścioro
-                    dzieci, więc przydałby się kąt do...
+                    dzieci, więc przydałby się kąt do zabawy albo ogród. Zależy nam na sali na
+                    wyłączność i na własnym torcie bez opłaty. Początek około trzynastej, planujemy
+                    do dwudziestej.
                   </p>
-                  <div className="absolute inset-x-0 -bottom-1 h-10 bg-gradient-to-b from-transparent to-white" />
-                </div>
 
-                <div className="border border-[#E2D5CA] rounded-[14px] bg-[#F2E9E2] p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <div className="text-[15px] font-bold text-[#241C2B] mb-1">
-                      Widzisz 120 znaków z 380
-                    </div>
-                    <div className="text-[13px] text-[#55485A]">
-                      Pełny opis, budżet i prawo złożenia oferty są dostępne dla firm z aktywnym
-                      abonamentem.
-                    </div>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setOfferModalOpen(true)}
+                      className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-7 py-3.5 cursor-pointer shadow-xs"
+                    >
+                      Złóż ofertę
+                    </button>
+                    <span className="text-[13px] text-[#6A5C70]">
+                      Jedna oferta na zlecenie. Konkurencja nie widzi Twojej ceny.
+                    </span>
                   </div>
-                  <Link
-                    href="/cennik"
-                    className="shrink-0 text-[14px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[10px] px-5 py-2.5 border-0 cursor-pointer shadow-2xs"
-                  >
-                    Odblokuj w abonamencie (Cennik)
-                  </Link>
-                </div>
-              </>
-            )}
-          </article>
+                </>
+              ) : (
+                <>
+                  <div className="relative mb-5">
+                    <p className="m-0 text-[16px] leading-[1.7] text-[#3E3344] max-w-[78ch] select-none">
+                      Szukamy sali na komunię córki. Osiemdziesięciu gości, w tym dwadzieścioro
+                      dzieci, więc przydałby się kąt do...
+                    </p>
+                    <div className="absolute inset-x-0 -bottom-1 h-10 bg-gradient-to-b from-transparent to-white" />
+                  </div>
+
+                  <div className="border border-[#E2D5CA] rounded-[14px] bg-[#F2E9E2] p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <div className="text-[15px] font-bold text-[#241C2B] mb-1">
+                        Widzisz 120 znaków z 380
+                      </div>
+                      <div className="text-[13px] text-[#55485A]">
+                        Pełny opis, budżet i prawo złożenia oferty są dostępne dla firm z aktywnym
+                        abonamentem.
+                      </div>
+                    </div>
+                    <Link
+                      href="/cennik"
+                      className="shrink-0 text-[14px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[10px] px-5 py-2.5 border-0 cursor-pointer shadow-2xs"
+                    >
+                      Odblokuj w abonamencie (Cennik)
+                    </Link>
+                  </div>
+                </>
+              )}
+            </article>
+          )}
         </div>
 
         {/* Aside: Information for Vendors */}
@@ -326,7 +287,7 @@ export function ZleceniaScreen() {
             </button>
 
             <span className="text-[12px] font-bold tracking-wider uppercase text-[#5E7360] bg-[#E7EDE7] px-3 py-1 rounded-full mb-2 inline-block">
-              Zlecenie: {ZLECENIE.okazja}, {ZLECENIE.liczbaGosci} osób (powiat {ZLECENIE.powiat})
+              Zlecenie: {ZLECENIE?.okazja}, {ZLECENIE?.liczbaGosci} osób (powiat {ZLECENIE?.powiat})
             </span>
 
             <h2 className="font-fraunces text-[26px] font-medium mb-2">

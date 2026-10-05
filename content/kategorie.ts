@@ -33,6 +33,15 @@ export const KATEGORIE_USLUGODAWCOW: readonly Kategoria[] = [
   { slug: "tort", nazwa: "Tort i słodki stół", klasa: "C" },
   { slug: "zaproszenia", nazwa: "Zaproszenia i papeteria", klasa: "C" },
   { slug: "florysta", nazwa: "Florysta", klasa: "C" },
+  /**
+   * Kosz na to, co nie mieści się w czternastu kategoriach ze specyfikacji:
+   * oświetlenie, pirotechnika, opieka nad dziećmi, obsługa szatni.
+   *
+   * Klasa C do potwierdzenia przez właściciela. Najniższa klasa w koszu tworzy
+   * pokusę: firma z klasy A może wybrać "Inne", żeby zapłacić mniej. Dopóki
+   * nie ma moderacji kategorii, to realne ryzyko, nie teoretyczne.
+   */
+  { slug: "inne", nazwa: "Inne", klasa: "C" },
 ] as const;
 
 export function pobierzKategorie(): readonly Kategoria[] {
