@@ -25,7 +25,9 @@
     "db:rollback": "tsx scripts/migrate.ts down",
     "db:seed": "tsx lib/db/seed.ts",
     "db:reset": "docker compose -f setup/docker-compose.yml down -v && pnpm db:up && pnpm db:migrate && pnpm db:seed",
-    "import:firmy": "tsx scripts/import-firm.ts"
+    "import:firmy": "tsx scripts/import-firm.ts",
+    "vercel-build": "pnpm db:migrate && pnpm db:slowniki && next build",
+    "db:slowniki": "tsx scripts/slowniki.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "2.2.1",
