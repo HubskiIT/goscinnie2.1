@@ -109,7 +109,20 @@ function pseudolosowa(ziarno: number): () => number {
   };
 }
 
+/**
+ * Zasiew tworzy świat pokazowy: firmy, konta i zlecenia, których nikt nie
+ * zakładał. Na produkcji byłyby to dane udające prawdziwe, więc skrypt tam
+ * nie rusza. Słowniki, czyli to, czego serwis naprawdę potrzebuje, wypełnia
+ * osobny `scripts/slowniki.ts`.
+ */
+function odmowNaProdukcji(): void {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Zasiew pokazowy nie działa na produkcji. Słowniki wypełnia pnpm db:slowniki.");
+  }
+}
+
 async function zasiej(): Promise<void> {
+  odmowNaProdukcji();
   const losuj = pseudolosowa(20260923);
 
   const wierszeMiast = await db
