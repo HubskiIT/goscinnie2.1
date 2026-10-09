@@ -1,6 +1,6 @@
 /**
  * Test odmowy zasiewu na produkcji w osobnym pliku.
- * 
+ *
  * Moduł lib/db/seed.ts w tests/slowniki.test.ts jest już załadowany
  * w beforeAll, więc vi.stubEnv tam nie działa. Ten test ładuje moduł
  * dopiero po ustawieniu NODE_ENV, więc odmowNaProdukcji() czyta
