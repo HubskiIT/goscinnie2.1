@@ -77,24 +77,31 @@ function utworzAuth() {
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 12,
-      // Potwierdzenie maila wchodzi razem z wysyłką poczty, na razie wyłączone.
-      requireEmailVerification: false,
+      requireEmailVerification: true,
       password: {
         hash: (haslo) => hash(haslo, ARGON2),
         verify: ({ hash: skrot, password }) => verify(skrot, password, ARGON2),
       },
 
-      /**
-       * Wysyłka poczty nie jest jeszcze podłączona, więc link do resetu trafia
-       * do logu serwera. To wystarcza lokalnie i nie zmienia tego, co widzi
-       * pytający: odpowiedź resetu jest identyczna niezależnie od tego, czy
-       * konto istnieje, więc ta funkcja po prostu nie zostaje wywołana dla
-       * nieistniejącego maila i nikt się o tym nie dowie.
-       *
-       * DO ZROBIENIA: podłączyć nadawcę poczty, zanim to pojedzie na produkcję.
-       */
       sendResetPassword: async ({ user, url }) => {
-        console.info(`[reset hasła] ${user.email}: ${url}`);
+        const { pobierzNadawce } = await import("@/lib/poczta");
+        const { resetHasla } = await import("@/lib/poczta/szablony");
+        const nadawca = await pobierzNadawce();
+        await nadawca.wyslij(resetHasla(user.email, url));
+      },
+
+      sendVerificationEmail: async ({
+        user,
+        token,
+      }: {
+        user: { email: string };
+        url: string;
+        token: string;
+      }) => {
+        const { pobierzNadawce } = await import("@/lib/poczta");
+        const { weryfikacjaEmail } = await import("@/lib/poczta/szablony");
+        const nadawca = await pobierzNadawce();
+        await nadawca.wyslij(weryfikacjaEmail(user.email, token));
       },
     },
 
