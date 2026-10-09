@@ -74,7 +74,7 @@ export async function wypelnijMiasta(db: Baza): Promise<void> {
     .select({ ile: sql<number>`count(*)::int` })
     .from(schema.cities)
     .where(sql`${schema.cities.simc} is not null`);
-  
+
   if ((policzone?.ile ?? 0) >= wiersze.length) return;
 
   // Uzupełnij istniejące wiersze bez simc

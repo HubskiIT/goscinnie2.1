@@ -26,7 +26,6 @@ export const cities = pgTable(
     ...znacznikiCzasu,
   },
   (t) => [
-    index("cities_simc_unique_idx").unique().on(t.simc),
     index("cities_point_idx").using("gist", t.point),
     // Podpowiedzi w wyszukiwarce: literówka w „Żyrardów" ma nadal trafiać.
     index("cities_name_trgm_idx").using("gin", sql`${t.name} gin_trgm_ops`),

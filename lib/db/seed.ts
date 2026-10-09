@@ -5,10 +5,11 @@
  * apostrof w nazwie, komplet polskich znaków, puste pola opcjonalne, wartości
  * graniczne budżetu i pojemności, firma z wygasłym abonamentem.
  */
-import { hash } from "@node-rs/argon2";
+
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
+import { hash } from "@node-rs/argon2";
 import { db, schema } from "./index";
 
 /**
@@ -147,11 +148,11 @@ function odmowNaProdukcji(): void {
   }
 }
 
-async function zasiej(): Promise<void> {
+export async function zasiej(): Promise<void> {
   odmowNaProdukcji();
   const losuj = pseudolosowa(20260923);
 
-  const daneMiast = pobierzDaneMiast(MIASTA.map(m => m.slug));
+  const daneMiast = pobierzDaneMiast(MIASTA.map((m) => m.slug));
 
   const wierszeMiast = await db
     .insert(schema.cities)

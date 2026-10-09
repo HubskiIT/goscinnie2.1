@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { sql } from "drizzle-orm";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { KATEGORIE_USLUGODAWCOW } from "@/content/kategorie";
 import { OKAZJE } from "@/content/okazje";
 import { db, schema } from "@/lib/db";
@@ -84,23 +84,23 @@ describe("słowniki", () => {
   it("wstawia wszystkie miejscowości z pliku", async () => {
     const sciezka = join(process.cwd(), "content", "miejscowosci.json.gz");
     const wiersze = JSON.parse(gunzipSync(readFileSync(sciezka)).toString()) as WierszMiasta[];
-    
+
     expect(await liczbaMiast()).toBe(wiersze.length);
   });
 
   it("miejscowości bez współrzędnych mają point równy null", async () => {
     const sciezka = join(process.cwd(), "content", "miejscowosci.json.gz");
     const wiersze = JSON.parse(gunzipSync(readFileSync(sciezka)).toString()) as WierszMiasta[];
-    const bezWspolrzednych = wiersze.filter(w => w[7] === null).map(w => w[0]); // SIMC
-    
+    const bezWspolrzednych = wiersze.filter((w) => w[7] === null).map((w) => w[0]); // SIMC
+
     expect(bezWspolrzednych.length).toBeGreaterThan(0);
-    
+
     const wBazie = await db
       .select({ simc: schema.cities.simc })
       .from(schema.cities)
       .where(sql`${schema.cities.point} is null`);
-    
-    expect(wBazie.map(w => w.simc).sort()).toEqual(bezWspolrzednych.sort());
+
+    expect(wBazie.map((w) => w.simc).sort()).toEqual(bezWspolrzednych.sort());
   });
 
   it("drugie uruchomienie nie tworzy duplikatów", async () => {
@@ -122,14 +122,10 @@ describe("słowniki", () => {
 
 describe("zasiew pokazowy", () => {
   it("odmawia działania na produkcji", async () => {
+    vi.stubEnv("NODE_ENV", "production");
     const { zasiej } = await import("@/lib/db/seed");
-    const przed = process.env.NODE_ENV;
-    try {
-      process.env.NODE_ENV = "production";
-      await expect(zasiej()).rejects.toThrow(/nie działa na produkcji/);
-    } finally {
-      process.env.NODE_ENV = przed;
-    }
+    await expect(zasiej()).rejects.toThrow(/nie działa na produkcji/);
+    vi.unstubAllEnvs();
   });
 });
 

@@ -30,8 +30,8 @@ describe("MIASTA w seed.ts", () => {
   it("każdy slug z MIASTA istnieje w content/miejscowosci.json.gz", () => {
     const sciezka = join(process.cwd(), "content", "miejscowosci.json.gz");
     const wszystkie = JSON.parse(gunzipSync(readFileSync(sciezka)).toString()) as WierszMiasta[];
-    const slugi = new Set(wszystkie.map(w => w[1]));
-    
+    const slugi = new Set(wszystkie.map((w) => w[1]));
+
     for (const miasto of MIASTA) {
       expect(slugi.has(miasto.slug), `brak ${miasto.slug} w pliku`).toBe(true);
     }
