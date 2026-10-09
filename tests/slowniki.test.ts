@@ -122,10 +122,14 @@ describe("słowniki", () => {
 
 describe("zasiew pokazowy", () => {
   it("odmawia działania na produkcji", async () => {
-    vi.stubEnv("NODE_ENV", "production");
-    const { zasiej } = await import("@/lib/db/seed");
-    await expect(zasiej()).rejects.toThrow(/nie działa na produkcji/);
-    vi.unstubAllEnvs();
+    const oryginalnyEnv = process.env.NODE_ENV;
+    try {
+      process.env.NODE_ENV = "production";
+      const { zasiej } = await import("@/lib/db/seed");
+      await expect(zasiej()).rejects.toThrow(/nie działa na produkcji/);
+    } finally {
+      process.env.NODE_ENV = oryginalnyEnv;
+    }
   });
 });
 
