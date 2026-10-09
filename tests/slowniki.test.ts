@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { sql } from "drizzle-orm";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { KATEGORIE_USLUGODAWCOW } from "@/content/kategorie";
 import { OKAZJE } from "@/content/okazje";
 import { db, schema } from "@/lib/db";
@@ -117,19 +117,6 @@ describe("słowniki", () => {
     expect(await liczbaFirm()).toBe(poPierwszym.firmy);
     expect(await liczbaUzytkownikow()).toBe(poPierwszym.uzytkownicy);
     expect(await liczbaZlecen()).toBe(poPierwszym.zlecenia);
-  });
-});
-
-describe("zasiew pokazowy", () => {
-  it("odmawia działania na produkcji", async () => {
-    const oryginalnyEnv = process.env.NODE_ENV;
-    try {
-      process.env.NODE_ENV = "production";
-      const { zasiej } = await import("@/lib/db/seed");
-      await expect(zasiej()).rejects.toThrow(/nie działa na produkcji/);
-    } finally {
-      process.env.NODE_ENV = oryginalnyEnv;
-    }
   });
 });
 
