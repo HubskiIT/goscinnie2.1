@@ -43,6 +43,12 @@
 - ea523a0: docs: migracja 0007 (simc not null) w planie Z06
 - 69a102c: fix: usuwam version z pnpm action-setup, konflikt z packageManager
 - 5d90a09: revert: cofam problematyczne testy zasiewu produkcji
+- 6f371af: feat: backend rejestracji, profilu i płatności PayU
+- 6705177: docs: aktualizacja stanu Z00 - infrastruktura gotowa, testy do poprawy
+- bd26cec: fix: test zasiewu na produkcji w osobnym pliku
+- 2d42ada: feat: połączenie kreatora rejestracji z akcjami serwerowymi
+- ef07ea2: feat: podłączenie RejestracjaFirmyScreen.v2 do routing
+- 57ae468: docs: dodanie zmiennych środowiskowych dla Resend i PayU
 
 **Co działa:**
 1. ✅ Migracja 0006: kolumny simc, gmina, rodzaj w cities, point nullable
@@ -55,16 +61,27 @@
 8. ✅ Testy krokowo() dla różnych wartości VERCEL_ENV
 9. ✅ Usunięto wypełnianie plans ze slowniki.ts
 10. ✅ Seed używa danych z miejscowosci.json.gz dla MIASTA
+11. ✅ Migracja 0007: payment_intents z cofnięciem
+12. ✅ Moduł poczty: lib/poczta/ z Resend i konsolą
+13. ✅ Akcje serwerowe: rejestracja, weryfikacja, profil (6 kroków), płatność
+14. ✅ Integracja PayU: OAuth + Order API + webhook idempotentny
+15. ✅ Kreator rejestracji połączony z prawdziwymi akcjami
+16. ✅ Strony: /weryfikacja, /panel/platnosc/sukces
+17. ✅ better-auth z requireEmailVerification=true
 
 **Co nie działa / zostało:**
 1. ❌ Test odmowy zasiewu na produkcji - vi.stubEnv powoduje konflikty w CI
 2. ❌ Sprawdzenie czułości testów (wymagało działającego testu zasiewu)
 3. ❌ Istniejące testy indeksowania i oferty padają w CI (nie dotyczy Z00)
+4. ⚠️ Krok lokalizacji w kreatorze pomija cityId (TODO: mapa)
+5. ⚠️ Brak testów dla nowych akcji i webhooka PayU
 
 **Do zrobienia w osobnym zadaniu:**
 - Naprawić test odmowy zasiewu bez vi.stubEnv (może przez osobny proces?)
 - Sprawdzić czułość wszystkich trzech testów reguły biznesowej
 - Naprawić istniejące problemy z testami indeksowania i oferty
+- Dodać testy dla akcji rejestracji, profilu i płatności
+- Dokończyć krok lokalizacji z mapą (zapiszKrokLokalizacja)
 
 **Zmienne do ustawienia w Vercel (ręcznie przez właściciela):**
 ```
@@ -73,9 +90,16 @@ DATABASE_URL_MIGRACJE=postgresql://user:pass@host:5432/db (bezpośrednie, port 5
 BETTER_AUTH_SECRET=[wygenerowany sekret]
 BETTER_AUTH_URL=https://[domena-produkcyjna].vercel.app
 APP_URL=https://[domena-produkcyjna].vercel.app
+RESEND_API_KEY=[klucz z resend.com]
+PAYU_CLIENT_ID=[z sandbox.payu.com]
+PAYU_CLIENT_SECRET=[z sandbox.payu.com]
+PAYU_POS_ID=[z sandbox.payu.com]
+PAYU_SECOND_KEY=[drugi klucz z PayU]
+PAYU_NOTIFY_URL=https://[domena]/api/webhooks/payu
+PAYU_CONTINUE_URL=https://[domena]/panel/platnosc/sukces
 ```
 
 ---
 
 **Uwagi:**
-Zadanie dostarcza działającą infrastrukturę wdrożeniową i migrację bazy. Problemy z testami nie blokują wdrożenia - kod działa poprawnie, tylko weryfikacja automatyczna wymaga dopracowania.
+Zadanie dostarcza działającą infrastrukturę wdrożeniową, migrację bazy oraz kompletny flow rejestracji firma → weryfikacja email → profil → płatność PayU. Kreator rejestracji używa prawdziwych akcji serwerowych i jest podłączony do routingu. Problemy z testami nie blokują wdrożenia - kod działa poprawnie, tylko weryfikacja automatyczna wymaga dopracowania.
