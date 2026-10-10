@@ -192,6 +192,12 @@ export async function zasiej(): Promise<void> {
       Array.from({ length: 20 }, (_, i) => ({
         email: `uzytkownik${i + 1}@przyklad.pl`,
         name: i === 19 ? "Łucja Żmuda-Ćwiek" : `Osoba ${i + 1}`,
+        // Konta z zasiewu są potwierdzone, bo udają konta istniejące od dawna.
+        // Logowanie wymaga potwierdzonego adresu (emailAndPassword
+        // .requireEmailVerification), a zasiew nie ma jak odebrać poczty, więc
+        // bez tej kolumny żadne konto pokazowe nie wpuszczałoby ani człowieka
+        // przy pracy ręcznej, ani testu integracyjnego.
+        emailVerified: true,
         phone: i % 3 === 0 ? null : `+4860000${String(i).padStart(4, "0")}`,
         role:
           i === 19
