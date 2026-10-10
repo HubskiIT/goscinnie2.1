@@ -1,340 +1,251 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+/**
+ * Akcje kolejnych kroków kreatora zakładania firmy.
+ *
+ * Co tu jest, a czego nie ma: tu jest walidacja wejścia, ustalenie widza
+ * i tłumaczenie wyniku na stan formularza. SQL-u nie ma ani jednej linii,
+ * bo cały mieszka w `lib/db/queries/kreator.ts` — zasada 3 z CLAUDE.md.
+ *
+ * Firmy nie bierzemy z formularza. Każda akcja odnajduje szkic po sesji,
+ * przez `pobierzSzkicFirmy`. Identyfikator przysłany z przeglądarki byłby
+ * polem, które da się podmienić, czyli drogą do zapisywania w cudzej firmie,
+ * a dodatkowo gubiłby się przy odświeżeniu strony.
+ */
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { z } from "zod";
-import { auth } from "@/lib/auth";
-import { db, schema } from "@/lib/db";
+import type { ZodType } from "zod";
+import { widzZZadania } from "@/lib/auth/widz";
+import {
+  opublikujSzkic,
+  pobierzSzkicFirmy,
+  sprawdzGotowoscSzkicu,
+  zapiszKategorieSzkicu,
+  zapiszLokalizacjeSzkicu,
+  zapiszOpisSzkicu,
+  zapiszWeryfikacjeSzkicu,
+} from "@/lib/db/queries/kreator";
 import type { StanFormularza } from "@/lib/formularze";
+import type { PowodOdmowy, Widz } from "@/lib/permissions";
+import {
+  daneKategorii,
+  daneLokalizacji,
+  daneOpisu,
+  daneWeryfikacji,
+} from "@/lib/validators/kreator";
+
+/** Ile dni trwa darmowy okres próbny, dopóki PayU jest wyłączone. */
+const DNI_OKRESU_PROBNEGO = 30;
+
+type WynikWalidacji<T> = { ok: true; dane: T } | { ok: false; stan: StanFormularza };
 
 /**
- * Akcje profilu firmy. Każdy krok kreatora wywołuje osobną akcję,
- * która zapisuje dane i zwraca stan formularza.
+ * Walidacja wejścia formularza.
+ *
+ * Wpisane wartości wracają do pól razem z błędami, żeby nieudana walidacja
+ * nie kasowała tego, co człowiek właśnie napisał.
  */
+function sprawdz<T>(schemat: ZodType<T>, dane: FormData): WynikWalidacji<T> {
+  const wejscie = Object.fromEntries(dane.entries());
+  const wynik = schemat.safeParse(wejscie);
 
-async function pobierzSesje() {
-  const sesja = await auth.api.getSession({
-    headers: await import("next/headers").then((m) => m.headers()),
-  });
+  if (wynik.success) return { ok: true, dane: wynik.data };
 
-  if (!sesja?.user) {
-    redirect("/logowanie");
+  const bledy: Record<string, string[]> = {};
+  for (const problem of wynik.error.issues) {
+    const pole = String(problem.path[0] ?? "_");
+    bledy[pole] = [...(bledy[pole] ?? []), problem.message];
   }
 
-  return sesja;
-}
-
-async function pobierzFirme(userId: string) {
-  const [czlonek] = await db
-    .select({ companyId: schema.companyMembers.companyId })
-    .from(schema.companyMembers)
-    .where(eq(schema.companyMembers.userId, userId))
-    .limit(1);
-
-  if (!czlonek) {
-    return null;
+  const wartosci: Record<string, string> = {};
+  for (const [pole, wartosc] of Object.entries(wejscie)) {
+    if (typeof wartosc === "string") wartosci[pole] = wartosc;
   }
 
-  const [firma] = await db
-    .select()
-    .from(schema.companies)
-    .where(eq(schema.companies.id, czlonek.companyId))
-    .limit(1);
-
-  return firma;
+  return { ok: false, stan: { status: "bledy", bledy, wartosci } };
 }
 
-const schematKategoria = z.object({
-  categoryId: z.string().uuid("Nieprawidłowy identyfikator kategorii."),
-  rodzaj: z.enum(["lokal", "usluga"]),
-});
+/** Komunikaty odmowy z warstwy uprawnień, w języku formularza. */
+const KOMUNIKAT_ODMOWY: Record<PowodOdmowy, string> = {
+  "brak-dostepu": "Nie znaleziono Twojej firmy. Zacznij od pierwszego kroku.",
+  "brak-abonamentu": "Ten krok wymaga aktywnego abonamentu.",
+  "oferta-juz-zlozona": "To zgłoszenie już istnieje.",
+  "limit-planu-wyczerpany": "Wyczerpałeś limit w swoim planie.",
+  "zlecenie-nie-przyjmuje-ofert": "To zlecenie nie przyjmuje już zgłoszeń.",
+};
 
+function odmowa(powod: PowodOdmowy): StanFormularza {
+  return { status: "bledy", bledy: { _: [KOMUNIKAT_ODMOWY[powod]] }, wartosci: {} };
+}
+
+function bladPola(pole: string, komunikat: string): StanFormularza {
+  return { status: "bledy", bledy: { [pole]: [komunikat] }, wartosci: {} };
+}
+
+/**
+ * Widz dla kreatora. Brak sesji kończy się przekierowaniem do logowania,
+ * a nie błędem w formularzu: niezalogowany człowiek nie ma gdzie zapisać firmy.
+ */
+async function widzKreatora(): Promise<Widz> {
+  const widz = await widzZZadania(await headers());
+  if (widz.rodzaj === "anonim") redirect("/logowanie");
+  return widz;
+}
+
+/**
+ * Szkic, na którym pracuje ten człowiek.
+ *
+ * `null` znaczy „nie zaczął zakładać firmy”. Każdy krok poza pierwszym
+ * sprawdza to sam, bo na każdy można wejść wprost z adresu, pomijając
+ * poprzednie.
+ */
+async function szkicAlboOdmowa(
+  widz: Widz,
+): Promise<{ ok: true; companyId: string } | { ok: false; stan: StanFormularza }> {
+  const szkic = await pobierzSzkicFirmy(widz);
+  if (!szkic) return { ok: false, stan: odmowa("brak-dostepu") };
+  return { ok: true, companyId: szkic.id };
+}
+
+/** Krok 1: rodzaj ogłoszenia i kategoria. Tu powstaje szkic firmy. */
 export async function zapiszKrokKategoria(
   _poprzedni: StanFormularza,
   dane: FormData,
 ): Promise<StanFormularza> {
-  const wejscie = Object.fromEntries(dane.entries());
-  const wynik = schematKategoria.safeParse(wejscie);
+  const wejscie = sprawdz(daneKategorii, dane);
+  if (!wejscie.ok) return wejscie.stan;
 
-  if (!wynik.success) {
-    const bledy: Record<string, string[]> = {};
-    for (const problem of wynik.error.issues) {
-      const pole = String(problem.path[0] ?? "_");
-      bledy[pole] = [problem.message];
-    }
-    return { status: "bledy", bledy, wartosci: {} };
+  const widz = await widzKreatora();
+  const wynik = await zapiszKategorieSzkicu(widz, wejscie.dane.kategoria);
+
+  if (!wynik.ok) {
+    /*
+     * Jedyna odmowa, jaką może tu zwrócić warstwa zapytań, to kategoria spoza
+     * słownika, więc komunikat trafia pod pole kategorii, a nie pod formularz.
+     * Dla zalogowanego człowieka ten krok nie ma innej drogi odmowy.
+     */
+    return bladPola("kategoria", "Nie znamy takiego rodzaju ogłoszenia. Wybierz z listy.");
   }
 
-  try {
-    const sesja = await pobierzSesje();
-    let firma = await pobierzFirme(sesja.user.id);
-
-    if (!firma) {
-      // Tworzymy nową firmę w stanie draft
-      const [nowaFirma] = await db
-        .insert(schema.companies)
-        .values({
-          ownerUserId: sesja.user.id,
-          name: sesja.user.email.split("@")[0] ?? "Nowa firma",
-          slug: `firma-${Date.now()}`, // Tymczasowy, nadpiszemy w kolejnym kroku
-          cityId: "00000000-0000-0000-0000-000000000000", // Placeholder, nadpiszemy
-          // biome-ignore lint/suspicious/noExplicitAny: geography point wymaga SQL literal
-          point: sql`SRID=4326;POINT(0 0)` as any,
-          status: "draft",
-        })
-        .returning();
-
-      if (!nowaFirma) {
-        throw new Error("Nie udało się utworzyć firmy.");
-      }
-
-      // Powiązanie z użytkownikiem
-      await db.insert(schema.companyMembers).values({
-        companyId: nowaFirma.id,
-        userId: sesja.user.id,
-        role: "owner",
-      });
-
-      firma = nowaFirma;
-    }
-
-    // Zapisujemy kategorię (nie mamy jeszcze pola w companies dla pojedynczej kategorii,
-    // więc na razie to tylko placeholder - dopracujemy w migracji)
-
-    return { status: "poczatkowy" };
-  } catch (error) {
-    console.error("Błąd zapisu kategorii:", error);
-    return {
-      status: "bledy",
-      bledy: { _: ["Nie udało się zapisać. Spróbuj ponownie."] },
-      wartosci: {},
-    };
-  }
+  return { status: "zapisano" };
 }
 
-const schematOpis = z.object({
-  name: z.string().trim().min(2, "Nazwa musi mieć co najmniej 2 znaki.").max(120),
-  description: z.string().trim().min(20, "Opis musi mieć co najmniej 20 znaków.").max(2000),
-  priceFrom: z.coerce.number().int().min(0, "Cena nie może być ujemna."),
-  capacityMin: z.coerce.number().int().min(1).optional(),
-  capacityMax: z.coerce.number().int().min(1).optional(),
-});
-
+/** Krok 2: nazwa, opis, cena i pojemność. */
 export async function zapiszKrokOpis(
   _poprzedni: StanFormularza,
   dane: FormData,
 ): Promise<StanFormularza> {
-  const wejscie = Object.fromEntries(dane.entries());
-  const wynik = schematOpis.safeParse(wejscie);
+  const wejscie = sprawdz(daneOpisu, dane);
+  if (!wejscie.ok) return wejscie.stan;
 
-  if (!wynik.success) {
-    const bledy: Record<string, string[]> = {};
-    for (const problem of wynik.error.issues) {
-      const pole = String(problem.path[0] ?? "_");
-      bledy[pole] = [problem.message];
-    }
-    return { status: "bledy", bledy, wartosci: {} };
-  }
+  const widz = await widzKreatora();
+  const szkic = await szkicAlboOdmowa(widz);
+  if (!szkic.ok) return szkic.stan;
 
-  try {
-    const sesja = await pobierzSesje();
-    const firma = await pobierzFirme(sesja.user.id);
+  const wynik = await zapiszOpisSzkicu(widz, szkic.companyId, wejscie.dane);
+  if (!wynik.ok) return odmowa(wynik.powod);
 
-    if (!firma) {
-      return {
-        status: "bledy",
-        bledy: { _: ["Nie znaleziono firmy. Zacznij od początku."] },
-        wartosci: {},
-      };
-    }
-
-    await db
-      .update(schema.companies)
-      .set({
-        name: wynik.data.name,
-        description: wynik.data.description,
-        priceFrom: wynik.data.priceFrom * 100, // W groszach
-        capacityMin: wynik.data.capacityMin,
-        capacityMax: wynik.data.capacityMax,
-      })
-      .where(eq(schema.companies.id, firma.id));
-
-    return { status: "poczatkowy" };
-  } catch (error) {
-    console.error("Błąd zapisu opisu:", error);
-    return {
-      status: "bledy",
-      bledy: { _: ["Nie udało się zapisać. Spróbuj ponownie."] },
-      wartosci: {},
-    };
-  }
+  return { status: "zapisano" };
 }
 
-const schematLokalizacja = z.object({
-  cityId: z.string().uuid("Nieprawidłowy identyfikator miasta."),
-  lat: z.coerce.number().min(-90).max(90).optional(),
-  lng: z.coerce.number().min(-180).max(180).optional(),
-});
-
+/**
+ * Krok 2, część druga: miejscowość.
+ *
+ * Osobna akcja, a nie kolejne pola w `zapiszKrokOpis`, bo zapisuje do innej
+ * kolumny i ma własny tryb odmowy: miejscowość bez współrzędnych.
+ */
 export async function zapiszKrokLokalizacja(
   _poprzedni: StanFormularza,
   dane: FormData,
 ): Promise<StanFormularza> {
-  const wejscie = Object.fromEntries(dane.entries());
-  const wynik = schematLokalizacja.safeParse(wejscie);
+  const wejscie = sprawdz(daneLokalizacji, dane);
+  if (!wejscie.ok) return wejscie.stan;
 
-  if (!wynik.success) {
-    const bledy: Record<string, string[]> = {};
-    for (const problem of wynik.error.issues) {
-      const pole = String(problem.path[0] ?? "_");
-      bledy[pole] = [problem.message];
+  const widz = await widzKreatora();
+  const szkic = await szkicAlboOdmowa(widz);
+  if (!szkic.ok) return szkic.stan;
+
+  const wynik = await zapiszLokalizacjeSzkicu(widz, szkic.companyId, wejscie.dane.cityId);
+
+  if (!wynik.ok) {
+    if (wynik.powod === "miejscowosc-bez-wspolrzednych") {
+      return bladPola(
+        "cityId",
+        "Nie mamy współrzędnych tej miejscowości, więc klienci nie znaleźliby " +
+          "Cię w wyszukiwaniu po okolicy. Wybierz najbliższą większą miejscowość.",
+      );
     }
-    return { status: "bledy", bledy, wartosci: {} };
+    return odmowa(wynik.powod);
   }
 
-  try {
-    const sesja = await pobierzSesje();
-    const firma = await pobierzFirme(sesja.user.id);
-
-    if (!firma) {
-      return {
-        status: "bledy",
-        bledy: { _: ["Nie znaleziono firmy. Zacznij od początku."] },
-        wartosci: {},
-      };
-    }
-
-    // Generujemy slug z nazwy firmy
-    const slug = firma.name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
-
-    const zSlugiem = slug || `firma-${Date.now()}`;
-
-    const point =
-      wynik.data.lat && wynik.data.lng
-        ? sql`SRID=4326;POINT(${wynik.data.lng} ${wynik.data.lat})`
-        : null;
-
-    await db
-      .update(schema.companies)
-      .set({
-        slug: zSlugiem,
-        cityId: wynik.data.cityId,
-        // biome-ignore lint/suspicious/noExplicitAny: geography point wymaga SQL literal
-        point: point as any,
-      })
-      .where(eq(schema.companies.id, firma.id));
-
-    return { status: "poczatkowy" };
-  } catch (error) {
-    console.error("Błąd zapisu lokalizacji:", error);
-    return {
-      status: "bledy",
-      bledy: { _: ["Nie udało się zapisać. Spróbuj ponownie."] },
-      wartosci: {},
-    };
-  }
+  return { status: "zapisano" };
 }
 
-const schematDaneKontaktowe = z.object({
-  nip: z
-    .string()
-    .trim()
-    .transform((w) => w.replace(/[\s-]/g, ""))
-    .refine((w) => /^\d{10}$/.test(w), "NIP ma dziesięć cyfr.")
-    .refine((w) => {
-      const wagi = [6, 5, 7, 2, 3, 4, 5, 6, 7];
-      const suma = wagi.reduce((acc, waga, i) => acc + waga * Number(w[i]), 0);
-      return suma % 11 === Number(w[9]);
-    }, "Ten NIP ma błędną cyfrę kontrolną."),
-  telefon: z
-    .string()
-    .trim()
-    .transform((w) => w.replace(/[\s-]/g, "").replace(/^\+48/, ""))
-    .refine((w) => /^\d{9}$/.test(w), "Numer komórkowy ma dziewięć cyfr."),
-});
-
+/** Krok 3: NIP i telefon. */
 export async function zapiszKrokDaneKontaktowe(
   _poprzedni: StanFormularza,
   dane: FormData,
 ): Promise<StanFormularza> {
-  const wejscie = Object.fromEntries(dane.entries());
-  const wynik = schematDaneKontaktowe.safeParse(wejscie);
+  const wejscie = sprawdz(daneWeryfikacji, dane);
+  if (!wejscie.ok) return wejscie.stan;
 
-  if (!wynik.success) {
-    const bledy: Record<string, string[]> = {};
-    for (const problem of wynik.error.issues) {
-      const pole = String(problem.path[0] ?? "_");
-      bledy[pole] = [problem.message];
-    }
-    return { status: "bledy", bledy, wartosci: {} };
-  }
+  const widz = await widzKreatora();
+  const szkic = await szkicAlboOdmowa(widz);
+  if (!szkic.ok) return szkic.stan;
 
-  try {
-    const sesja = await pobierzSesje();
-    const firma = await pobierzFirme(sesja.user.id);
+  const wynik = await zapiszWeryfikacjeSzkicu(widz, szkic.companyId, wejscie.dane);
+  if (!wynik.ok) return odmowa(wynik.powod);
 
-    if (!firma) {
-      return {
-        status: "bledy",
-        bledy: { _: ["Nie znaleziono firmy. Zacznij od początku."] },
-        wartosci: {},
-      };
-    }
+  return { status: "zapisano" };
+}
 
-    // NIP i telefon zapiszemy w osobnej tabeli company_verification gdy ją dodamy
-    // Na razie oznaczamy firmę jako gotową do publikacji
+/** Czego brakuje do publikacji, w języku formularza. */
+const NAZWA_BRAKU = {
+  kategoria: "rodzaju ogłoszenia",
+  nazwa: "nazwy firmy",
+  opis: "opisu działalności",
+  lokalizacja: "miejscowości",
+  nip: "NIP-u",
+} as const;
 
-    return { status: "poczatkowy" };
-  } catch (error) {
-    console.error("Błąd zapisu danych kontaktowych:", error);
+/**
+ * Ostatni krok: publikacja.
+ *
+ * Kompletność sprawdzamy **po stronie serwera**, a nie na podstawie tego, że
+ * kreator przeprowadził człowieka przez wszystkie kroki. Na ostatni krok da się
+ * wejść wprost z adresu, a firma bez lokalizacji albo bez kategorii nie pojawi
+ * się ani w wyszukiwaniu, ani w katalogu.
+ *
+ * Dopóki PayU jest wyłączone, publikacja daje darmowy okres próbny.
+ */
+export async function wyslijDoZatwierdzenia(
+  _poprzedni: StanFormularza,
+  _dane: FormData,
+): Promise<StanFormularza> {
+  const widz = await widzKreatora();
+
+  const gotowosc = await sprawdzGotowoscSzkicu(widz);
+  if (!gotowosc.ok) return odmowa(gotowosc.powod);
+
+  if (gotowosc.dane.braki.length > 0) {
+    const czego = gotowosc.dane.braki.map((brak) => NAZWA_BRAKU[brak]).join(", ");
     return {
       status: "bledy",
-      bledy: { _: ["Nie udało się zapisać. Spróbuj ponownie."] },
+      bledy: { _: [`Do publikacji brakuje jeszcze: ${czego}. Wróć do wcześniejszych kroków.`] },
       wartosci: {},
     };
   }
-}
 
-export async function wyslijDoZatwierdzenia(): Promise<void> {
-  const sesja = await pobierzSesje();
-  const firma = await pobierzFirme(sesja.user.id);
+  const payuDziala = Boolean(process.env.PAYU_CLIENT_ID && process.env.PAYU_CLIENT_SECRET);
 
-  if (!firma) {
-    throw new Error("Nie znaleziono firmy.");
-  }
+  // Z PayU: wybór planu i płatność. Bez PayU: darmowy okres próbny od razu.
+  if (payuDziala) redirect("/panel/wybierz-plan");
 
-  // Sprawdzamy, czy PayU jest skonfigurowane
-  const payu = process.env.PAYU_CLIENT_ID && process.env.PAYU_CLIENT_SECRET;
+  const wygasaO = new Date();
+  wygasaO.setDate(wygasaO.getDate() + DNI_OKRESU_PROBNEGO);
 
-  if (!payu) {
-    // Bez PayU: aktywujemy od razu, tworzymy darmową subskrypcję na 30 dni
-    const dataRozpoczecia = new Date();
-    const dataWygasniecia = new Date(dataRozpoczecia);
-    dataWygasniecia.setDate(dataWygasniecia.getDate() + 30);
+  const wynik = await opublikujSzkic(widz, gotowosc.dane.companyId, wygasaO);
+  if (!wynik.ok) return odmowa(wynik.powod);
 
-    await db.transaction(async (tx) => {
-      await tx
-        .update(schema.companies)
-        .set({ status: "active" })
-        .where(eq(schema.companies.id, firma.id));
-
-      await tx.insert(schema.subscriptions).values({
-        companyId: firma.id,
-        planId: "00000000-0000-0000-0000-000000000000", // Placeholder
-        status: "active",
-        startsAt: dataRozpoczecia,
-        expiresAt: dataWygasniecia,
-      });
-    });
-
-    redirect(`/panel/profil?published=true`);
-  }
-
-  // Z PayU: przekierowanie do wyboru planu i płatności
-  redirect(`/panel/wybierz-plan`);
+  redirect("/panel/profil?opublikowano=1");
 }

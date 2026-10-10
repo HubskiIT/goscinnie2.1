@@ -5,7 +5,9 @@ import { KOMUNIKAT_W_BUDOWIE, type StanFormularza } from "@/lib/formularze";
  * albo komunikat, że serwis jest w budowie.
  */
 export function KomunikatFormularza({ stan }: { stan: StanFormularza }) {
-  if (stan.status === "poczatkowy") return null;
+  // Udany zapis nie ma tu nic do powiedzenia: o tym, że się udało, mówi
+  // przejście do kolejnego kroku, a nie pasek nad formularzem.
+  if (stan.status === "poczatkowy" || stan.status === "zapisano") return null;
 
   if (stan.status === "wbudowie") {
     return (

@@ -86,6 +86,15 @@ const KATEGORIE = [
   { slug: "dj", name: "DJ i muzyka" },
   { slug: "dekoracje", name: "Dekoracje" },
   { slug: "tort", name: "Torty i słodki stół" },
+  /*
+   * Rodzaj lokalu ze content/rodzaje-lokali.ts, a nie kategoria usługodawcy.
+   *
+   * Kreator pozwala wybrać jedno z dwóch, a `plans.category_id` nie rozróżnia
+   * lokalu od usługi, więc rodzaj lokalu musi mieć w zasiewie własną kategorię
+   * i własny plan. Bez tego ścieżka „zakładam salę weselną” nie dawała się
+   * przejść do końca, bo publikacja nie znajdowała cennika dla kategorii.
+   */
+  { slug: "sala-weselna", name: "Sala weselna" },
 ];
 
 // Decyzja 001: rodzaj okazji to pierwszorzędny wymiar, nie dopisek.

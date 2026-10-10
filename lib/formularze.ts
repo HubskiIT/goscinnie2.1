@@ -8,7 +8,16 @@
 export type StanFormularza =
   | { status: "poczatkowy" }
   | { status: "bledy"; bledy: Record<string, string[]>; wartosci: Record<string, string> }
-  | { status: "wbudowie" };
+  | { status: "wbudowie" }
+  /**
+   * Zapis się udał.
+   *
+   * Osobny stan, a nie powrót do „poczatkowy”: kreator przechodzi do kolejnego
+   * kroku dopiero po udanym zapisie, a „poczatkowy” znaczy „nic się jeszcze nie
+   * stało”. Gdy jedno i drugie wyglądało tak samo, nie dało się odróżnić zapisu
+   * od jego braku i każdy kreator musiał zakładać, że cisza znaczy sukces.
+   */
+  | { status: "zapisano" };
 
 export const STAN_POCZATKOWY: StanFormularza = { status: "poczatkowy" };
 

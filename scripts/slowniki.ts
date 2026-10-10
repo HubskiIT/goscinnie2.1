@@ -20,6 +20,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { KATEGORIE_USLUGODAWCOW } from "@/content/kategorie";
 import { OKAZJE } from "@/content/okazje";
+import { RODZAJE_LOKALI } from "@/content/rodzaje-lokali";
 import * as schema from "@/lib/db/schema";
 
 type Baza = ReturnType<typeof drizzle<typeof schema>>;
@@ -42,10 +43,27 @@ type WierszMiasta = [
   point: [number, number] | null,
 ];
 
+/**
+ * Kategorie: usługodawcy **i** rodzaje lokali.
+ *
+ * Jedna tabela na oba, bo `plans.category_id` i `company_categories.category_id`
+ * nie rozróżniają lokalu od usługi, a cena planu zależy od kategorii w obu
+ * przypadkach. Kreator pozwala wybrać jedno z dwóch, więc oba muszą tu być:
+ * bez rodzajów lokali właściciel sali weselnej wybierał kategorię, której
+ * w bazie nie było, i jego firma zostawała bez kategorii, czyli poza katalogiem.
+ *
+ * Slugi obu list są rozłączne i mają takie zostać. Pilnuje tego
+ * tests/slowniki.test.ts.
+ */
 export async function wypelnijKategorie(db: Baza): Promise<void> {
+  const wszystkie = [
+    ...KATEGORIE_USLUGODAWCOW.map((k) => ({ slug: k.slug, name: k.nazwa })),
+    ...RODZAJE_LOKALI.map((r) => ({ slug: r.slug, name: r.nazwa })),
+  ];
+
   await db
     .insert(schema.categories)
-    .values(KATEGORIE_USLUGODAWCOW.map((k) => ({ slug: k.slug, name: k.nazwa })))
+    .values(wszystkie)
     .onConflictDoNothing({ target: schema.categories.slug });
 }
 

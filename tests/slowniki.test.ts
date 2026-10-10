@@ -14,6 +14,7 @@ import { sql } from "drizzle-orm";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { KATEGORIE_USLUGODAWCOW } from "@/content/kategorie";
 import { OKAZJE } from "@/content/okazje";
+import { RODZAJE_LOKALI } from "@/content/rodzaje-lokali";
 import { db, schema } from "@/lib/db";
 import { wypelnijSlowniki } from "@/scripts/slowniki";
 import { krokowo } from "@/scripts/vercel-build";
@@ -74,11 +75,36 @@ describe("słowniki", () => {
       expect(wBazie.has(kategoria.slug), `brak kategorii ${kategoria.slug}`).toBe(true);
     }
 
+    /*
+     * Rodzaje lokali idą do tej samej tabeli co kategorie usługodawców.
+     *
+     * Kreator pozwala wybrać jedno z dwóch, a zapis przypisuje firmę do
+     * `categories` po slugu. Dopóki rodzajów lokali w tabeli nie było,
+     * właściciel sali weselnej wybierał kategorię, której nie ma, i jego firma
+     * zostawała bez kategorii, czyli poza katalogiem.
+     */
+    for (const rodzaj of RODZAJE_LOKALI) {
+      expect(wBazie.has(rodzaj.slug), `brak rodzaju lokalu ${rodzaj.slug}`).toBe(true);
+    }
+
     const okazje = await db.select({ slug: schema.eventTypes.slug }).from(schema.eventTypes);
     const okazjeWBazie = new Set(okazje.map((o) => o.slug));
     for (const okazja of OKAZJE) {
       expect(okazjeWBazie.has(okazja.slug), `brak okazji ${okazja.slug}`).toBe(true);
     }
+  });
+
+  it("slugi rodzajów lokali i kategorii usługodawców są rozłączne", () => {
+    /*
+     * Obie listy trafiają do jednej tabeli z unikalnym slugiem, więc wspólny
+     * slug znaczyłby, że jedna pozycja cicho przykrywa drugą: wstawia się
+     * pierwsza, a `onConflictDoNothing` pomija drugą razem z jej nazwą.
+     * Wykryłby to dopiero ktoś, kto zauważy złą nazwę kategorii w katalogu.
+     */
+    const lokale = new Set(RODZAJE_LOKALI.map((r) => r.slug));
+    const wspolne = KATEGORIE_USLUGODAWCOW.filter((k) => lokale.has(k.slug)).map((k) => k.slug);
+
+    expect(wspolne).toEqual([]);
   });
 
   it("wstawia wszystkie miejscowości z pliku", async () => {

@@ -18,6 +18,7 @@
 import { describe, expect, it } from "vitest";
 import * as zapytaniaOfert from "@/lib/db/queries/bids";
 import * as zapytaniaFirm from "@/lib/db/queries/firmy";
+import * as zapytaniaKreatora from "@/lib/db/queries/kreator";
 import * as zapytaniaZlecen from "@/lib/db/queries/requests";
 import { NiezaimplementowanaGalazUprawnien, type Widz } from "@/lib/permissions";
 
@@ -63,6 +64,7 @@ const MODULY: Array<[string, Record<string, unknown>]> = [
   ["requests", zapytaniaZlecen],
   ["bids", zapytaniaOfert],
   ["firmy", zapytaniaFirm],
+  ["kreator", zapytaniaKreatora],
 ];
 
 function funkcyjneEksporty(): Array<[string, DowolneZapytanie]> {

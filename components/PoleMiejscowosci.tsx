@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { MIN_ZNAKOW_PODPOWIEDZI } from "@/lib/miejscowosci";
 
 interface Podpowiedz {
+  id: string;
   slug: string;
   nazwa: string;
   rodzaj: string;
@@ -15,6 +17,26 @@ interface PoleMiejscowosciProps {
   wartoscPoczatkowa: string;
   klasaEtykiety: string;
   klasaPola: string;
+  /**
+   * Nazwa ukrytego pola na identyfikator wybranej miejscowości.
+   *
+   * Podawana **tylko** tam, gdzie zapisujemy miejscowość do bazy, czyli
+   * w kreatorze firmy. Wyszukiwarka katalogu jest formularzem GET i dopisanie
+   * jej tego pola wsadziłoby identyfikator do każdego adresu wyników, mimo że
+   * wyszukiwanie dopasowuje miejscowość po nazwie i o identyfikator nie pyta.
+   */
+  nazwaPolaId?: string;
+  /** Etykieta pola. Domyślnie „Miejscowość”. */
+  etykieta?: string;
+  /** Identyfikator miejscowości zapisanej wcześniej, do wznowienia kreatora. */
+  idPoczatkowe?: string;
+  /**
+   * Wywoływane przy wyborze z listy i przy ręcznej zmianie tekstu.
+   *
+   * Pozwala rodzicowi pokazać wybraną miejscowość gdzie indziej, na przykład
+   * w podsumowaniu kreatora. Pusty identyfikator znaczy „nic nie wybrano”.
+   */
+  onWybor?: (miejscowosc: { id: string; nazwa: string }) => void;
 }
 
 /**
@@ -32,10 +54,15 @@ export function PoleMiejscowosci({
   wartoscPoczatkowa,
   klasaEtykiety,
   klasaPola,
+  nazwaPolaId,
+  etykieta = "Miejscowość",
+  idPoczatkowe = "",
+  onWybor,
 }: PoleMiejscowosciProps) {
   const identyfikator = useId();
   const idListy = `${identyfikator}-lista`;
   const [tekst, setTekst] = useState(wartoscPoczatkowa);
+  const [wybranyCityId, setWybranyCityId] = useState(idPoczatkowe);
   const [podpowiedzi, setPodpowiedzi] = useState<Podpowiedz[]>([]);
   const [otwarta, setOtwarta] = useState(false);
   const [podswietlony, setPodswietlony] = useState(-1);
@@ -47,7 +74,7 @@ export function PoleMiejscowosci({
       wybranoZListy.current = false;
       return;
     }
-    if (tekst.trim().length < 2) {
+    if (tekst.trim().length < MIN_ZNAKOW_PODPOWIEDZI) {
       setPodpowiedzi([]);
       return;
     }
@@ -81,6 +108,8 @@ export function PoleMiejscowosci({
   const wybierz = (podpowiedz: Podpowiedz) => {
     wybranoZListy.current = true;
     setTekst(podpowiedz.nazwa);
+    setWybranyCityId(podpowiedz.id);
+    onWybor?.({ id: podpowiedz.id, nazwa: podpowiedz.nazwa });
     setOtwarta(false);
     setPodswietlony(-1);
   };
@@ -108,7 +137,7 @@ export function PoleMiejscowosci({
   return (
     <div ref={kontener} className="relative grow">
       <label className={klasaEtykiety} htmlFor={identyfikator}>
-        Miejscowość
+        {etykieta}
       </label>
       <input
         id={identyfikator}
@@ -121,12 +150,26 @@ export function PoleMiejscowosci({
         aria-activedescendant={podswietlony >= 0 ? `${identyfikator}-${podswietlony}` : undefined}
         autoComplete="off"
         value={tekst}
-        onChange={(e) => setTekst(e.target.value)}
+        onChange={(e) => {
+          setTekst(e.target.value);
+          /*
+           * Ręczna zmiana tekstu unieważnia poprzedni wybór.
+           *
+           * Bez tego wybranie „Wrocław" i dopisanie liter zostawiało w ukrytym
+           * polu identyfikator Wrocławia, a w widocznym coś innego. Formularz
+           * zapisywał wtedy miejscowość, której człowiek już nie widział na
+           * ekranie, i to jest najgorszy możliwy wynik: wygląda na zapisane
+           * poprawnie i wychodzi dopiero wtedy, gdy nikt firmy nie znajduje.
+           */
+          setWybranyCityId("");
+          onWybor?.({ id: "", nazwa: e.target.value });
+        }}
         onKeyDown={obsluzKlawisz}
         onFocus={() => setOtwarta(podpowiedzi.length > 0)}
         placeholder="Wpisz miejscowość"
         className={klasaPola}
       />
+      {nazwaPolaId ? <input type="hidden" name={nazwaPolaId} value={wybranyCityId} /> : null}
 
       {otwarta && podpowiedzi.length > 0 ? (
         <ul

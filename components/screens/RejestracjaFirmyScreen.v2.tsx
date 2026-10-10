@@ -5,18 +5,23 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
 import { KomunikatFormularza } from "@/components/KomunikatFormularza";
+import { PoleMiejscowosci } from "@/components/PoleMiejscowosci";
 import { KATEGORIE_USLUGODAWCOW, type KlasaCenowa, pobierzKategorie } from "@/content/kategorie";
 import { pobierzRodzajeLokali, RODZAJE_LOKALI } from "@/content/rodzaje-lokali";
 import {
   wyslijDoZatwierdzenia,
   zapiszKrokDaneKontaktowe,
   zapiszKrokKategoria,
+  zapiszKrokLokalizacja,
   zapiszKrokOpis,
 } from "@/lib/akcje/profil";
 import { zarejestrujFirme } from "@/lib/akcje/rejestracja";
-import { STAN_POCZATKOWY } from "@/lib/formularze";
+import { STAN_POCZATKOWY, type StanFormularza } from "@/lib/formularze";
+import type { Krok, SzkicKreatora } from "@/lib/kreator-krok";
+import { krokPoczatkowy } from "@/lib/kreator-krok";
 
-type Krok = 1 | 2 | 3 | 4 | 6;
+/** Nazwa ukrytego pola z identyfikatorem miejscowości. Musi zgadzać się z Zodem. */
+const POLE_CITY_ID = "cityId";
 
 const NAZWY_KROKOW = [
   "Konto",
@@ -29,6 +34,15 @@ const NAZWY_KROKOW = [
 const KROKOW = NAZWY_KROKOW.length;
 
 /**
+ * Kroki w kolejności, w jakiej je pokazujemy.
+ *
+ * Numer kroku nie jest numerem pozycji na pasku: piątego, czyli wyboru planu,
+ * nie ma, dopóki PayU jest wyłączone. Bez tej tablicy ostatni krok podpisywał
+ * się „Krok 6 z 5" i zostawał bez nazwy, bo `NAZWY_KROKOW[5]` nie istnieje.
+ */
+const KROKI: Krok[] = [1, 2, 3, 4, 6];
+
+/**
  * Kreator rejestracji firmy z prawdziwymi akcjami backendu.
  *
  * Krok 1 wywołuje zarejestrujFirme i przekierowuje na /weryfikacja.
@@ -36,9 +50,18 @@ const KROKOW = NAZWY_KROKOW.length;
  * Kroki 2-5 zapisują dane przez akcje z lib/akcje/profil.ts.
  * Krok 6 wywołuje utworzPlatnosc i przekierowuje do PayU.
  */
-export function RejestracjaFirmyScreen() {
+export function RejestracjaFirmyScreen({
+  szkic = null,
+  zalogowany = false,
+}: {
+  szkic?: SzkicKreatora | null;
+  /** Czy krok pierwszy, czyli zakładanie konta, jest już za nami. */
+  zalogowany?: boolean;
+}) {
   const searchParams = useSearchParams();
-  const startStep = Number.parseInt(searchParams.get("krok") ?? "1", 10) as Krok;
+
+  // Krok wznowienia wynika ze stanu szkicu; `?krok=` wolno spełnić tylko w tył.
+  const startStep = krokPoczatkowy(searchParams.get("krok"), szkic, zalogowany);
 
   const [step, setStep] = useState<Krok>(startStep);
   const [isPending, startTransition] = useTransition();
@@ -49,24 +72,46 @@ export function RejestracjaFirmyScreen() {
     STAN_POCZATKOWY,
   );
 
-  // Stan dla kroków 2-6 (używamy stanRejestracji dla kroku 1)
-  const stanKroku = STAN_POCZATKOWY;
-  const czekaKrok = false;
+  /*
+   * Wynik ostatniego zapisu w krokach 2-6.
+   *
+   * Wcześniej była tu stała `STAN_POCZATKOWY`, więc błędy z tych kroków nie
+   * miały jak dotrzeć na ekran: akcja odmawiała zapisu, kreator nie przechodził
+   * dalej i nie mówił dlaczego. Przycisk po prostu przestawał działać.
+   */
+  const [stanKroku, setStanKroku] = useState<StanFormularza>(STAN_POCZATKOWY);
 
   // Step 1: Account
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   // Step 2: Type & Category
-  const [accountType, setAccountType] = useState<"lokal" | "usluga">("lokal");
-  const [category, setCategory] = useState<string>(RODZAJE_LOKALI[0]?.slug ?? "");
+  const [accountType, setAccountType] = useState<"lokal" | "usluga">(
+    szkic?.kategoria && KATEGORIE_USLUGODAWCOW.some((k) => k.slug === szkic.kategoria)
+      ? "usluga"
+      : "lokal",
+  );
+  const [category, setCategory] = useState<string>(
+    szkic?.kategoria ?? RODZAJE_LOKALI[0]?.slug ?? "",
+  );
 
   // Step 3: Profile Content
-  const [displayName, setDisplayName] = useState("");
-  const [town, setTown] = useState("");
-  const [priceFrom, setPriceFrom] = useState("");
-  const [capacity, setCapacity] = useState("");
-  const [description, setDescription] = useState("");
+  const [displayName, setDisplayName] = useState(szkic?.nazwa ?? "");
+  /*
+   * Nazwa wybranej miejscowości. Pole pilnuje swojego tekstu samo, ale
+   * podsumowanie w ostatnim kroku musi ją pokazać, więc dostajemy ją wywołaniem
+   * zwrotnym. Wartość początkowa pochodzi ze szkicu, żeby wznowienie kreatora
+   * nie pokazywało „lokalizacja do uzupełnienia” dla zapisanej miejscowości.
+   */
+  const [town, setTown] = useState(szkic?.miejscowosc ?? "");
+  // Cena w bazie jest w groszach, w polu wpisuje się złotówki.
+  const [priceFrom, setPriceFrom] = useState(
+    szkic?.cenaOd == null ? "" : String(szkic.cenaOd / 100),
+  );
+  const [capacity, setCapacity] = useState(
+    szkic?.pojemnoscMax == null ? "" : String(szkic.pojemnoscMax),
+  );
+  const [description, setDescription] = useState(szkic?.opis ?? "");
 
   // Step 4: Company verification
   const [nip, setNip] = useState("");
@@ -79,42 +124,59 @@ export function RejestracjaFirmyScreen() {
 
   const klasa: KlasaCenowa = wybor.find((pozycja) => pozycja.slug === category)?.klasa ?? "C";
 
+  // W podsumowaniu pokazujemy nazwę kategorii, nie jej slug: „Sala weselna",
+  // a nie „sala-weselna".
+  const nazwaKategorii = wybor.find((pozycja) => pozycja.slug === category)?.nazwa ?? category;
+
   const handleSubmitKrok2 = async (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
       const formData = new FormData();
-      formData.append("categoryId", category);
+      // Slug ze słownika, nie UUID: tabela `categories` ma unikalny `slug`,
+      // a przeglądarka nie ma skąd znać identyfikatorów.
+      formData.append("kategoria", category);
       formData.append("rodzaj", accountType);
 
       const wynik = await zapiszKrokKategoria(STAN_POCZATKOWY, formData);
-      if (wynik.status === "poczatkowy") {
-        setStep(3);
-      }
+      setStanKroku(wynik);
+      if (wynik.status === "zapisano") setStep(3);
     });
   };
 
+  /**
+   * Krok 3 zapisuje dwiema akcjami: opis i lokalizację.
+   *
+   * Dalej przechodzimy **tylko wtedy, gdy udały się obie**. Wcześniej
+   * lokalizacja nie była zapisywana wcale, więc firma zostawała z `city_id`
+   * wskazującym przypadkowy wiersz i punktem na zerowym południku, czyli nie
+   * pojawiała się w żadnym wyszukiwaniu po okolicy.
+   */
   const handleSubmitKrok3 = async (e: React.FormEvent) => {
     e.preventDefault();
-    startTransition(async () => {
-      // Najpierw opis
-      const formDataOpis = new FormData();
-      formDataOpis.append("name", displayName);
-      formDataOpis.append("description", description);
-      const priceNumber = priceFrom.replace(/[^0-9]/g, "");
-      formDataOpis.append("priceFrom", priceNumber || "0");
+    const dane = new FormData(e.currentTarget as HTMLFormElement);
 
-      const capacityMatch = capacity.match(/(\d+)/);
-      if (capacityMatch) {
-        formDataOpis.append("capacityMax", capacityMatch[1] ?? "0");
+    startTransition(async () => {
+      const opisForm = new FormData();
+      opisForm.append("nazwa", displayName);
+      opisForm.append("opis", description);
+      // Pola są tekstowe („180 zł", „do 140 osób"), więc wyłuskujemy liczbę.
+      // Pusto zostaje pustym napisem: Zod czyta to jako „do uzupełnienia".
+      opisForm.append("cenaOd", priceFrom.replace(/[^\d.,]/g, "").replace(",", "."));
+      opisForm.append("pojemnoscMin", "");
+      opisForm.append("pojemnoscMax", capacity.match(/\d+/)?.[0] ?? "");
+
+      const wynikOpisu = await zapiszKrokOpis(STAN_POCZATKOWY, opisForm);
+      if (wynikOpisu.status !== "zapisano") {
+        setStanKroku(wynikOpisu);
+        return;
       }
 
-      const wynikOpis = await zapiszKrokOpis(STAN_POCZATKOWY, formDataOpis);
-      if (wynikOpis.status !== "poczatkowy") return;
+      const lokalizacjaForm = new FormData();
+      lokalizacjaForm.append(POLE_CITY_ID, String(dane.get(POLE_CITY_ID) ?? ""));
 
-      // TODO: Lokalizacja z mapą - na razie pomijamy cityId
-      // Po dodaniu mapy wywołamy zapiszKrokLokalizacja z prawdziwym cityId
-
-      setStep(4);
+      const wynikLokalizacji = await zapiszKrokLokalizacja(STAN_POCZATKOWY, lokalizacjaForm);
+      setStanKroku(wynikLokalizacji);
+      if (wynikLokalizacji.status === "zapisano") setStep(4);
     });
   };
 
@@ -126,24 +188,28 @@ export function RejestracjaFirmyScreen() {
       formData.append("telefon", phone);
 
       const wynik = await zapiszKrokDaneKontaktowe(STAN_POCZATKOWY, formData);
-      if (wynik.status === "poczatkowy") {
-        setStep(6); // Pomijamy krok 5 (wybór planu), bo PayU wyłączone
-      }
+      setStanKroku(wynik);
+      // Krok 5 (wybór planu) pomijamy, dopóki PayU jest wyłączone.
+      if (wynik.status === "zapisano") setStep(6);
     });
   };
 
   const handleSubmitKrok6 = async (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
-      // Sprawdzamy, czy PayU jest dostępne przez wywołanie wyslijDoZatwierdzenia
-      // która sama decyduje: jeśli PayU jest, przekierowuje do wyboru planu,
-      // jeśli nie ma PayU, aktywuje firmę z darmową subskrypcją na 30 dni
-      await wyslijDoZatwierdzenia();
+      /*
+       * Akcja sama rozstrzyga, co dalej: z PayU przekierowuje do wyboru planu,
+       * bez PayU publikuje z darmowym okresem próbnym. Wraca tutaj wyłącznie
+       * wtedy, gdy czegoś brakuje, bo przekierowanie kończy jej działanie.
+       */
+      const wynik = await wyslijDoZatwierdzenia(STAN_POCZATKOWY, new FormData());
+      setStanKroku(wynik);
     });
   };
 
+  // Krok 1 idzie przez useActionState, kolejne przez startTransition.
   const stan = step === 1 ? stanRejestracji : stanKroku;
-  const czeka = step === 1 ? czekaRejestracja : czekaKrok || isPending;
+  const czeka = step === 1 ? czekaRejestracja : isPending;
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
@@ -169,16 +235,16 @@ export function RejestracjaFirmyScreen() {
           </div>
 
           <div className="flex items-center gap-2 text-[14px] font-bold text-[#6A5C70] bg-[#F2E9E2] px-4 py-2 rounded-full border border-[#E2D5CA]">
-            Krok {step} z {KROKOW}: {NAZWY_KROKOW[step - 1]}
+            Krok {KROKI.indexOf(step) + 1} z {KROKOW}: {NAZWY_KROKOW[KROKI.indexOf(step)]}
           </div>
         </div>
 
-        <div className="grid grid-cols-6 gap-2.5 mb-10">
+        <div className="grid grid-cols-5 gap-2.5 mb-10">
           {NAZWY_KROKOW.map((nazwa, numer) => (
             <div
               key={nazwa}
               className={`h-2 rounded-full transition-colors ${
-                step >= numer + 1 ? "bg-[#241C2B]" : "bg-[#E2D5CA]"
+                KROKI.indexOf(step) >= numer ? "bg-[#241C2B]" : "bg-[#E2D5CA]"
               }`}
             />
           ))}
@@ -330,6 +396,10 @@ export function RejestracjaFirmyScreen() {
                   </div>
                 </div>
 
+                <div className="pt-4">
+                  <KomunikatFormularza stan={stanKroku} />
+                </div>
+
                 <div className="mt-8 pt-6 border-t border-[#EFE5DD] flex justify-between">
                   <button
                     type="button"
@@ -379,22 +449,26 @@ export function RejestracjaFirmyScreen() {
                   </div>
 
                   <div>
-                    <label
-                      htmlFor="town"
-                      className="block text-[14px] font-medium text-[#241C2B] mb-1.5"
-                    >
-                      Miejscowość
-                    </label>
-                    <input
-                      id="town"
-                      type="text"
-                      value={town}
-                      onChange={(e) => setTown(e.target.value)}
-                      placeholder="Kobierzyce, k. Wrocławia"
-                      className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] outline-none focus:border-[#241C2B]"
+                    {/*
+                     * Miejscowość wybierana z listy, nie wpisywana z palca.
+                     *
+                     * Zapis wymaga `cities.id`, bo z wiersza miejscowości bierzemy
+                     * współrzędne do wyszukiwania po promieniu. Zwykłe pole tekstowe
+                     * nie miało czym go wypełnić, więc lokalizacja nie zapisywała się
+                     * w ogóle.
+                     */}
+                    <PoleMiejscowosci
+                      nazwaPola="miejscowosc"
+                      nazwaPolaId={POLE_CITY_ID}
+                      wartoscPoczatkowa={town}
+                      idPoczatkowe={szkic?.cityId ?? ""}
+                      onWybor={(miejscowosc) => setTown(miejscowosc.nazwa)}
+                      klasaEtykiety="block text-[14px] font-medium text-[#241C2B] mb-1.5"
+                      klasaPola="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] outline-none focus:border-[#241C2B]"
                     />
                     <p className="mt-1 text-[12px] text-[#6A5C70]">
-                      Na razie wpisz tekstowo, integrację z mapą dodamy później
+                      Zacznij pisać i wybierz miejscowość z listy. Po niej klienci znajdą Cię w
+                      wyszukiwaniu po okolicy.
                     </p>
                   </div>
 
@@ -455,6 +529,10 @@ export function RejestracjaFirmyScreen() {
                       Co najmniej 20 znaków, maksymalnie 2000
                     </p>
                   </div>
+                </div>
+
+                <div className="pt-4">
+                  <KomunikatFormularza stan={stanKroku} />
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-[#EFE5DD] flex justify-between">
@@ -524,6 +602,10 @@ export function RejestracjaFirmyScreen() {
                   </div>
                 </div>
 
+                <div className="pt-4">
+                  <KomunikatFormularza stan={stanKroku} />
+                </div>
+
                 <div className="mt-8 pt-6 border-t border-[#EFE5DD] flex justify-between">
                   <button
                     type="button"
@@ -546,7 +628,7 @@ export function RejestracjaFirmyScreen() {
             {/* KROK 6: Publikacja */}
             {step === 6 && (
               <form onSubmit={handleSubmitKrok6}>
-                <h2 className="font-fraunces text-[24px] font-medium mb-2">6. Publikacja</h2>
+                <h2 className="font-fraunces text-[24px] font-medium mb-2">5. Publikacja</h2>
                 <p className="text-[14px] text-[#6A5C70] mb-6">
                   Potwierdź dane i opublikuj profil w katalogu.
                 </p>
@@ -558,7 +640,7 @@ export function RejestracjaFirmyScreen() {
                       <div className="flex-1">
                         <p className="m-0 font-semibold text-[15px]">{displayName}</p>
                         <p className="m-0 text-[13px] text-[#6A5C70] mt-0.5">
-                          {category} • {town || "lokalizacja do uzupełnienia"}
+                          {nazwaKategorii} • {town || "lokalizacja do uzupełnienia"}
                         </p>
                       </div>
                     </div>
@@ -582,6 +664,10 @@ export function RejestracjaFirmyScreen() {
                     Klikając „Opublikuj profil" Twój profil zostanie aktywowany i pojawi się w
                     katalogu. Możesz go edytować w każdej chwili z poziomu panelu.
                   </p>
+                </div>
+
+                <div className="pt-4">
+                  <KomunikatFormularza stan={stanKroku} />
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-[#EFE5DD] flex justify-between">
