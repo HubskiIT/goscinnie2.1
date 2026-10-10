@@ -5,22 +5,24 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
 import { KomunikatFormularza } from "@/components/KomunikatFormularza";
-import { cena, NAZWY_OKRESOW, NAZWY_PLANOW, zlotePelne } from "@/content/cennik";
 import { KATEGORIE_USLUGODAWCOW, type KlasaCenowa, pobierzKategorie } from "@/content/kategorie";
 import { pobierzRodzajeLokali, RODZAJE_LOKALI } from "@/content/rodzaje-lokali";
-import { utworzPlatnosc } from "@/lib/akcje/platnosc";
-import { zapiszKrokDaneKontaktowe, zapiszKrokKategoria, zapiszKrokOpis } from "@/lib/akcje/profil";
+import {
+  wyslijDoZatwierdzenia,
+  zapiszKrokDaneKontaktowe,
+  zapiszKrokKategoria,
+  zapiszKrokOpis,
+} from "@/lib/akcje/profil";
 import { zarejestrujFirme } from "@/lib/akcje/rejestracja";
 import { STAN_POCZATKOWY } from "@/lib/formularze";
 
-type Krok = 1 | 2 | 3 | 4 | 5 | 6;
+type Krok = 1 | 2 | 3 | 4 | 6;
 
 const NAZWY_KROKOW = [
   "Konto",
   "Rodzaj ogłoszenia",
   "Budowa profilu",
   "Dane firmy",
-  "Cena i okres",
   "Publikacja",
 ] as const;
 
@@ -70,19 +72,12 @@ export function RejestracjaFirmyScreen() {
   const [nip, setNip] = useState("");
   const [phone, setPhone] = useState("");
 
-  // Step 5: Plan & Period
-  const [selectedPlan, setSelectedPlan] = useState<"start" | "pelny" | "wyrozniony">("pelny");
-  const [selectedPeriod, setSelectedPeriod] = useState<"miesiac" | "pol_roku" | "rok">("rok");
-
   const wybor =
     accountType === "lokal"
       ? pobierzRodzajeLokali().map((r) => ({ slug: r.slug, nazwa: r.nazwa, klasa: r.klasa }))
       : pobierzKategorie().map((k) => ({ slug: k.slug, nazwa: k.nazwa, klasa: k.klasa }));
 
   const klasa: KlasaCenowa = wybor.find((pozycja) => pozycja.slug === category)?.klasa ?? "C";
-
-  const getStartingPrice = () =>
-    `od ${zlotePelne(cena(klasa, "miesiac", "start"))} / mies. (Klasa ${klasa})`;
 
   const handleSubmitKrok2 = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,27 +127,18 @@ export function RejestracjaFirmyScreen() {
 
       const wynik = await zapiszKrokDaneKontaktowe(STAN_POCZATKOWY, formData);
       if (wynik.status === "poczatkowy") {
-        setStep(5);
+        setStep(6); // Pomijamy krok 5 (wybór planu), bo PayU wyłączone
       }
     });
-  };
-
-  const handleSubmitKrok5 = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Tylko przejście dalej, plan zapisujemy przy płatności
-    setStep(6);
   };
 
   const handleSubmitKrok6 = async (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
-      const formData = new FormData();
-      formData.append("plan", selectedPlan);
-      formData.append("okres", selectedPeriod);
-      formData.append("klasa", klasa);
-
-      // utworzPlatnosc robi redirect do PayU, więc nie czekamy na wynik
-      await utworzPlatnosc(STAN_POCZATKOWY, formData);
+      // Sprawdzamy, czy PayU jest dostępne przez wywołanie wyslijDoZatwierdzenia
+      // która sama decyduje: jeśli PayU jest, przekierowuje do wyboru planu,
+      // jeśli nie ma PayU, aktywuje firmę z darmową subskrypcją na 30 dni
+      await wyslijDoZatwierdzenia();
     });
   };
 
@@ -338,7 +324,9 @@ export function RejestracjaFirmyScreen() {
                         </option>
                       ))}
                     </select>
-                    <p className="mt-2 text-[12px] text-[#6A5C70]">{getStartingPrice()}</p>
+                    <p className="mt-2 text-[12px] text-[#6A5C70]">
+                      Darmowy okres próbny 30 dni (Klasa {klasa})
+                    </p>
                   </div>
                 </div>
 
@@ -555,95 +543,12 @@ export function RejestracjaFirmyScreen() {
               </form>
             )}
 
-            {/* KROK 5: Wybór planu */}
-            {step === 5 && (
-              <form onSubmit={handleSubmitKrok5}>
-                <h2 className="font-fraunces text-[24px] font-medium mb-2">5. Cena i okres</h2>
-                <p className="text-[14px] text-[#6A5C70] mb-6">
-                  Wybierz plan i okres abonamentu. Płatność następuje w kolejnym kroku przez PayU.
-                </p>
-
-                <div className="space-y-6">
-                  <div>
-                    <p className="text-[14px] font-medium text-[#241C2B] mb-3">Plan</p>
-                    <div className="grid grid-cols-3 gap-3">
-                      {(["start", "pelny", "wyrozniony"] as const).map((plan) => (
-                        <button
-                          key={plan}
-                          type="button"
-                          onClick={() => setSelectedPlan(plan)}
-                          className={`p-4 border-2 rounded-[12px] text-center transition-colors ${
-                            selectedPlan === plan
-                              ? "border-[#241C2B] bg-[#F2E9E2]"
-                              : "border-[#D9CCC2] bg-white"
-                          }`}
-                        >
-                          <div className="font-semibold text-[15px] mb-1">{NAZWY_PLANOW[plan]}</div>
-                          <div className="text-[20px] font-bold text-[#241C2B]">
-                            {zlotePelne(cena(klasa, "miesiac", plan))}
-                          </div>
-                          <div className="text-[12px] text-[#6A5C70]">/ miesiąc</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-[14px] font-medium text-[#241C2B] mb-3">
-                      Okres rozliczeniowy
-                    </p>
-                    <div className="grid grid-cols-3 gap-3">
-                      {(["miesiac", "pol_roku", "rok"] as const).map((okres) => {
-                        const kwota = cena(klasa, okres, selectedPlan);
-                        return (
-                          <button
-                            key={okres}
-                            type="button"
-                            onClick={() => setSelectedPeriod(okres)}
-                            className={`p-4 border-2 rounded-[12px] text-center transition-colors ${
-                              selectedPeriod === okres
-                                ? "border-[#241C2B] bg-[#F2E9E2]"
-                                : "border-[#D9CCC2] bg-white"
-                            }`}
-                          >
-                            <div className="font-semibold text-[14px] mb-1">
-                              {NAZWY_OKRESOW[okres]}
-                            </div>
-                            <div className="text-[18px] font-bold text-[#241C2B]">
-                              {zlotePelne(kwota)}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-8 pt-6 border-t border-[#EFE5DD] flex justify-between">
-                  <button
-                    type="button"
-                    onClick={() => setStep(4)}
-                    className="text-[14px] font-semibold text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
-                  >
-                    ← Wstecz
-                  </button>
-                  <button
-                    type="submit"
-                    className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-3.5 cursor-pointer shadow-xs"
-                  >
-                    Dalej →
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* KROK 6: Publikacja i płatność */}
+            {/* KROK 6: Publikacja */}
             {step === 6 && (
               <form onSubmit={handleSubmitKrok6}>
                 <h2 className="font-fraunces text-[24px] font-medium mb-2">6. Publikacja</h2>
                 <p className="text-[14px] text-[#6A5C70] mb-6">
-                  Potwierdź dane i przejdź do płatności. Po opłaceniu abonamentu profil zostanie
-                  opublikowany w katalogu.
+                  Potwierdź dane i opublikuj profil w katalogu.
                 </p>
 
                 <div className="space-y-4 mb-6">
@@ -663,11 +568,9 @@ export function RejestracjaFirmyScreen() {
                     <div className="flex items-start gap-3">
                       <Sparkles className="w-5 h-5 text-[#5E7360] mt-0.5" />
                       <div className="flex-1">
-                        <p className="m-0 font-semibold text-[15px]">
-                          {NAZWY_PLANOW[selectedPlan]} • {NAZWY_OKRESOW[selectedPeriod]}
-                        </p>
+                        <p className="m-0 font-semibold text-[15px]">Darmowy okres próbny 30 dni</p>
                         <p className="m-0 text-[13px] text-[#6A5C70] mt-0.5">
-                          {zlotePelne(cena(klasa, selectedPeriod, selectedPlan))} • Klasa {klasa}
+                          Pełny dostęp do wszystkich funkcji
                         </p>
                       </div>
                     </div>
@@ -676,16 +579,15 @@ export function RejestracjaFirmyScreen() {
 
                 <div className="p-5 border border-[#E2D5CA] rounded-[14px] bg-[#F2E9E2]">
                   <p className="m-0 text-[13px] text-[#241C2B] leading-[1.6]">
-                    Klikając „Przejdź do płatności" zostaniesz przekierowany do PayU. Po opłaceniu
-                    abonamentu Twój profil zostanie automatycznie aktywowany i pojawi się w
-                    katalogu.
+                    Klikając „Opublikuj profil" Twój profil zostanie aktywowany i pojawi się w
+                    katalogu. Możesz go edytować w każdej chwili z poziomu panelu.
                   </p>
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-[#EFE5DD] flex justify-between">
                   <button
                     type="button"
-                    onClick={() => setStep(5)}
+                    onClick={() => setStep(4)}
                     className="text-[14px] font-semibold text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
                   >
                     ← Wstecz
@@ -695,7 +597,7 @@ export function RejestracjaFirmyScreen() {
                     disabled={czeka}
                     className="text-[15px] font-bold text-white bg-[#3B6DFF] hover:bg-[#2952CC] transition-colors border-0 rounded-[12px] px-8 py-3.5 cursor-pointer shadow-xs disabled:opacity-50"
                   >
-                    {czeka ? "Przekierowuję..." : "Przejdź do płatności"}
+                    {czeka ? "Publikuję..." : "Opublikuj profil"}
                   </button>
                 </div>
               </form>

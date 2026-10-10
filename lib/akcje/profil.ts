@@ -308,11 +308,33 @@ export async function wyslijDoZatwierdzenia(): Promise<void> {
     throw new Error("Nie znaleziono firmy.");
   }
 
-  // W prototypie pomijamy moderację - od razu aktywujemy
-  await db
-    .update(schema.companies)
-    .set({ status: "active" })
-    .where(eq(schema.companies.id, firma.id));
+  // Sprawdzamy, czy PayU jest skonfigurowane
+  const payu = process.env.PAYU_CLIENT_ID && process.env.PAYU_CLIENT_SECRET;
 
-  redirect(`/panel/profil?published=true`);
+  if (!payu) {
+    // Bez PayU: aktywujemy od razu, tworzymy darmową subskrypcję na 30 dni
+    const dataRozpoczecia = new Date();
+    const dataWygasniecia = new Date(dataRozpoczecia);
+    dataWygasniecia.setDate(dataWygasniecia.getDate() + 30);
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(schema.companies)
+        .set({ status: "active" })
+        .where(eq(schema.companies.id, firma.id));
+
+      await tx.insert(schema.subscriptions).values({
+        companyId: firma.id,
+        planId: "00000000-0000-0000-0000-000000000000", // Placeholder
+        status: "active",
+        startsAt: dataRozpoczecia,
+        expiresAt: dataWygasniecia,
+      });
+    });
+
+    redirect(`/panel/profil?published=true`);
+  }
+
+  // Z PayU: przekierowanie do wyboru planu i płatności
+  redirect(`/panel/wybierz-plan`);
 }
