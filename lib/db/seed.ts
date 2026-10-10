@@ -5,6 +5,10 @@
  * apostrof w nazwie, komplet polskich znaków, puste pola opcjonalne, wartości
  * graniczne budżetu i pojemności, firma z wygasłym abonamentem.
  */
+
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { gunzipSync } from "node:zlib";
 import { hash } from "@node-rs/argon2";
 import { db, schema } from "./index";
 
@@ -14,6 +18,29 @@ import { db, schema } from "./index";
  * konta ręcznie za każdym resetem bazy.
  */
 const HASLO_ZASIEWOWE = "goscinnie-lokalnie-2026";
+
+type WierszMiasta = [
+  simc: string,
+  slug: string,
+  name: string,
+  rodzaj: string,
+  gmina: string,
+  powiat: string,
+  wojewodztwo: string,
+  point: [number, number] | null,
+];
+
+function pobierzDaneMiast(slugi: string[]): Map<string, WierszMiasta> {
+  const sciezka = join(process.cwd(), "content", "miejscowosci.json.gz");
+  const wszystkie = JSON.parse(gunzipSync(readFileSync(sciezka)).toString()) as WierszMiasta[];
+  const mapa = new Map<string, WierszMiasta>();
+  for (const wiersz of wszystkie) {
+    if (slugi.includes(wiersz[1])) {
+      mapa.set(wiersz[1], wiersz);
+    }
+  }
+  return mapa;
+}
 
 const MIASTA = [
   {
@@ -109,19 +136,41 @@ function pseudolosowa(ziarno: number): () => number {
   };
 }
 
-async function zasiej(): Promise<void> {
+/**
+ * Zasiew tworzy świat pokazowy: firmy, konta i zlecenia, których nikt nie
+ * zakładał. Na produkcji byłyby to dane udające prawdziwe, więc skrypt tam
+ * nie rusza. Słowniki, czyli to, czego serwis naprawdę potrzebuje, wypełnia
+ * osobny `scripts/slowniki.ts`.
+ */
+function odmowNaProdukcji(): void {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Zasiew pokazowy nie działa na produkcji. Słowniki wypełnia pnpm db:slowniki.");
+  }
+}
+
+export async function zasiej(): Promise<void> {
+  odmowNaProdukcji();
   const losuj = pseudolosowa(20260923);
+
+  const daneMiast = pobierzDaneMiast(MIASTA.map((m) => m.slug));
 
   const wierszeMiast = await db
     .insert(schema.cities)
     .values(
-      MIASTA.map((m) => ({
-        name: m.name,
-        slug: m.slug,
-        powiat: m.powiat,
-        wojewodztwo: m.woj,
-        point: { lon: m.lon, lat: m.lat },
-      })),
+      MIASTA.map((m) => {
+        const dane = daneMiast.get(m.slug);
+        if (!dane) throw new Error(`Zasiew: brak ${m.slug} w content/miejscowosci.json.gz`);
+        return {
+          name: m.name,
+          slug: m.slug,
+          simc: dane[0],
+          gmina: dane[4],
+          rodzaj: dane[3],
+          powiat: m.powiat,
+          wojewodztwo: m.woj,
+          point: { lon: m.lon, lat: m.lat },
+        };
+      }),
     )
     .returning();
 

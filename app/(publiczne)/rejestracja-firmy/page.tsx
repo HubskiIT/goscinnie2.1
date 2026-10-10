@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { RejestracjaFirmyScreen } from "@/components/screens/RejestracjaFirmyScreen";
+import { RejestracjaFirmyScreen } from "@/components/screens/RejestracjaFirmyScreen.v2";
 
 export const metadata: Metadata = {
   title: "Dodaj firmę",
