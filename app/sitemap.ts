@@ -1,10 +1,13 @@
 import type { MetadataRoute } from "next";
 import { OKAZJE } from "@/content/okazje";
+import { adresAplikacji } from "@/lib/adres";
 import { firma, impreza, okazja, PRZYKLADY, TRASY } from "@/lib/trasy";
 
-const ADRES = process.env.APP_URL ?? "http://localhost:3000";
-
 export default function sitemap(): MetadataRoute.Sitemap {
+  // Liczone przy wywołaniu, nie przy wczytaniu modułu: stała na górze pliku
+  // zamarzała na wartości z momentu budowania.
+  const adres = adresAplikacji();
+
   const sciezki = [
     TRASY.glowna,
     TRASY.lokale,
@@ -24,7 +27,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ];
 
   return sciezki.map((sciezka) => ({
-    url: new URL(sciezka, ADRES).toString(),
+    url: new URL(sciezka, adres).toString(),
     lastModified: new Date(),
   }));
 }

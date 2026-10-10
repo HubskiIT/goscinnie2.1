@@ -1,11 +1,31 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useActionState } from "react";
+import { Suspense, useActionState } from "react";
 import { zweryfikujEmail } from "@/lib/akcje/weryfikacja";
 import { STAN_POCZATKOWY, wartoscPola } from "@/lib/formularze";
 
+/**
+ * `useSearchParams` wymaga granicy Suspense nad sobą.
+ *
+ * Bez niej budowanie produkcyjne przerywa się na prerenderowaniu tej strony
+ * komunikatem „useSearchParams() should be wrapped in a suspense boundary".
+ * Nie wychodziło to wcześniej, bo wdrożenie padało pierwsze na /sitemap.xml
+ * i nie dochodziło do tej strony.
+ *
+ * Adres e-mail jest w zapytaniu, więc strony i tak nie da się wygenerować
+ * statycznie z sensowną treścią: Suspense pozwala wygenerować obudowę,
+ * a resztę dokłada przeglądarka.
+ */
 export default function WeryfikacjaPage() {
+  return (
+    <Suspense fallback={null}>
+      <Weryfikacja />
+    </Suspense>
+  );
+}
+
+function Weryfikacja() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
   const [stan, akcja, czeka] = useActionState(zweryfikujEmail, STAN_POCZATKOWY);
