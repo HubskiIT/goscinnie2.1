@@ -18,6 +18,8 @@ export type SzkicKreatora = {
   miejscowosc: string | null;
   cityId: string | null;
   maNip: boolean;
+  /** Firma jest już w katalogu, a kreator służy do poprawek. */
+  opublikowany: boolean;
 };
 
 export type Krok = 1 | 2 | 3 | 4 | 6;

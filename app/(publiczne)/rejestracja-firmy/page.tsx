@@ -35,6 +35,7 @@ export default async function Strona() {
     // wyłącznie po to, żeby wypełnić kolumnę `not null`.
     cityId: szkic.maWspolrzedne ? szkic.cityId : null,
     maNip: szkic.maNip,
+    opublikowany: szkic.status === "active",
   };
 
   // Zalogowany człowiek ma krok pierwszy (zakładanie konta) za sobą, nawet

@@ -25,6 +25,7 @@ const PUSTY: SzkicKreatora = {
   miejscowosc: null,
   cityId: null,
   maNip: false,
+  opublikowany: false,
 };
 
 const ZKATEGORIA: SzkicKreatora = { ...PUSTY, kategoria: "sala-weselna" };

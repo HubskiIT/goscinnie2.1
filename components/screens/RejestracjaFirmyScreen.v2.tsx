@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
 import { KomunikatFormularza } from "@/components/KomunikatFormularza";
 import { PoleMiejscowosci } from "@/components/PoleMiejscowosci";
-import { KATEGORIE_USLUGODAWCOW, type KlasaCenowa, pobierzKategorie } from "@/content/kategorie";
+import { KATEGORIE_USLUGODAWCOW, pobierzKategorie } from "@/content/kategorie";
 import { pobierzRodzajeLokali, RODZAJE_LOKALI } from "@/content/rodzaje-lokali";
 import {
   wyslijDoZatwierdzenia,
@@ -19,6 +19,7 @@ import { zarejestrujFirme } from "@/lib/akcje/rejestracja";
 import { STAN_POCZATKOWY, type StanFormularza } from "@/lib/formularze";
 import type { Krok, SzkicKreatora } from "@/lib/kreator-krok";
 import { krokPoczatkowy } from "@/lib/kreator-krok";
+import { odczytajPojemnosc, pojemnoscDoPola } from "@/lib/pojemnosc";
 
 /** Nazwa ukrytego pola z identyfikatorem miejscowości. Musi zgadzać się z Zodem. */
 const POLE_CITY_ID = "cityId";
@@ -109,7 +110,7 @@ export function RejestracjaFirmyScreen({
     szkic?.cenaOd == null ? "" : String(szkic.cenaOd / 100),
   );
   const [capacity, setCapacity] = useState(
-    szkic?.pojemnoscMax == null ? "" : String(szkic.pojemnoscMax),
+    pojemnoscDoPola(szkic?.pojemnoscMin ?? null, szkic?.pojemnoscMax ?? null),
   );
   const [description, setDescription] = useState(szkic?.opis ?? "");
 
@@ -119,10 +120,8 @@ export function RejestracjaFirmyScreen({
 
   const wybor =
     accountType === "lokal"
-      ? pobierzRodzajeLokali().map((r) => ({ slug: r.slug, nazwa: r.nazwa, klasa: r.klasa }))
-      : pobierzKategorie().map((k) => ({ slug: k.slug, nazwa: k.nazwa, klasa: k.klasa }));
-
-  const klasa: KlasaCenowa = wybor.find((pozycja) => pozycja.slug === category)?.klasa ?? "C";
+      ? pobierzRodzajeLokali().map((r) => ({ slug: r.slug, nazwa: r.nazwa }))
+      : pobierzKategorie().map((k) => ({ slug: k.slug, nazwa: k.nazwa }));
 
   // W podsumowaniu pokazujemy nazwę kategorii, nie jej slug: „Sala weselna",
   // a nie „sala-weselna".
@@ -162,8 +161,10 @@ export function RejestracjaFirmyScreen({
       // Pola są tekstowe („180 zł", „do 140 osób"), więc wyłuskujemy liczbę.
       // Pusto zostaje pustym napisem: Zod czyta to jako „do uzupełnienia".
       opisForm.append("cenaOd", priceFrom.replace(/[^\d.,]/g, "").replace(",", "."));
-      opisForm.append("pojemnoscMin", "");
-      opisForm.append("pojemnoscMax", capacity.match(/\d+/)?.[0] ?? "");
+      // „40-140” to przedział, „140” to samo maksimum. Patrz lib/pojemnosc.ts.
+      const pojemnosc = odczytajPojemnosc(capacity);
+      opisForm.append("pojemnoscMin", pojemnosc.min === null ? "" : String(pojemnosc.min));
+      opisForm.append("pojemnoscMax", pojemnosc.max === null ? "" : String(pojemnosc.max));
 
       const wynikOpisu = await zapiszKrokOpis(STAN_POCZATKOWY, opisForm);
       if (wynikOpisu.status !== "zapisano") {
@@ -216,7 +217,7 @@ export function RejestracjaFirmyScreen({
       <main className="grow px-6 sm:px-12 md:px-[130px] pt-10 pb-16">
         <p className="m-0 mb-4 text-[14px] text-[#6A5C70]">
           <Link
-            href="/cennik"
+            href="/dla-firm"
             className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
           >
             Dla firm
@@ -230,7 +231,9 @@ export function RejestracjaFirmyScreen({
               Dodaj swoją firmę do katalogu Gościnnie
             </h1>
             <p className="m-0 mt-1 text-[16px] text-[#6A5C70]">
-              Budowa profilu jest w 100% bezpłatna. Plan i okres wybierzesz w ostatnim kroku.
+              {szkic?.opublikowany
+                ? "Zmiany zapisują się po każdym kroku. Profil pozostaje widoczny w katalogu."
+                : "Dodanie firmy i prowadzenie profilu jest bezpłatne."}
             </p>
           </div>
 
@@ -390,9 +393,6 @@ export function RejestracjaFirmyScreen({
                         </option>
                       ))}
                     </select>
-                    <p className="mt-2 text-[12px] text-[#6A5C70]">
-                      Darmowy okres próbny 30 dni (Klasa {klasa})
-                    </p>
                   </div>
                 </div>
 
@@ -559,7 +559,8 @@ export function RejestracjaFirmyScreen({
               <form onSubmit={handleSubmitKrok4}>
                 <h2 className="font-fraunces text-[24px] font-medium mb-2">4. Dane firmy</h2>
                 <p className="text-[14px] text-[#6A5C70] mb-6">
-                  NIP i telefon kontaktowy. Te dane są wymagane do aktywacji profilu.
+                  Weryfikacja firmy. NIP i telefon nie pojawiają się na profilu. Służą do
+                  sprawdzenia, że firma istnieje, i do kontaktu z Tobą w sprawie konta.
                 </p>
 
                 <div className="space-y-4">
@@ -650,9 +651,13 @@ export function RejestracjaFirmyScreen({
                     <div className="flex items-start gap-3">
                       <Sparkles className="w-5 h-5 text-[#5E7360] mt-0.5" />
                       <div className="flex-1">
-                        <p className="m-0 font-semibold text-[15px]">Darmowy okres próbny 30 dni</p>
+                        <p className="m-0 font-semibold text-[15px]">
+                          {szkic?.opublikowany ? "Profil jest opublikowany" : "Bez opłat"}
+                        </p>
                         <p className="m-0 text-[13px] text-[#6A5C70] mt-0.5">
-                          Pełny dostęp do wszystkich funkcji
+                          {szkic?.opublikowany
+                            ? "Zapisane zmiany od razu widać w katalogu."
+                            : "Na starcie Gościnnie nie pobiera od firm żadnych opłat."}
                         </p>
                       </div>
                     </div>
@@ -661,8 +666,9 @@ export function RejestracjaFirmyScreen({
 
                 <div className="p-5 border border-[#E2D5CA] rounded-[14px] bg-[#F2E9E2]">
                   <p className="m-0 text-[13px] text-[#241C2B] leading-[1.6]">
-                    Klikając „Opublikuj profil" Twój profil zostanie aktywowany i pojawi się w
-                    katalogu. Możesz go edytować w każdej chwili z poziomu panelu.
+                    {szkic?.opublikowany
+                      ? "Poprawki możesz wprowadzać w każdej chwili z panelu firmy."
+                      : "Po kliknięciu „Opublikuj profil” firma pojawi się w katalogu. Poprawki wprowadzisz w każdej chwili z panelu firmy."}
                   </p>
                 </div>
 
@@ -681,9 +687,13 @@ export function RejestracjaFirmyScreen({
                   <button
                     type="submit"
                     disabled={czeka}
-                    className="text-[15px] font-bold text-white bg-[#3B6DFF] hover:bg-[#2952CC] transition-colors border-0 rounded-[12px] px-8 py-3.5 cursor-pointer shadow-xs disabled:opacity-50"
+                    className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-3.5 cursor-pointer shadow-xs disabled:opacity-50"
                   >
-                    {czeka ? "Publikuję..." : "Opublikuj profil"}
+                    {czeka
+                      ? "Zapisuję..."
+                      : szkic?.opublikowany
+                        ? "Zapisz zmiany"
+                        : "Opublikuj profil"}
                   </button>
                 </div>
               </form>
@@ -710,17 +720,23 @@ export function RejestracjaFirmyScreen({
                   <div className="text-[12px] text-[#6A5C70] mb-2">{town || "Miejscowość"}</div>
                   <div className="flex justify-between items-baseline border-t border-[#EFE5DD] pt-2 text-[13px]">
                     <span className="text-[#6A5C70]">Cena od:</span>
-                    <strong className="text-[#241C2B]">{priceFrom || "—"}</strong>
+                    <strong className="text-[#241C2B]">
+                      {/^\d+([.,]\d+)?$/.test(priceFrom.trim())
+                        ? `${priceFrom.trim()} zł`
+                        : priceFrom || "—"}
+                    </strong>
                   </div>
-                  <div className="text-[12px] text-[#5E7360] mt-1 font-medium">
-                    {capacity || "Pojemność"}
-                  </div>
+                  {accountType === "lokal" ? (
+                    <div className="text-[12px] text-[#5E7360] mt-1 font-medium">
+                      {capacity ? `${capacity} osób` : "Pojemność"}
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
               <div className="mt-4 text-[12px] text-[#6A5C70] leading-[1.5]">
-                <Lock aria-hidden="true" size={13} className="inline mr-1" /> Dane firmy i NIP są
-                bezpiecznie szyfrowane. Wszystkie ceny w cenniku podajemy netto.
+                <Lock aria-hidden="true" size={13} className="inline mr-1" /> NIP i telefon nie są
+                pokazywane na profilu. Klienci widzą to, co jest w podglądzie powyżej.
               </div>
             </div>
           </aside>

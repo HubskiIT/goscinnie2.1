@@ -11,7 +11,7 @@
  * a każdy następny — czy jest członkiem **tej** firmy, przez
  * `mozeEdytowacProfil` z lib/permissions.ts. Innej drogi do zapisu nie ma.
  */
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { plans, subscriptions } from "@/lib/db/schema/abonament";
 import { cities } from "@/lib/db/schema/geografia";
@@ -175,7 +175,14 @@ export async function pobierzSzkicFirmy(widz: Widz): Promise<SzkicFirmy | null> 
       and(eq(companyCategories.companyId, companies.id), isNull(companyCategories.archivedAt)),
     )
     .leftJoin(categories, eq(categories.id, companyCategories.categoryId))
-    .where(and(eq(companyMembers.userId, userId), eq(companies.status, "draft")))
+    /*
+     * Szkic albo profil już opublikowany. Ten sam kreator służy do pierwszej
+     * publikacji i do późniejszych poprawek, więc opublikowana firma też musi
+     * się tu znaleźć. Szkic ma pierwszeństwo: kto zaczął nową firmę, wraca do
+     * niej, a nie do starej.
+     */
+    .where(and(eq(companyMembers.userId, userId), inArray(companies.status, ["draft", "active"])))
+    .orderBy(sql`${companies.status} = 'draft' desc`, asc(companies.createdAt))
     .limit(1);
 
   if (!firma) return null;
@@ -496,6 +503,19 @@ export async function opublikujSzkic(
 
   const dostep = await firmaDoZapisu(widz, companyId);
   if (!dostep.ok) return dostep;
+
+  /*
+   * Profil już opublikowany: ostatni krok kreatora jest wtedy zapisaniem
+   * poprawek, a nie publikacją. Drugi abonament dla tej samej firmy przy
+   * każdej poprawce opisu byłby śmieciem w rozliczeniach, a przy włączonych
+   * płatnościach przedłużałby dostęp za darmo.
+   */
+  const [obecny] = await db
+    .select({ status: companies.status })
+    .from(companies)
+    .where(eq(companies.id, companyId))
+    .limit(1);
+  if (obecny?.status === "active") return { ok: true, dane: null };
 
   const [plan] = await db
     .select({ id: plans.id })
