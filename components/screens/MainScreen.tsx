@@ -321,7 +321,7 @@ export function MainScreen() {
                 <rect x="5" y="11" width="14" height="9" rx="2" />
                 <path d="M8 11V8a4 4 0 0 1 8 0v3" />
               </svg>
-              Opis, budżet i kontakt tylko dla firm z abonamentem
+              Opis, budżet i kontakt tylko dla firm
             </div>
           </div>
         </div>
@@ -382,15 +382,14 @@ export function MainScreen() {
             Prowadzisz salę albo grasz na weselach?
           </h2>
           <p className="m-0 text-[17px] text-[#4A3312]">
-            Stały abonament roczny zamiast płacenia za każdy kontakt. Jedno pozyskane zlecenie
-            zwraca cały rok.
+            Dodanie firmy do katalogu jest bezpłatne. Profil zakładasz w kilka minut.
           </p>
         </div>
         <Link
-          href="/cennik"
+          href="/rejestracja-firmy"
           className="shrink-0 text-[16px] font-bold text-[#FBF7F4] bg-[#241C2B] hover:bg-black transition-colors rounded-full px-9 py-[18px]"
         >
-          Zobacz cennik
+          Dodaj firmę
         </Link>
       </section>
     </div>

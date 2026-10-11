@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { OKAZJE } from "@/content/okazje";
 import { adresAplikacji } from "@/lib/adres";
+import { PLATNOSCI_WLACZONE } from "@/lib/serwis";
 import { firma, impreza, okazja, PRZYKLADY, TRASY } from "@/lib/trasy";
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -16,7 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     TRASY.dodajZlecenie,
     TRASY.imprezy,
     TRASY.dlaFirm,
-    TRASY.cennik,
+    ...(PLATNOSCI_WLACZONE ? [TRASY.cennik] : []),
     TRASY.kontakt,
     TRASY.logowanie,
     TRASY.rejestracjaFirmy,

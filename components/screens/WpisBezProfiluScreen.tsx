@@ -133,10 +133,10 @@ export function WpisBezProfiluScreen({ lokal }: WpisBezProfiluScreenProps) {
               Zobacz przykładowy profil →
             </Link>
             <Link
-              href="/cennik"
+              href="/dla-firm"
               className="text-[14px] font-semibold text-[#6A5C70] hover:text-[#241C2B] bg-transparent border border-[#D9CCC2] rounded-[10px] px-5 py-2.5 cursor-pointer"
             >
-              Sprawdź cennik abonamentów dla sal
+              Jak dodać firmę
             </Link>
           </div>
         </div>

@@ -19,9 +19,15 @@ interface HeaderProps {
   zalogowany?: boolean;
 }
 
+/**
+ * Panel używa publicznego nagłówka z odnośnikiem do panelu i wylogowaniem.
+ *
+ * Warianty „dashboard-firm” i „dashboard-client” pochodzą z prototypu i mają
+ * wpisane na sztywno inicjały, odnośnik do przykładowego lokalu, kalendarz
+ * i abonament, których za nimi nie ma. Zostają w kodzie do czasu, aż panel
+ * dostanie te funkcje naprawdę.
+ */
 function wariantZeSciezki(sciezka: string): NonNullable<HeaderProps["variant"]> {
-  if (sciezka.startsWith("/panel")) return "dashboard-firm";
-  if (sciezka === "/moje" || sciezka === "/wiadomosci") return "dashboard-client";
   if (sciezka === "/logowanie") return "simple";
   return "public";
 }
@@ -355,9 +361,9 @@ export function Header({ variant, zalogowany = false }: HeaderProps) {
             Imprezy
           </Link>
           <Link
-            href="/cennik"
+            href="/dla-firm"
             className={`text-[15px] cursor-pointer bg-transparent border-0 pb-1 ${
-              sciezka === "/cennik"
+              sciezka === "/dla-firm"
                 ? "text-[#241C2B] font-bold border-b-2 border-[#241C2B]"
                 : "text-[#4A3D50] hover:text-[#241C2B]"
             }`}

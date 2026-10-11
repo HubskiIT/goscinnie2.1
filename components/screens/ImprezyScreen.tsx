@@ -194,8 +194,7 @@ export function ImprezyScreen({ imprezy, kryteria }: ImprezyScreenProps) {
         <div className="grow border border-[#E2D5CA] rounded-[20px] bg-white p-7 sm:p-8 shadow-sm">
           <h2 className="m-0 mb-2 font-fraunces font-medium text-[26px]">Rozkład roku</h2>
           <p className="m-0 text-[15px] leading-[1.6] text-[#6A5C70]">
-            Sezon imprez otwartych nie pokrywa się z weselnym. To są dwa różne szczyty i dwa różne
-            powody, żeby lokal opłacał abonament cały rok.
+            Sezon imprez otwartych nie pokrywa się z weselnym. To są dwa różne szczyty w ciągu roku.
           </p>
         </div>
 
@@ -242,15 +241,15 @@ export function ImprezyScreen({ imprezy, kryteria }: ImprezyScreenProps) {
             Masz lokal i robisz andrzejki?
           </h2>
           <p className="m-0 text-[16px] leading-[1.65] text-[#3E3344] max-w-[74ch]">
-            Wystaw termin w swoim profilu. Ta sama opłata abonamentowa, żadnej prowizji od
-            sprzedanych miejsc. Wpis żyje do dnia imprezy, potem sam schodzi z listy.
+            Wystawianie imprez w profilu uruchomimy wkrótce. Już teraz możesz bezpłatnie dodać lokal
+            do katalogu.
           </p>
         </div>
         <Link
-          href="/cennik"
+          href="/rejestracja-firmy"
           className="shrink-0 text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-4 cursor-pointer"
         >
-          Dodaj swoją imprezę
+          Dodaj lokal
         </Link>
       </section>
     </div>

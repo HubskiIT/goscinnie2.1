@@ -213,15 +213,14 @@ export function ZleceniaScreen({ zlecenia, kryteria }: ZleceniaScreenProps) {
                         Widzisz 120 znaków z 380
                       </div>
                       <div className="text-[13px] text-[#55485A]">
-                        Pełny opis, budżet i prawo złożenia oferty są dostępne dla firm z aktywnym
-                        abonamentem.
+                        Pełny opis, budżet i składanie ofert uruchomimy razem z giełdą zleceń.
                       </div>
                     </div>
                     <Link
-                      href="/cennik"
+                      href="/dla-firm"
                       className="shrink-0 text-[14px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[10px] px-5 py-2.5 border-0 cursor-pointer shadow-2xs"
                     >
-                      Odblokuj w abonamencie (Cennik)
+                      Dodaj firmę bezpłatnie
                     </Link>
                   </div>
                 </>

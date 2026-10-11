@@ -1,7 +1,12 @@
 import { CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { PLATNOSCI_WLACZONE } from "@/lib/serwis";
 
 export default function PlatnoscSukcesPage() {
+  // Płatności wyłączone (lib/serwis.ts): nie ma czego potwierdzać.
+  if (!PLATNOSCI_WLACZONE) redirect("/panel");
+
   return (
     <div
       style={{

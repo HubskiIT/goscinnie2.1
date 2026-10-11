@@ -73,19 +73,16 @@ export function MobileSidebar({ isOpen, onClose, variant = "public" }: MobileSid
       icon: PartyPopper,
     },
     {
-      href: "/cennik",
-      label: "Dla firm / Cennik",
-      subtitle: "Stały abonament, 0% prowizji od umów",
+      href: "/dla-firm",
+      label: "Dla firm",
+      subtitle: "Dodaj firmę do katalogu, bezpłatnie",
       icon: Briefcase,
     },
   ];
 
   const dashboardFirmItems = [
     { href: "/panel", label: "Pulpit firmy", icon: Store },
-    { href: "/f/dwor-pod-lipami", label: "Profil lokalu / Podgląd", icon: Building2 },
-    { href: "/zlecenia", label: "Zlecenia i giełda", icon: ClipboardList },
-    { href: "/wiadomosci", label: "Wiadomości i czat", icon: MessageSquare },
-    { href: "/cennik", label: "Abonament i pakiety", icon: Briefcase },
+    { href: "/rejestracja-firmy", label: "Edytuj profil", icon: Building2 },
   ];
 
   const dashboardClientItems = [

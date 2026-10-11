@@ -55,22 +55,16 @@ export function Footer({ dark }: FooterProps) {
           <div className="flex flex-col gap-2.5">
             <span className="text-[15px] font-bold text-[#FBF7F4]">Dla firm</span>
             <Link
-              href="/cennik"
+              href="/dla-firm"
               className="text-left text-[14px] text-[#D5C7D0] hover:text-white bg-transparent border-0 cursor-pointer p-0"
             >
-              Cennik abonamentu
+              Jak to działa
             </Link>
             <Link
               href="/rejestracja-firmy"
               className="text-left text-[14px] text-[#D5C7D0] hover:text-white bg-transparent border-0 cursor-pointer p-0"
             >
-              Przejmij swój profil
-            </Link>
-            <Link
-              href="/cennik"
-              className="text-left text-[14px] text-[#D5C7D0] hover:text-white bg-transparent border-0 cursor-pointer p-0"
-            >
-              Promowanie
+              Dodaj swoją firmę
             </Link>
           </div>
 
@@ -153,10 +147,10 @@ export function Footer({ dark }: FooterProps) {
             Dla firm
           </div>
           <Link
-            href="/cennik"
+            href="/dla-firm"
             className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
           >
-            Cennik abonamentu
+            Jak to działa
           </Link>
           <Link
             href="/rejestracja-firmy"

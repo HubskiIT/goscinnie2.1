@@ -50,6 +50,8 @@ być te zmienne. Same nazwy, wartości wpisuje właściciel.
 | `BETTER_AUTH_SECRET` | podpisywanie sesji, losowy ciąg wygenerowany raz: `openssl rand -base64 32` |
 | `BETTER_AUTH_URL` | pełny adres aplikacji, z niego budują się linki w wiadomościach |
 | `APP_URL` | pełny adres aplikacji, używany przez `sitemap.xml` |
+| `RESEND_API_KEY` | wysyłka maili (kod potwierdzający adres, reset hasła). **Bez niej rejestracja na produkcji kończy się błędem** |
+| `POCZTA_NADAWCA` | nadawca maili, np. `Gościnnie <noreply@goscinnie.pl>`. Domena musi być zweryfikowana w Resend |
 
 Dlaczego dwa adresy bazy: pula w trybie transakcyjnym nie gwarantuje, że cała
 migracja pójdzie jednym połączeniem. Szczegóły w `docs/decyzje/007`.
@@ -57,6 +59,12 @@ migracja pójdzie jednym połączeniem. Szczegóły w `docs/decyzje/007`.
 Zasiew pokazowy (`pnpm db:seed`) odmawia działania, gdy `NODE_ENV` to
 `production`. Na produkcji nie ma czego zasiewać: słowniki wchodzą osobnym
 skryptem, a firmy i zlecenia zakładają prawdziwi ludzie.
+
+## Tryb darmowy
+
+Na starcie firmy nie płacą. Przełącznik `PLATNOSCI_WLACZONE` w `lib/serwis.ts`
+ukrywa cennik i płatności, a publikacja profilu daje dostęp do daty
+`DARMOWY_DOSTEP_DO`. Uzasadnienie w `docs/decyzje/010-darmowy-start.md`.
 
 ## Przed commitem
 

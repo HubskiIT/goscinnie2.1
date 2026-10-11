@@ -27,15 +27,13 @@ import {
 } from "@/lib/db/queries/kreator";
 import type { StanFormularza } from "@/lib/formularze";
 import type { PowodOdmowy, Widz } from "@/lib/permissions";
+import { DARMOWY_DOSTEP_DO, PLATNOSCI_WLACZONE } from "@/lib/serwis";
 import {
   daneKategorii,
   daneLokalizacji,
   daneOpisu,
   daneWeryfikacji,
 } from "@/lib/validators/kreator";
-
-/** Ile dni trwa darmowy okres próbny, dopóki PayU jest wyłączone. */
-const DNI_OKRESU_PROBNEGO = 30;
 
 type WynikWalidacji<T> = { ok: true; dane: T } | { ok: false; stan: StanFormularza };
 
@@ -216,7 +214,7 @@ const NAZWA_BRAKU = {
  * wejść wprost z adresu, a firma bez lokalizacji albo bez kategorii nie pojawi
  * się ani w wyszukiwaniu, ani w katalogu.
  *
- * Dopóki PayU jest wyłączone, publikacja daje darmowy okres próbny.
+ * Dopóki płatności są wyłączone, publikacja daje darmowy dostęp.
  */
 export async function wyslijDoZatwierdzenia(
   _poprzedni: StanFormularza,
@@ -236,16 +234,16 @@ export async function wyslijDoZatwierdzenia(
     };
   }
 
+  /*
+   * Płatności wyłączone (lib/serwis.ts): publikacja od razu, z darmowym
+   * dostępem i bez pytania o plan. Ścieżka do płatności zostaje w kodzie
+   * na dzień, w którym przełącznik zmieni wartość.
+   */
   const payuDziala = Boolean(process.env.PAYU_CLIENT_ID && process.env.PAYU_CLIENT_SECRET);
+  if (PLATNOSCI_WLACZONE && payuDziala) redirect("/panel/wybierz-plan");
 
-  // Z PayU: wybór planu i płatność. Bez PayU: darmowy okres próbny od razu.
-  if (payuDziala) redirect("/panel/wybierz-plan");
-
-  const wygasaO = new Date();
-  wygasaO.setDate(wygasaO.getDate() + DNI_OKRESU_PROBNEGO);
-
-  const wynik = await opublikujSzkic(widz, gotowosc.dane.companyId, wygasaO);
+  const wynik = await opublikujSzkic(widz, gotowosc.dane.companyId, DARMOWY_DOSTEP_DO);
   if (!wynik.ok) return odmowa(wynik.powod);
 
-  redirect("/panel/profil?opublikowano=1");
+  redirect("/panel?opublikowano=1");
 }

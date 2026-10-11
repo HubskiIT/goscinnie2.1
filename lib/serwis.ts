@@ -50,3 +50,32 @@ export const CZYM_JESTESMY_KROTKO = "Katalog lokali i usługodawców na każdą 
  * do profili osobom z zewnątrz.
  */
 export const KONTAKT_EMAIL = "kontakt@goscinnie.pl";
+
+/**
+ * Płatności. Na starcie serwis jest w całości darmowy dla firm.
+ *
+ * Przy `false`:
+ * 1. Cennik, wybór planu i ekrany płatności nie są nigdzie podlinkowane,
+ *    a ich adresy kończą się stroną 404 albo powrotem do panelu.
+ * 2. Publikacja profilu daje dostęp do `DARMOWY_DOSTEP_DO`, bez pytania o plan.
+ *
+ * Weryfikacja zostaje włączona niezależnie od tego przełącznika: potwierdzenie
+ * adresu e-mail kodem i NIP z telefonem w kreatorze.
+ *
+ * Przełącznik jest stałą w kodzie, a nie zmienną środowiskową, celowo.
+ * Włączenie płatności zmienia to, co firmy widzą i za co płacą, więc ma przejść
+ * przez commit i przegląd, a nie przez kliknięcie w panelu hostingu.
+ */
+export const PLATNOSCI_WLACZONE = false;
+
+/**
+ * Do kiedy sięga darmowy dostęp nadawany przy publikacji, gdy płatności są
+ * wyłączone.
+ *
+ * To nie jest obietnica dla firm ani data zakończenia darmowego okresu. To
+ * górna granica zapisana w abonamencie, bo kolumna `expires_at` nie przyjmuje
+ * pustej wartości. Przed włączeniem płatności trzeba świadomie zdecydować, do
+ * kiedy firmy z darmowego okresu zachowują dostęp, i ustawić to migracją
+ * danych dla wszystkich abonamentów z tego okresu naraz.
+ */
+export const DARMOWY_DOSTEP_DO = new Date("2027-12-31T23:59:59+01:00");
