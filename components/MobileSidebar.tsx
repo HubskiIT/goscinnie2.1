@@ -20,6 +20,7 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { wylogujSie } from "@/lib/akcje/logowanie";
 
 interface MobileSidebarProps {
   isOpen: boolean;
@@ -382,14 +383,17 @@ export function MobileSidebar({ isOpen, onClose, variant = "public" }: MobileSid
                       </div>
                     </div>
                   </div>
-                  <Link
-                    href="/"
-                    onClick={onClose}
-                    className="flex items-center gap-1.5 text-[13px] font-medium text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer py-1.5 px-2.5 rounded-lg hover:bg-white"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span>Wyloguj</span>
-                  </Link>
+                  {/* Prawdziwe wylogowanie, nie odnośnik do strony głównej. */}
+                  <form action={wylogujSie}>
+                    <button
+                      type="submit"
+                      onClick={onClose}
+                      className="flex items-center gap-1.5 text-[13px] font-medium text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer py-1.5 px-2.5 rounded-lg hover:bg-white"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Wyloguj</span>
+                    </button>
+                  </form>
                 </>
               ) : (
                 <>

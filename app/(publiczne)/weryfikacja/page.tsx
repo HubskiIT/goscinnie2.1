@@ -2,8 +2,9 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useActionState } from "react";
-import { zweryfikujEmail } from "@/lib/akcje/weryfikacja";
+import { wyslijKodPonownie, zweryfikujEmail } from "@/lib/akcje/weryfikacja";
 import { STAN_POCZATKOWY, wartoscPola } from "@/lib/formularze";
+import { DLUGOSC_KODU } from "@/lib/validators/konto";
 
 /**
  * `useSearchParams` wymaga granicy Suspense nad sobą.
@@ -29,6 +30,10 @@ function Weryfikacja() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
   const [stan, akcja, czeka] = useActionState(zweryfikujEmail, STAN_POCZATKOWY);
+  const [stanWysylki, akcjaWysylki, czekaWysylka] = useActionState(
+    wyslijKodPonownie,
+    STAN_POCZATKOWY,
+  );
 
   return (
     <div
@@ -94,7 +99,7 @@ function Weryfikacja() {
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
-              maxLength={6}
+              maxLength={DLUGOSC_KODU}
               placeholder="000000"
               defaultValue={wartoscPola(stan, "kod")}
               autoComplete="one-time-code"
@@ -129,6 +134,22 @@ function Weryfikacja() {
             </div>
           )}
 
+          {stanWysylki.status === "informacja" && (
+            <p
+              role="status"
+              style={{
+                margin: "0 0 16px",
+                padding: "12px 16px",
+                background: "#f2e9e2",
+                borderRadius: "8px",
+                fontSize: "14px",
+                color: "#3e3344",
+              }}
+            >
+              {stanWysylki.tresc}
+            </p>
+          )}
+
           <button
             type="submit"
             disabled={czeka}
@@ -145,6 +166,44 @@ function Weryfikacja() {
             }}
           >
             {czeka ? "Weryfikuję..." : "Potwierdź"}
+          </button>
+        </form>
+
+        {/*
+          Ponowne wysłanie kodu jako osobny formularz, a nie przycisk w tamtym.
+          Dwa przyciski w jednym formularzu wysyłałyby ten sam zestaw pól,
+          więc kliknięcie „wyślij ponownie" z pustym kodem kończyłoby się
+          błędem walidacji kodu, zamiast wysłać nowy.
+        */}
+        {/*
+          Wyjście dla kogoś, kto ma już konto i przez pomyłkę przeszedł
+          rejestrację drugi raz. Zakładanie konta na zajęty adres kończy się
+          po cichu, bez komunikatu „adres zajęty", bo taki komunikat byłby
+          sprawdzarką cudzych adresów. Ten odnośnik jest zamiast niego.
+        */}
+        <p style={{ margin: "24px 0 0", textAlign: "center", fontSize: "14px", color: "#666" }}>
+          Masz już konto?{" "}
+          <a href="/logowanie" style={{ color: "#3b6dff" }}>
+            Zaloguj się
+          </a>
+        </p>
+
+        <form action={akcjaWysylki} style={{ marginTop: "12px", textAlign: "center" }}>
+          <input type="hidden" name="email" value={email} />
+          <button
+            type="submit"
+            disabled={czekaWysylka}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              fontSize: "14px",
+              color: czekaWysylka ? "#9ca3af" : "#3b6dff",
+              cursor: czekaWysylka ? "not-allowed" : "pointer",
+              textDecoration: "underline",
+            }}
+          >
+            {czekaWysylka ? "Wysyłam..." : "Nie dostałeś kodu? Wyślij ponownie"}
           </button>
         </form>
       </div>

@@ -1,77 +1,78 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { z } from "zod";
-import { auth } from "@/lib/auth";
-import type { StanFormularza } from "@/lib/formularze";
-
 /**
- * Akcja rejestracji firmy. Tworzy konto przez better-auth i wysyła
- * kod weryfikacyjny na email.
+ * Zakładanie konta w pierwszym kroku kreatora firmy.
+ *
+ * Konto tworzy better-auth, on też wysyła kod potwierdzający adres, bo wtyczka
+ * emailOTP ma włączone `sendVerificationOnSignUp`. Ten plik nie dotyka ani
+ * haseł, ani sesji.
  */
-
-const schematRejestracja = z.object({
-  email: z.string().email("Nieprawidłowy adres email."),
-  haslo: z
-    .string()
-    .min(8, "Hasło musi mieć co najmniej 8 znaków.")
-    .regex(/[A-Z]/, "Hasło musi zawierać wielką literę.")
-    .regex(/[a-z]/, "Hasło musi zawierać małą literę.")
-    .regex(/[0-9]/, "Hasło musi zawierać cyfrę."),
-});
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { bledyZod, type StanFormularza } from "@/lib/formularze";
+import { daneRejestracjiFirmy } from "@/lib/validators/konto";
 
 export async function zarejestrujFirme(
   _poprzedni: StanFormularza,
   dane: FormData,
 ): Promise<StanFormularza> {
   const wejscie = Object.fromEntries(dane.entries());
-  const wynik = schematRejestracja.safeParse(wejscie);
+  const wynik = daneRejestracjiFirmy.safeParse(wejscie);
 
-  if (!wynik.success) {
-    const bledy: Record<string, string[]> = {};
-    for (const problem of wynik.error.issues) {
-      const pole = String(problem.path[0] ?? "_");
-      bledy[pole] = [problem.message];
-    }
-    return { status: "bledy", bledy, wartosci: {} };
-  }
+  if (!wynik.success) return bledyZod(wynik.error, wejscie);
+
+  const { email, haslo } = wynik.data;
 
   try {
-    // Rejestracja przez better-auth
-    const odpowiedz = await auth.api.signUpEmail({
+    await auth.api.signUpEmail({
       body: {
-        email: wynik.data.email,
-        password: wynik.data.haslo,
-        name: wynik.data.email.split("@")[0] ?? "Użytkownik",
+        email,
+        password: haslo,
+        /*
+         * Nazwa konta to na razie część adresu przed małpą.
+         *
+         * Prawdziwa nazwa firmy pojawia się dopiero w trzecim kroku kreatora
+         * i trafia do `companies.name`. Te dwie rzeczy są osobne celowo:
+         * jeden człowiek może prowadzić dwie firmy, więc nazwa firmy nie
+         * może być nazwą konta.
+         */
+        name: email.split("@")[0] ?? "Użytkownik",
       },
+      headers: await headers(),
+      asResponse: false,
     });
-
-    if (!odpowiedz) {
-      return {
-        status: "bledy",
-        bledy: { _: ["Nie udało się utworzyć konta."] },
-        wartosci: {},
-      };
-    }
-
-    // Przekierowanie na stronę weryfikacji
-    redirect(`/weryfikacja?email=${encodeURIComponent(wynik.data.email)}`);
-  } catch (error) {
-    console.error("Błąd rejestracji:", error);
-    const komunikat = error instanceof Error ? error.message : "Nieznany błąd";
-
-    if (komunikat.includes("already exists") || komunikat.includes("unique")) {
-      return {
-        status: "bledy",
-        bledy: { email: ["Ten adres email jest już zarejestrowany."] },
-        wartosci: {},
-      };
-    }
-
-    return {
-      status: "bledy",
-      bledy: { _: [`Nie udało się zarejestrować: ${komunikat}`] },
-      wartosci: {},
-    };
+  } catch (blad) {
+    return bladRejestracji(blad, email);
   }
+
+  // Poza blokiem try: przekierowanie w Next.js działa przez wyjątek.
+  redirect(`/weryfikacja?email=${encodeURIComponent(email)}`);
+}
+
+/**
+ * Odmowa zakładania konta.
+ *
+ * ZAJĘTY ADRES NIE TRAFIA TUTAJ i to jest zamierzone zachowanie better-auth,
+ * sprawdzone na działającej bazie: ponowne zakładanie konta na istniejący
+ * adres **nie rzuca błędem**, nie tworzy drugiego konta i nie nadpisuje hasła.
+ * Kończy się po cichu, tak jakby się udało.
+ *
+ * Powód jest ten sam, dla którego logowanie odmawia jednakowo przy złym
+ * adresie i złym haśle: formularz rejestracji, który mówi „ten adres jest
+ * zajęty", jest sprawdzarką, czy ktoś ma u nas konto. Wystarczy wpisywać
+ * adresy i czytać odpowiedzi.
+ *
+ * Dla człowieka, który ma już konto i próbuje założyć drugie, wyjściem jest
+ * odnośnik „mam już konto" na ekranie z kodem, a nie komunikat tutaj.
+ *
+ * Zostaje więc wyłącznie awaria: baza nie odpowiada, poczta nie działa.
+ */
+function bladRejestracji(blad: unknown, email: string): StanFormularza {
+  console.error(`Zakładanie konta dla ${email}:`, blad);
+  return {
+    status: "bledy",
+    bledy: { _: ["Nie udało się założyć konta. Spróbuj ponownie za chwilę."] },
+    wartosci: { email },
+  };
 }

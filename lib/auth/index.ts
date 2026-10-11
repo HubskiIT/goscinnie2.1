@@ -15,6 +15,8 @@ import { hash, verify } from "@node-rs/argon2";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
+import { nextCookies } from "better-auth/next-js";
+import { emailOTP } from "better-auth/plugins";
 import { db } from "@/lib/db";
 import { accounts, sessions, verifications } from "@/lib/db/schema/sesje";
 import { users } from "@/lib/db/schema/tozsamosc";
@@ -74,6 +76,22 @@ function utworzAuth() {
       useSecureCookies: process.env.NODE_ENV === "production",
     },
 
+    emailVerification: {
+      /*
+       * Po potwierdzeniu adresu kodem człowiek jest od razu zalogowany.
+       *
+       * Bez tego `verifyEmailOTP` ustawia `email_verified`, ale **nie zakłada
+       * sesji**: kreator przekierowywał do kroku drugiego, a ten pokazywał
+       * krok pierwszy, bo nikt nie był zalogowany. Pętla bez wyjścia, w której
+       * nic nie wyglądało na zepsute.
+       *
+       * Bezpieczeństwa to nie obniża: kod przyszedł na ten adres, więc ktoś,
+       * kto go wpisał, ma do niego dostęp. To jest ten sam dowód tożsamości,
+       * którego wymaga link aktywacyjny.
+       */
+      autoSignInAfterVerification: true,
+    },
+
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 12,
@@ -90,20 +108,72 @@ function utworzAuth() {
         await nadawca.wyslij(resetHasla(user.email, url));
       },
 
-      sendVerificationEmail: async ({
-        user,
-        token,
-      }: {
-        user: { email: string };
-        url: string;
-        token: string;
-      }) => {
-        const { pobierzNadawce } = await import("@/lib/poczta");
-        const { weryfikacjaEmail } = await import("@/lib/poczta/szablony");
-        const nadawca = await pobierzNadawce();
-        await nadawca.wyslij(weryfikacjaEmail(user.email, token));
-      },
+      // Wysyłką kodu zajmuje się wtyczka emailOTP niżej. Nie ma tu
+      // `sendVerificationEmail`, bo `overrideDefaultEmailVerification`
+      // przekierowuje całą weryfikację adresu na kod.
     },
+
+    plugins: [
+      /*
+       * Potwierdzanie adresu kodem z maila.
+       *
+       * Dlaczego wtyczka, a nie własna obsługa: CLAUDE.md zabrania pisania
+       * własnej warstwy logowania, i słusznie. Poprzednia wersja miała tu
+       * akcję, która **w ogóle nie sprawdzała kodu**: znajdowała konto po
+       * adresie i ustawiała `email_verified` na prawdę. Dowolne sześć cyfr
+       * potwierdzało dowolny cudzy adres. Dodatkowo szablon maila dostawał
+       * długi token better-auth, a pole przyjmowało sześć cyfr, więc prawdziwy
+       * token i tak nie miał jak przejść i cały krok trzymał się wyłącznie
+       * na tej dziurze.
+       *
+       * Wtyczka daje to, czego tamta akcja nie miała: kod wygasa, liczba prób
+       * jest ograniczona, a w bazie leży skrót, nie sam kod.
+       */
+      emailOTP({
+        // Skrót zamiast kodu wprost. Wyciek tabeli `verifications` nie daje
+        // wtedy gotowych kodów do cudzych kont.
+        storeOTP: "hashed",
+
+        // Kwadrans, tyle co obiecuje szablon maila. Zgodność jest tu istotna:
+        // mail mówiący „ważny 15 minut" przy pięciu minutach w kodzie to
+        // zgłoszenie błędu od kogoś, kto poszedł zaparzyć herbatę.
+        expiresIn: 15 * 60,
+
+        // Trzy próby na kod. Przy sześciu cyfrach i kwadransie ważności
+        // zgadywanie przestaje mieć sens.
+        allowedAttempts: 3,
+
+        // Kod leci sam po założeniu konta, bez osobnego kliknięcia.
+        sendVerificationOnSignUp: true,
+
+        // Cała weryfikacja adresu idzie przez kod, także gdy ktoś poprosi
+        // o ponowne wysłanie. Bez tego istniałyby dwie drogi naraz: kod
+        // i link, a tylko jedna z nich byłaby obsłużona przez interfejs.
+        overrideDefaultEmailVerification: true,
+
+        sendVerificationOTP: async ({ email, otp }) => {
+          const { pobierzNadawce } = await import("@/lib/poczta");
+          const { weryfikacjaEmail } = await import("@/lib/poczta/szablony");
+          const nadawca = await pobierzNadawce();
+          await nadawca.wyslij(weryfikacjaEmail(email, otp));
+        },
+      }),
+
+      /*
+       * Ustawianie ciasteczka sesji z akcji serwerowych.
+       *
+       * **Musi zostać ostatnia na liście** — tak działa ta wtyczka.
+       *
+       * Bez niej better-auth zakłada sesję w bazie, ale ciasteczko nigdy nie
+       * dociera do przeglądarki, bo akcja serwerowa Next.js nie przepisuje
+       * nagłówków odpowiedzi sama z siebie. Objawia się to najgorzej, jak może:
+       * logowanie „przechodzi”, nie pokazuje żadnego błędu, a człowiek wraca
+       * na stronę nadal wylogowany. Wyszło przy ręcznym przejściu rejestracji:
+       * kod potwierdził adres, przekierowanie zadziałało, a kreator i tak
+       * pokazał krok zakładania konta.
+       */
+      nextCookies(),
+    ],
 
     session: {
       // Siedem dni, odświeżane co dobę przy aktywności.

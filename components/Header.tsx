@@ -4,10 +4,19 @@ import { Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { wylogujSie } from "@/lib/akcje/logowanie";
 import { MobileSidebar } from "./MobileSidebar";
 
 interface HeaderProps {
   variant?: "public" | "dashboard-firm" | "dashboard-client" | "simple";
+  /**
+   * Czy ktoś jest zalogowany. Ustala to serwer w layoucie, bo ten komponent
+   * jest kliencki i nie ma dostępu do ciasteczka sesji.
+   *
+   * Bez tego nagłówek zapraszał do logowania także kogoś, kto właśnie się
+   * zalogował, i nie dawał żadnej drogi do wylogowania.
+   */
+  zalogowany?: boolean;
 }
 
 function wariantZeSciezki(sciezka: string): NonNullable<HeaderProps["variant"]> {
@@ -17,7 +26,7 @@ function wariantZeSciezki(sciezka: string): NonNullable<HeaderProps["variant"]> 
   return "public";
 }
 
-export function Header({ variant }: HeaderProps) {
+export function Header({ variant, zalogowany = false }: HeaderProps) {
   const sciezka = usePathname();
   const uzytyWariant = variant ?? wariantZeSciezki(sciezka);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -138,12 +147,16 @@ export function Header({ variant }: HeaderProps) {
             <span className="w-[38px] h-[38px] rounded-full bg-[#E7EDE7] text-[#3F5142] text-[14px] font-bold flex items-center justify-center">
               DL
             </span>
-            <Link
-              href="/"
-              className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer hidden sm:inline"
-            >
-              Wyloguj
-            </Link>
+            {/* Wylogowanie formularzem, bo unieważnia sesję po stronie
+                serwera. Odnośnik do "/" tylko udawał, że to robi. */}
+            <form action={wylogujSie} className="hidden sm:block">
+              <button
+                type="submit"
+                className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
+              >
+                Wyloguj
+              </button>
+            </form>
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
@@ -231,12 +244,16 @@ export function Header({ variant }: HeaderProps) {
             <span className="w-[38px] h-[38px] rounded-full bg-[#E7EDE7] text-[#3F5142] text-[14px] font-bold flex items-center justify-center">
               AK
             </span>
-            <Link
-              href="/"
-              className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer hidden sm:inline"
-            >
-              Wyloguj
-            </Link>
+            {/* Wylogowanie formularzem, bo unieważnia sesję po stronie
+                serwera. Odnośnik do "/" tylko udawał, że to robi. */}
+            <form action={wylogujSie} className="hidden sm:block">
+              <button
+                type="submit"
+                className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
+              >
+                Wyloguj
+              </button>
+            </form>
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
@@ -350,18 +367,44 @@ export function Header({ variant }: HeaderProps) {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-          <Link
-            href="/logowanie"
-            className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] cursor-pointer bg-transparent border-0 hidden sm:inline"
-          >
-            Zaloguj się
-          </Link>
-          <Link
-            href="/rejestracja-firmy"
-            className="text-[14px] sm:text-[15px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-full px-4 sm:px-5 py-2 sm:py-[10px] hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-transparent hidden md:inline"
-          >
-            Dodaj swoją firmę
-          </Link>
+          {zalogowany ? (
+            <>
+              <Link
+                href="/panel"
+                className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] cursor-pointer bg-transparent border-0 hidden sm:inline"
+              >
+                Mój panel
+              </Link>
+              {/*
+                Wylogowanie formularzem, nie odnośnikiem: unieważnia sesję po
+                stronie serwera, więc musi być żądaniem POST. Odnośnik dałby się
+                wywołać podglądem linków w komunikatorze albo prefetchem.
+              */}
+              <form action={wylogujSie}>
+                <button
+                  type="submit"
+                  className="text-[14px] sm:text-[15px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-full px-4 sm:px-5 py-2 sm:py-[10px] hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-transparent"
+                >
+                  Wyloguj
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/logowanie"
+                className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] cursor-pointer bg-transparent border-0 hidden sm:inline"
+              >
+                Zaloguj się
+              </Link>
+              <Link
+                href="/rejestracja-firmy"
+                className="text-[14px] sm:text-[15px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-full px-4 sm:px-5 py-2 sm:py-[10px] hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-transparent hidden md:inline"
+              >
+                Dodaj swoją firmę
+              </Link>
+            </>
+          )}
 
           {/* Mobile Hamburger Button to slide out the sidebar */}
           <button
