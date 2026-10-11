@@ -8,7 +8,7 @@
  *
  * Testy pracują na firmach i zleceniach z zasiewu.
  */
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 import { POST as dodajDoKrotkiejListyEndpoint } from "@/app/api/oferty/[id]/krotka-lista/route";
 import { DELETE as wycofajEndpoint } from "@/app/api/oferty/[id]/route";
@@ -38,6 +38,22 @@ const CENA_NA_LIMICIE = 622_200;
 
 type Sesja = { ciasteczko: string; userId: string };
 
+/**
+ * Loguje członka firmy o podanym slugu.
+ *
+ * Sortowanie po adresie jest tu **konieczne**, nie kosmetyczne. Firma ma
+ * w zasiewie więcej niż jednego członka, a zasiew celowo przecina role:
+ * pracownikA i pracownikC są jednocześnie członkami firm i autorami zleceń.
+ * Bez `order by` baza zwracała dowolnego z nich, więc test raz logował członka
+ * obojętnego wobec badanego zlecenia, a raz jego autora. W tym drugim
+ * przypadku `widzWKontekscieZlecenia` słusznie podnosił widza do autora
+ * i firma widziała oferty konkurencji — czyli dokładnie to, czemu ten plik
+ * ma zaprzeczać.
+ *
+ * Objawiało się to trzema awariami naraz, raz na kilka uruchomień, w testach,
+ * które z losowaniem nie mają nic wspólnego. Ten sam błąd naprawiono już
+ * w `zlecenieZLiczbaOfert` wyżej; tutaj został przeoczony.
+ */
 async function zalogujCzlonkaFirmy(slug: string): Promise<Sesja> {
   const [wiersz] = await db
     .select({ email: users.email })
@@ -45,6 +61,7 @@ async function zalogujCzlonkaFirmy(slug: string): Promise<Sesja> {
     .innerJoin(companyMembers, eq(companyMembers.companyId, companies.id))
     .innerJoin(users, eq(users.id, companyMembers.userId))
     .where(eq(companies.slug, slug))
+    .orderBy(users.email)
     .limit(1);
 
   if (!wiersz) throw new Error(`Zasiew nie ma członka firmy ${slug}.`);
@@ -104,7 +121,32 @@ async function zlecenieZLiczbaOfert(ile: number, pomin: string[] = []): Promise<
   const wszystkie = await db
     .select({ id: requests.id })
     .from(requests)
-    .where(eq(requests.status, "open"))
+    .where(
+      and(
+        eq(requests.status, "open"),
+        /*
+         * Zlecenie napisane przez kogokolwiek należącego do firmy odpada.
+         *
+         * Każdy test w tym pliku ogląda to zlecenie **jako firma**, a zasiew
+         * celowo przecina role: pracownikA i pracownikC są jednocześnie
+         * członkami firm i autorami zleceń. Gdy trafiło się na zlecenie
+         * napisane przez członka tej samej firmy, co zalogowany widz,
+         * `widzWKontekscieZlecenia` słusznie podnosił go do autora i firma
+         * widziała oferty konkurencji — czyli odwrotność tego, czego ten plik
+         * dowodzi.
+         *
+         * Sortowanie po `requests.id` tego nie łapało: identyfikatory są
+         * losowymi UUID-ami nadawanymi przy każdym zasiewie, więc kolejność
+         * była stała w obrębie jednego przebiegu i inna między przebiegami.
+         * Trzy testy padały razem raz na kilka uruchomień, w miejscu
+         * niezwiązanym z przyczyną.
+         */
+        sql`not exists (
+          select 1 from ${companyMembers}
+          where ${companyMembers.userId} = ${requests.authorUserId}
+        )`,
+      ),
+    )
     .orderBy(requests.id);
 
   for (const zlecenie of wszystkie) {

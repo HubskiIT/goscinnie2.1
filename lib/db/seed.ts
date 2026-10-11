@@ -746,5 +746,16 @@ export async function zasiej(): Promise<void> {
   );
 }
 
-await zasiej();
-process.exit(0);
+/*
+ * Uruchomienie z wiersza poleceń, ale **nie przy imporcie w teście**.
+ *
+ * Bez tego warunku samo `import("@/lib/db/seed")` zasiewało bazę i wywoływało
+ * `process.exit(0)`, czyli potrafiło ubić proces testów w środku przebiegu.
+ * Test sprawdzający, że zasiew odmawia działania na produkcji, dostawał wyjątek
+ * już przy wczytywaniu modułu, zamiast móc wywołać `zasiej()` i sprawdzić
+ * odmowę. Ten sam wzorzec ma scripts/slowniki.ts.
+ */
+if (process.argv[1]?.endsWith("seed.ts")) {
+  await zasiej();
+  process.exit(0);
+}
