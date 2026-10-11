@@ -1,11 +1,9 @@
-import type { Metadata } from "next";
-import { RejestracjaFirmyScreen } from "@/components/screens/RejestracjaFirmyScreen";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Profil firmy",
-  description: "Kreator profilu firmy.",
-};
-
+/**
+ * Profil edytuje się tym samym kreatorem, którym się go dodaje.
+ * Wcześniej stał tu ekran prototypu z wpisanymi na sztywno cudzymi danymi.
+ */
 export default function Strona() {
-  return <RejestracjaFirmyScreen />;
+  redirect("/rejestracja-firmy");
 }
