@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { LokaleScreen } from "@/components/screens/LokaleScreen";
+import { widzZZadania } from "@/lib/auth/widz";
+import { lokaleZBazy } from "@/lib/katalog";
 import { odczytajKryteria } from "@/lib/wyszukiwanie";
 import { wyszukajLokale } from "@/lib/wyszukiwanie-serwer";
 
@@ -16,5 +19,6 @@ export default async function Strona({ searchParams }: Props) {
   // Stan wyszukiwarki czytamy z adresu i filtrujemy po stronie serwera,
   // żeby ten sam adres w nowej karcie dał ten sam wynik.
   const kryteria = odczytajKryteria(await searchParams);
-  return <LokaleScreen lokale={wyszukajLokale(kryteria)} kryteria={kryteria} />;
+  const zBazy = await lokaleZBazy(await widzZZadania(await headers()));
+  return <LokaleScreen lokale={wyszukajLokale(kryteria, zBazy)} kryteria={kryteria} />;
 }

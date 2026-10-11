@@ -22,8 +22,11 @@ export interface Miejscowosc {
   gmina: string;
   powiat: string;
   wojewodztwo: string;
-  /** Odległość od centrum miasta wojewódzkiego w kilometrach. */
-  odlegloscOdCentrumKm: number;
+  /**
+   * Odległość od centrum miasta wojewódzkiego w kilometrach. `null` dla firm
+   * z bazy: kreator jej nie zbiera, a wpisywanie jej na oko byłoby zmyślaniem.
+   */
+  odlegloscOdCentrumKm: number | null;
 }
 
 export interface Lokal {
@@ -53,7 +56,8 @@ export interface Uslugodawca {
   /** Slug z content/kategorie.ts. Główna kategoria wyznacza klasę cenową. */
   kategoriaGlowna: string;
   miejscowosc: Miejscowosc;
-  zasiegDojazduKm: number;
+  /** `null` dla firm z bazy, dopóki kreator nie pyta o zasięg dojazdu. */
+  zasiegDojazduKm: number | null;
   cenaOdGrosze: number | null;
   jednostkaCeny: string;
   opis: string;

@@ -5,29 +5,39 @@ import { useMemo, useState } from "react";
 import { EtykietaPrzykladu } from "@/components/EtykietaPrzykladu";
 import { zlote } from "@/content/format";
 import { pobierzKategorie } from "@/content/kategorie";
-import { pobierzUslugodawcow } from "@/content/ogloszenia";
+import type { Uslugodawca } from "@/content/ogloszenia";
 
 interface UslugodawcyScreenProps {
+  /**
+   * Firmy z bazy i przykładowe ogłoszenia, złożone przez stronę na serwerze.
+   * Komponent jest kliencki i do bazy nie sięga.
+   */
+  uslugodawcy: readonly Uslugodawca[];
   /** Slug kategorii z adresu /uslugodawcy/[kategoria]/[miejscowosc]. */
   kategoria?: string;
 }
 
-export function UslugodawcyScreen({ kategoria: slugKategorii }: UslugodawcyScreenProps) {
+export function UslugodawcyScreen({
+  uslugodawcy,
+  kategoria: slugKategorii,
+}: UslugodawcyScreenProps) {
   const [searchInput, setSearchInput] = useState("");
   const [locationInput, setLocationInput] = useState("");
 
   const kategorie = pobierzKategorie();
 
-  // Dopóki nie ma bazy, filtrujemy po tym, co jest w content/.
   const filteredProviders = useMemo(() => {
     const fraza = searchInput.trim().toLowerCase();
-    return pobierzUslugodawcow()
+    return uslugodawcy
       .filter((u) => slugKategorii === undefined || u.kategoriaGlowna === slugKategorii)
       .map((u) => ({
         slug: u.slug,
         name: u.nazwa,
         category: kategorie.find((k) => k.slug === u.kategoriaGlowna)?.nazwa ?? "",
-        base: `Baza: ${u.miejscowosc.nazwa} · dojeżdża do ${u.zasiegDojazduKm} km`,
+        base:
+          u.zasiegDojazduKm === null
+            ? `Baza: ${u.miejscowosc.nazwa}, powiat ${u.miejscowosc.powiat}`
+            : `Baza: ${u.miejscowosc.nazwa} · dojeżdża do ${u.zasiegDojazduKm} km`,
         description: u.opis,
         tags: u.udogodnienia,
         price: u.cenaOdGrosze === null ? "Cena niepodana" : `od ${zlote(u.cenaOdGrosze)}`,
@@ -43,7 +53,7 @@ export function UslugodawcyScreen({ kategoria: slugKategorii }: UslugodawcyScree
           u.description.toLowerCase().includes(fraza)
         );
       });
-  }, [searchInput, kategorie, slugKategorii]);
+  }, [searchInput, kategorie, slugKategorii, uslugodawcy]);
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen font-figtree">
@@ -229,10 +239,10 @@ export function UslugodawcyScreen({ kategoria: slugKategorii }: UslugodawcyScree
                     <div className="text-[12px] text-[#6A5C70]">{p.unit}</div>
                   </div>
                   <Link
-                    href="/f/dwor-pod-lipami/zapytanie"
+                    href={p.przykladowe ? "/f/dwor-pod-lipami/zapytanie" : `/f/${p.slug}`}
                     className="text-[14px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-[10px] px-4 py-2 hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-transparent"
                   >
-                    Zapytaj
+                    {p.przykladowe ? "Zapytaj" : "Zobacz profil"}
                   </Link>
                 </div>
               </div>

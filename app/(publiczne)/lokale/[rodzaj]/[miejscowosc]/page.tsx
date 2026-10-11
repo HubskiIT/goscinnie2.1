@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { LokaleScreen } from "@/components/screens/LokaleScreen";
 import { pobierzRodzajLokalu } from "@/content/rodzaje-lokali";
+import { widzZZadania } from "@/lib/auth/widz";
+import { lokaleZBazy } from "@/lib/katalog";
 import type { KryteriaLokali } from "@/lib/wyszukiwanie";
 import { wyszukajLokale } from "@/lib/wyszukiwanie-serwer";
 
@@ -38,5 +41,6 @@ export default async function Strona({ params }: Props) {
     termin: null,
     udogodnienia: [],
   };
-  return <LokaleScreen lokale={wyszukajLokale(kryteria)} kryteria={kryteria} />;
+  const zBazy = await lokaleZBazy(await widzZZadania(await headers()));
+  return <LokaleScreen lokale={wyszukajLokale(kryteria, zBazy)} kryteria={kryteria} />;
 }

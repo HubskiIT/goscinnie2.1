@@ -22,7 +22,10 @@ export function LokaleScreen({ lokale, kryteria }: LokaleScreenProps) {
   const venues = lokale.map((lokal) => ({
     slug: lokal.slug,
     name: lokal.nazwa,
-    location: `${lokal.miejscowosc.nazwa} · ${lokal.miejscowosc.odlegloscOdCentrumKm} km od centrum`,
+    location:
+      lokal.miejscowosc.odlegloscOdCentrumKm === null
+        ? `${lokal.miejscowosc.nazwa} · powiat ${lokal.miejscowosc.powiat}`
+        : `${lokal.miejscowosc.nazwa} · ${lokal.miejscowosc.odlegloscOdCentrumKm} km od centrum`,
     price: lokal.cenaOdGrosze === null ? "Cena niepodana" : `od ${zlote(lokal.cenaOdGrosze)}`,
     priceDesc: lokal.cenaOdGrosze === null ? "wpis nieprzejęty" : lokal.jednostkaCeny,
     tags: lokal.udogodnienia,

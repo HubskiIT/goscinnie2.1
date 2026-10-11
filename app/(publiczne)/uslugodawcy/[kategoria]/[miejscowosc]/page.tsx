@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { UslugodawcyScreen } from "@/components/screens/UslugodawcyScreen";
 import { pobierzKategorie_ } from "@/content/kategorie";
+import { pobierzUslugodawcow } from "@/content/ogloszenia";
+import { widzZZadania } from "@/lib/auth/widz";
+import { uslugodawcyZBazy } from "@/lib/katalog";
 
 interface Props {
   params: Promise<{ kategoria: string; miejscowosc: string }>;
@@ -26,5 +30,11 @@ export default async function Strona({ params }: Props) {
   const { kategoria: slugKategorii } = await params;
   const kategoria = pobierzKategorie_(slugKategorii);
   if (!kategoria) notFound();
-  return <UslugodawcyScreen kategoria={kategoria.slug} />;
+  const zBazy = await uslugodawcyZBazy(await widzZZadania(await headers()));
+  return (
+    <UslugodawcyScreen
+      uslugodawcy={[...zBazy, ...pobierzUslugodawcow()]}
+      kategoria={kategoria.slug}
+    />
+  );
 }

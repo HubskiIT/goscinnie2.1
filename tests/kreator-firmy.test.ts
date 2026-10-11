@@ -20,6 +20,11 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 import {
+  pobierzFirmeKatalogu,
+  pobierzFirmyKatalogu,
+  pobierzMojeFirmy,
+} from "@/lib/db/queries/katalog";
+import {
   opublikujSzkic,
   pobierzSzkicFirmy,
   sprawdzGotowoscSzkicu,
@@ -173,6 +178,31 @@ async function przejdzKreator(): Promise<{ widz: Widz; companyId: string }> {
   if (!weryfikacja.ok) throw new Error("Krok weryfikacji odmówił, a nie powinien.");
 
   return { widz, companyId };
+}
+
+/** Data za rok, czyli abonament, który na pewno jeszcze trwa. */
+function zaRok(): Date {
+  const data = new Date();
+  data.setFullYear(data.getFullYear() + 1);
+  return data;
+}
+
+async function ileAbonamentow(companyId: string): Promise<number> {
+  const [wiersz] = await db
+    .select({ ile: sql<number>`count(*)::int` })
+    .from(subscriptions)
+    .where(eq(subscriptions.companyId, companyId));
+  return wiersz?.ile ?? 0;
+}
+
+async function slugFirmy(companyId: string): Promise<string> {
+  const [wiersz] = await db
+    .select({ slug: companies.slug })
+    .from(companies)
+    .where(eq(companies.id, companyId))
+    .limit(1);
+  if (!wiersz) throw new Error("Firma zniknęła w trakcie testu.");
+  return wiersz.slug;
 }
 
 /**
@@ -545,13 +575,20 @@ describe("wznowienie po odświeżeniu strony", () => {
     expect(await pobierzSzkicFirmy(inny)).toBeNull();
   });
 
-  it("nie podaje firmy, która wyszła ze stanu draft", async () => {
+  it("po publikacji oddaje firmę do poprawek, ze stanem active", async () => {
     const { widz, companyId } = await przejdzKreator();
-    const zaMiesiac = new Date();
-    zaMiesiac.setDate(zaMiesiac.getDate() + 30);
-    await opublikujSzkic(widz, companyId, zaMiesiac);
+    await opublikujSzkic(widz, companyId, zaRok());
 
-    // Opublikowana firma nie jest już szkicem, więc kreator nie ma jej dokończać.
+    // Ten sam kreator służy do poprawek opublikowanego profilu.
+    const szkic = await pobierzSzkicFirmy(widz);
+    expect(szkic?.id).toBe(companyId);
+    expect(szkic?.status).toBe("active");
+  });
+
+  it("nie oddaje firmy zawieszonej, bo jej poprawki nie są sprawą kreatora", async () => {
+    const { widz, companyId } = await przejdzKreator();
+    await db.update(companies).set({ status: "suspended" }).where(eq(companies.id, companyId));
+
     expect(await pobierzSzkicFirmy(widz)).toBeNull();
   });
 });
@@ -670,3 +707,127 @@ async function posprzatajPoSobie(): Promise<void> {
 
 /** Każdy test zaczyna od stanu, w którym klient z zasiewu nie ma firmy. */
 beforeEach(posprzatajPoSobie);
+
+describe("poprawki opublikowanego profilu", () => {
+  it("ponowna publikacja nie dokłada drugiego abonamentu", async () => {
+    const { widz, companyId } = await przejdzKreator();
+    await opublikujSzkic(widz, companyId, zaRok());
+    await opublikujSzkic(widz, companyId, zaRok());
+
+    expect(await ileAbonamentow(companyId)).toBe(1);
+  });
+
+  it("zmiana nazwy opublikowanej firmy nie zmienia adresu profilu", async () => {
+    const { widz, companyId } = await przejdzKreator();
+    await opublikujSzkic(widz, companyId, zaRok());
+    const przed = await slugFirmy(companyId);
+
+    const wynik = await zapiszOpisSzkicu(widz, companyId, {
+      nazwa: "Stodoła nad Stawem",
+      opis: "Nowa nazwa, ten sam obiekt i ten sam adres profilu w katalogu.",
+      cenaOd: 18_000,
+      pojemnoscMin: 40,
+      pojemnoscMax: 140,
+    });
+
+    expect(wynik.ok).toBe(true);
+    // Decyzja 005: slug jest niezmienny, bo linki do profilu krążą poza serwisem.
+    expect(await slugFirmy(companyId)).toBe(przed);
+  });
+});
+
+/**
+ * Katalog: kto jest widoczny dla klientów.
+ *
+ * Reguła: w katalogu jest firma `active` z abonamentem, który jeszcze trwa.
+ * Każdy test negatywny ma obok siebie firmę, która w katalogu jest, żeby
+ * „nikogo nie ma” i „tej nie ma” nie dawały tego samego wyniku.
+ */
+describe("katalog", () => {
+  const ANONIM: Widz = { rodzaj: "anonim" };
+
+  it("szkicu nie ma w katalogu, opublikowana firma jest", async () => {
+    const szkic = await przejdzKreator();
+    const slugSzkicu = await slugFirmy(szkic.companyId);
+
+    expect(await pobierzFirmeKatalogu(ANONIM, slugSzkicu)).toBeNull();
+
+    await opublikujSzkic(szkic.widz, szkic.companyId, zaRok());
+    const opublikowana = await pobierzFirmeKatalogu(ANONIM, slugSzkicu);
+
+    expect(opublikowana?.nazwa).toBe("Dwór Pod Lipami");
+    expect(opublikowana?.kategoria).toBe(KATEGORIA_LOKALU);
+    expect(opublikowana?.pojemnoscMin).toBe(40);
+    expect(opublikowana?.pojemnoscMax).toBe(140);
+    expect(opublikowana?.szerokosc).not.toBeNull();
+  });
+
+  it("firma po wygaśnięciu abonamentu znika z katalogu, a druga z ważnym zostaje", async () => {
+    const pierwsza = await przejdzKreator();
+    await opublikujSzkic(pierwsza.widz, pierwsza.companyId, zaRok());
+
+    const druga = await przejdzKreator();
+    await opublikujSzkic(druga.widz, druga.companyId, zaRok());
+
+    await db
+      .update(subscriptions)
+      .set({ expiresAt: new Date("2020-01-01T00:00:00Z") })
+      .where(eq(subscriptions.companyId, pierwsza.companyId));
+
+    const lista = await pobierzFirmyKatalogu(ANONIM, [KATEGORIA_LOKALU]);
+    const slugi = lista.map((f) => f.slug);
+
+    expect(slugi).toContain(await slugFirmy(druga.companyId));
+    expect(slugi).not.toContain(await slugFirmy(pierwsza.companyId));
+  });
+
+  it("firma zawieszona znika z katalogu mimo ważnego abonamentu", async () => {
+    const zawieszona = await przejdzKreator();
+    await opublikujSzkic(zawieszona.widz, zawieszona.companyId, zaRok());
+    const widoczna = await przejdzKreator();
+    await opublikujSzkic(widoczna.widz, widoczna.companyId, zaRok());
+
+    await db
+      .update(companies)
+      .set({ status: "suspended" })
+      .where(eq(companies.id, zawieszona.companyId));
+
+    const slugi = (await pobierzFirmyKatalogu(ANONIM, [KATEGORIA_LOKALU])).map((f) => f.slug);
+    expect(slugi).toContain(await slugFirmy(widoczna.companyId));
+    expect(slugi).not.toContain(await slugFirmy(zawieszona.companyId));
+  });
+
+  it("lista lokali nie podaje firmy z kategorią usługodawcy i odwrotnie", async () => {
+    const { widz, companyId } = await przejdzKreator();
+    await opublikujSzkic(widz, companyId, zaRok());
+    const slug = await slugFirmy(companyId);
+
+    const lokale = await pobierzFirmyKatalogu(ANONIM, [KATEGORIA_LOKALU]);
+    const fotografowie = await pobierzFirmyKatalogu(ANONIM, ["fotograf"]);
+
+    expect(lokale.map((f) => f.slug)).toContain(slug);
+    expect(fotografowie.map((f) => f.slug)).not.toContain(slug);
+  });
+
+  it("panel pokazuje właścicielowi jego firmy, a obcemu nic z nich", async () => {
+    const wlasciciel = await przejdzKreator();
+    const slug = await slugFirmy(wlasciciel.companyId);
+
+    const mojeSzkic = await pobierzMojeFirmy(wlasciciel.widz);
+    expect(mojeSzkic.find((f) => f.slug === slug)).toMatchObject({
+      status: "draft",
+      wKatalogu: false,
+    });
+
+    await opublikujSzkic(wlasciciel.widz, wlasciciel.companyId, zaRok());
+    const mojePo = await pobierzMojeFirmy(wlasciciel.widz);
+    expect(mojePo.find((f) => f.slug === slug)).toMatchObject({
+      status: "active",
+      wKatalogu: true,
+    });
+
+    const obcy = await klientBezFirmy();
+    expect((await pobierzMojeFirmy(obcy)).map((f) => f.slug)).not.toContain(slug);
+    expect(await pobierzMojeFirmy(ANONIM)).toEqual([]);
+  });
+});

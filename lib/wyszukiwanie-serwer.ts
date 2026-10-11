@@ -47,10 +47,17 @@ export function dopasujMiejscowosc(wartosc: string | null): Miejscowosc | null {
   return dokladne ?? podpowiedzMiejscowosci(wartosc, 1)[0] ?? null;
 }
 
-export function wyszukajLokale(kryteria: KryteriaLokali): readonly Lokal[] {
+/**
+ * @param zBazy firmy opublikowane przez kreator (lib/katalog.ts). Idą przed
+ * przykładowymi ogłoszeniami, bo to one są prawdziwe.
+ */
+export function wyszukajLokale(
+  kryteria: KryteriaLokali,
+  zBazy: readonly Lokal[] = [],
+): readonly Lokal[] {
   const szukana = dopasujMiejscowosc(kryteria.miejscowosc);
 
-  return pobierzLokale().filter((lokal) => {
+  return [...zBazy, ...pobierzLokale()].filter((lokal) => {
     if (kryteria.rodzaj !== null && lokal.rodzaj !== kryteria.rodzaj) return false;
 
     if (kryteria.goscie !== null) {
