@@ -16,23 +16,54 @@ import { widzWKontekscieZlecenia } from "@/lib/auth/widz";
 import { db } from "@/lib/db";
 import { requests } from "@/lib/db/schema/gielda";
 import { accounts } from "@/lib/db/schema/sesje";
+import { users } from "@/lib/db/schema/tozsamosc";
 import type { Widz } from "@/lib/permissions";
 
 const HASLO = "bardzo-dlugie-haslo-testowe";
 
 type Konto = { userId: string; ciasteczko: string };
 
-/** Zakłada konto przez prawdziwy endpoint rejestracji i zwraca ciasteczko sesji. */
+/**
+ * Zakłada konto tą samą drogą co człowiek: rejestracja, potwierdzenie adresu,
+ * logowanie. Zwraca ciasteczko sesji.
+ *
+ * Trzy kroki, a nie jeden, bo logowanie wymaga potwierdzonego adresu
+ * (`requireEmailVerification`). Sama rejestracja sesji nie daje i **nie ma
+ * dawać**, co pilnuje osobny test niżej.
+ *
+ * Potwierdzenie robimy wpisem do bazy, nie przez odebranie poczty: test nie ma
+ * skrzynki, a przedmiotem tego pliku jest widoczność danych po zalogowaniu,
+ * nie droga tokenu weryfikacyjnego.
+ */
 async function zalozKonto(email: string, imie: string): Promise<Konto> {
-  const odpowiedz = await auth.api.signUpEmail({
-    body: { email, password: HASLO, name: imie },
+  await auth.api.signUpEmail({ body: { email, password: HASLO, name: imie } });
+
+  /*
+   * Identyfikator bierzemy z bazy, nie z odpowiedzi rejestracji.
+   *
+   * Przy włączonym `requireEmailVerification` better-auth odpowiada na zajęty
+   * adres **podrobionym** użytkownikiem z wylosowanym identyfikatorem, zamiast
+   * zgłosić błąd, żeby nie zdradzić, które adresy są zarejestrowane. Zaufanie
+   * tej odpowiedzi dałoby test przechodzący na koncie, którego nie ma.
+   */
+  const [konto] = await db
+    .update(users)
+    .set({ emailVerified: true })
+    .where(eq(users.email, email.toLowerCase()))
+    .returning({ userId: users.id });
+
+  if (!konto) throw new Error(`Rejestracja ${email} nie założyła konta w bazie.`);
+
+  const odpowiedz = await auth.api.signInEmail({
+    body: { email, password: HASLO },
     returnHeaders: true,
+    headers: new Headers({ "x-forwarded-for": `198.51.100.${Math.floor(Math.random() * 200)}` }),
   });
 
   const ciasteczko = odpowiedz.headers.get("set-cookie");
-  if (!ciasteczko) throw new Error(`Rejestracja ${email} nie zwróciła ciasteczka sesji.`);
+  if (!ciasteczko) throw new Error(`Logowanie ${email} nie zwróciło ciasteczka sesji.`);
 
-  return { userId: odpowiedz.response.user.id, ciasteczko };
+  return { userId: konto.userId, ciasteczko };
 }
 
 function zadanieZSesja(sciezka: string, ciasteczko: string | null): Request {
@@ -85,9 +116,41 @@ beforeAll(async () => {
 });
 
 describe("rejestracja i sesja", () => {
-  it("rejestracja zakłada konto i zwraca ciasteczko sesji", () => {
+  it("rejestracja z potwierdzeniem adresu i logowanie dają ciasteczko sesji", () => {
     expect(autor.userId).toBeTruthy();
     expect(autor.ciasteczko).toContain("HttpOnly");
+  });
+
+  /**
+   * Rejestracja sama z siebie nie wpuszcza do serwisu.
+   *
+   * To jest cała treść wymogu potwierdzania adresu: dopóki nikt nie odebrał
+   * poczty, konto istnieje, ale nie ma sesji. Gdyby rejestracja od razu
+   * logowała, każdy mógłby wejść na dowolny cudzy adres e-mail.
+   */
+  it("rejestracja bez potwierdzenia adresu nie daje sesji ani logowania", async () => {
+    const email = `niepotwierdzony-${Date.now()}@przyklad.pl`;
+
+    const rejestracja = await auth.api.signUpEmail({
+      body: { email, password: HASLO, name: "Niepotwierdzony" },
+      returnHeaders: true,
+    });
+
+    expect(rejestracja.headers.get("set-cookie")).toBeNull();
+
+    const [wiersz] = await db
+      .select({ potwierdzony: users.emailVerified })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+    expect(wiersz?.potwierdzony).toBe(false);
+
+    await expect(
+      auth.api.signInEmail({
+        body: { email, password: HASLO },
+        headers: new Headers({ "x-forwarded-for": "198.51.100.231" }),
+      }),
+    ).rejects.toThrow(/verif/i);
   });
 
   it("ciasteczko sesji ma SameSite=Lax", () => {

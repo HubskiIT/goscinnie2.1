@@ -5,6 +5,10 @@
  * apostrof w nazwie, komplet polskich znaków, puste pola opcjonalne, wartości
  * graniczne budżetu i pojemności, firma z wygasłym abonamentem.
  */
+
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { gunzipSync } from "node:zlib";
 import { hash } from "@node-rs/argon2";
 import { db, schema } from "./index";
 
@@ -14,6 +18,29 @@ import { db, schema } from "./index";
  * konta ręcznie za każdym resetem bazy.
  */
 const HASLO_ZASIEWOWE = "goscinnie-lokalnie-2026";
+
+type WierszMiasta = [
+  simc: string,
+  slug: string,
+  name: string,
+  rodzaj: string,
+  gmina: string,
+  powiat: string,
+  wojewodztwo: string,
+  point: [number, number] | null,
+];
+
+function pobierzDaneMiast(slugi: string[]): Map<string, WierszMiasta> {
+  const sciezka = join(process.cwd(), "content", "miejscowosci.json.gz");
+  const wszystkie = JSON.parse(gunzipSync(readFileSync(sciezka)).toString()) as WierszMiasta[];
+  const mapa = new Map<string, WierszMiasta>();
+  for (const wiersz of wszystkie) {
+    if (slugi.includes(wiersz[1])) {
+      mapa.set(wiersz[1], wiersz);
+    }
+  }
+  return mapa;
+}
 
 const MIASTA = [
   {
@@ -59,6 +86,15 @@ const KATEGORIE = [
   { slug: "dj", name: "DJ i muzyka" },
   { slug: "dekoracje", name: "Dekoracje" },
   { slug: "tort", name: "Torty i słodki stół" },
+  /*
+   * Rodzaj lokalu ze content/rodzaje-lokali.ts, a nie kategoria usługodawcy.
+   *
+   * Kreator pozwala wybrać jedno z dwóch, a `plans.category_id` nie rozróżnia
+   * lokalu od usługi, więc rodzaj lokalu musi mieć w zasiewie własną kategorię
+   * i własny plan. Bez tego ścieżka „zakładam salę weselną” nie dawała się
+   * przejść do końca, bo publikacja nie znajdowała cennika dla kategorii.
+   */
+  { slug: "sala-weselna", name: "Sala weselna" },
 ];
 
 // Decyzja 001: rodzaj okazji to pierwszorzędny wymiar, nie dopisek.
@@ -109,19 +145,41 @@ function pseudolosowa(ziarno: number): () => number {
   };
 }
 
-async function zasiej(): Promise<void> {
+/**
+ * Zasiew tworzy świat pokazowy: firmy, konta i zlecenia, których nikt nie
+ * zakładał. Na produkcji byłyby to dane udające prawdziwe, więc skrypt tam
+ * nie rusza. Słowniki, czyli to, czego serwis naprawdę potrzebuje, wypełnia
+ * osobny `scripts/slowniki.ts`.
+ */
+function odmowNaProdukcji(): void {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Zasiew pokazowy nie działa na produkcji. Słowniki wypełnia pnpm db:slowniki.");
+  }
+}
+
+export async function zasiej(): Promise<void> {
+  odmowNaProdukcji();
   const losuj = pseudolosowa(20260923);
+
+  const daneMiast = pobierzDaneMiast(MIASTA.map((m) => m.slug));
 
   const wierszeMiast = await db
     .insert(schema.cities)
     .values(
-      MIASTA.map((m) => ({
-        name: m.name,
-        slug: m.slug,
-        powiat: m.powiat,
-        wojewodztwo: m.woj,
-        point: { lon: m.lon, lat: m.lat },
-      })),
+      MIASTA.map((m) => {
+        const dane = daneMiast.get(m.slug);
+        if (!dane) throw new Error(`Zasiew: brak ${m.slug} w content/miejscowosci.json.gz`);
+        return {
+          name: m.name,
+          slug: m.slug,
+          simc: dane[0],
+          gmina: dane[4],
+          rodzaj: dane[3],
+          powiat: m.powiat,
+          wojewodztwo: m.woj,
+          point: { lon: m.lon, lat: m.lat },
+        };
+      }),
     )
     .returning();
 
@@ -143,6 +201,12 @@ async function zasiej(): Promise<void> {
       Array.from({ length: 20 }, (_, i) => ({
         email: `uzytkownik${i + 1}@przyklad.pl`,
         name: i === 19 ? "Łucja Żmuda-Ćwiek" : `Osoba ${i + 1}`,
+        // Konta z zasiewu są potwierdzone, bo udają konta istniejące od dawna.
+        // Logowanie wymaga potwierdzonego adresu (emailAndPassword
+        // .requireEmailVerification), a zasiew nie ma jak odebrać poczty, więc
+        // bez tej kolumny żadne konto pokazowe nie wpuszczałoby ani człowieka
+        // przy pracy ręcznej, ani testu integracyjnego.
+        emailVerified: true,
         phone: i % 3 === 0 ? null : `+4860000${String(i).padStart(4, "0")}`,
         role:
           i === 19
@@ -682,5 +746,16 @@ async function zasiej(): Promise<void> {
   );
 }
 
-await zasiej();
-process.exit(0);
+/*
+ * Uruchomienie z wiersza poleceń, ale **nie przy imporcie w teście**.
+ *
+ * Bez tego warunku samo `import("@/lib/db/seed")` zasiewało bazę i wywoływało
+ * `process.exit(0)`, czyli potrafiło ubić proces testów w środku przebiegu.
+ * Test sprawdzający, że zasiew odmawia działania na produkcji, dostawał wyjątek
+ * już przy wczytywaniu modułu, zamiast móc wywołać `zasiej()` i sprawdzić
+ * odmowę. Ten sam wzorzec ma scripts/slowniki.ts.
+ */
+if (process.argv[1]?.endsWith("seed.ts")) {
+  await zasiej();
+  process.exit(0);
+}

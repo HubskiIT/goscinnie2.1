@@ -5,7 +5,20 @@ import { KOMUNIKAT_W_BUDOWIE, type StanFormularza } from "@/lib/formularze";
  * albo komunikat, że serwis jest w budowie.
  */
 export function KomunikatFormularza({ stan }: { stan: StanFormularza }) {
-  if (stan.status === "poczatkowy") return null;
+  // Udany zapis nie ma tu nic do powiedzenia: o tym, że się udało, mówi
+  // przejście do kolejnego kroku, a nie pasek nad formularzem.
+  if (stan.status === "poczatkowy" || stan.status === "zapisano") return null;
+
+  if (stan.status === "informacja") {
+    return (
+      <p
+        role="status"
+        className="m-0 rounded-[12px] border border-[#D9CCC2] bg-[#F2E9E2] p-4 text-[15px] leading-[1.6] text-[#3E3344]"
+      >
+        {stan.tresc}
+      </p>
+    );
+  }
 
   if (stan.status === "wbudowie") {
     return (

@@ -1,9 +1,16 @@
-import { integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { categories, companies } from "./katalog";
 import { znacznikiCzasu } from "./typy";
 
 export const planCode = pgEnum("plan_code", ["start", "pro"]);
 export const subscriptionStatus = pgEnum("subscription_status", ["active", "expired", "cancelled"]);
+export const paymentIntentStatus = pgEnum("payment_intent_status", [
+  "created",
+  "pending",
+  "completed",
+  "cancelled",
+  "failed",
+]);
 
 export const plans = pgTable("plans", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -45,5 +52,30 @@ export const paymentEvents = pgTable("payment_events", {
   ...znacznikiCzasu,
 });
 
+/**
+ * Intencje płatności dla PayU. Każde zamówienie ma rekord łączący
+ * zamówienie PayU z subskrypcją. Status pokazuje, gdzie jest płatność.
+ */
+export const paymentIntents = pgTable(
+  "payment_intents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id),
+    subscriptionId: uuid("subscription_id").references(() => subscriptions.id),
+    payuOrderId: text("payu_order_id").unique(),
+    amount: integer("amount").notNull(),
+    currency: text("currency").notNull().default("PLN"),
+    status: paymentIntentStatus("status").notNull().default("created"),
+    ...znacznikiCzasu,
+  },
+  (t) => [
+    index("payment_intents_company_id_idx").on(t.companyId),
+    index("payment_intents_status_idx").on(t.status),
+  ],
+);
+
 export type Plan = typeof plans.$inferSelect;
 export type Subscription = typeof subscriptions.$inferSelect;
+export type PaymentIntent = typeof paymentIntents.$inferSelect;

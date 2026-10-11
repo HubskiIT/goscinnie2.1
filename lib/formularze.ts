@@ -8,7 +8,25 @@
 export type StanFormularza =
   | { status: "poczatkowy" }
   | { status: "bledy"; bledy: Record<string, string[]>; wartosci: Record<string, string> }
-  | { status: "wbudowie" };
+  | { status: "wbudowie" }
+  /**
+   * Zapis się udał.
+   *
+   * Osobny stan, a nie powrót do „poczatkowy”: kreator przechodzi do kolejnego
+   * kroku dopiero po udanym zapisie, a „poczatkowy” znaczy „nic się jeszcze nie
+   * stało”. Gdy jedno i drugie wyglądało tak samo, nie dało się odróżnić zapisu
+   * od jego braku i każdy kreator musiał zakładać, że cisza znaczy sukces.
+   */
+  | { status: "zapisano" }
+  /**
+   * Komunikat neutralny: coś się wydarzyło, ale nie jest to ani błąd,
+   * ani zapis, po którym idzie się dalej.
+   *
+   * Potrzebne dla „kod poleciał ponownie”. Bez tego taka wiadomość musiała
+   * jechać jako błąd i wyświetlała się na czerwono w ramce „Popraw te pola”,
+   * choć nic do poprawiania nie było.
+   */
+  | { status: "informacja"; tresc: string };
 
 export const STAN_POCZATKOWY: StanFormularza = { status: "poczatkowy" };
 
@@ -19,3 +37,35 @@ export function wartoscPola(stan: StanFormularza, pole: string): string {
 
 export const KOMUNIKAT_W_BUDOWIE =
   "Serwis jest w budowie, wysyłanie ruszy wkrótce. Twoje dane nie zostały nigdzie zapisane.";
+
+/**
+ * Błędy walidacji Zod w postaci, której oczekuje formularz.
+ *
+ * Wspólne, bo każda akcja robiła to samo własnymi rękami, a drobne różnice
+ * między kopiami znaczyły, że w jednym formularzu komunikaty się kumulowały,
+ * a w drugim ostatni nadpisywał poprzednie.
+ *
+ * Wpisane wartości wracają do pól, żeby nieudana walidacja nie kasowała tego,
+ * co człowiek właśnie napisał. Pola z hasłem **nie wracają**: hasło w odpowiedzi
+ * serwera trafia do historii formularza i do pamięci podręcznej przeglądarki.
+ */
+export function bledyZod(
+  blad: { issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }> },
+  wejscie: Record<string, unknown>,
+  polaWrazliwe: readonly string[] = ["haslo", "haslo2", "password"],
+): StanFormularza {
+  const bledy: Record<string, string[]> = {};
+  for (const problem of blad.issues) {
+    const pole = String(problem.path[0] ?? "_");
+    bledy[pole] = [...(bledy[pole] ?? []), problem.message];
+  }
+
+  const wartosci: Record<string, string> = {};
+  for (const [pole, wartosc] of Object.entries(wejscie)) {
+    if (typeof wartosc === "string" && !polaWrazliwe.includes(pole)) {
+      wartosci[pole] = wartosc;
+    }
+  }
+
+  return { status: "bledy", bledy, wartosci };
+}

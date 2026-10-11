@@ -82,7 +82,7 @@ function instrukcje(tresc: string): string[] {
     .filter((s) => s.length > 0);
 }
 
-async function wPrzod(): Promise<void> {
+export async function wPrzod(): Promise<void> {
   await zapewnijTabeleMigracji();
   const juz = await zastosowane();
   const doZrobienia = wszystkieMigracje().filter((nazwa) => !juz.has(nazwa));

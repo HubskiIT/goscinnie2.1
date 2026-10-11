@@ -1,21 +1,38 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useActionState, useState } from "react";
 import { KomunikatFormularza } from "@/components/KomunikatFormularza";
-import { zaloguj } from "@/lib/akcje/formularze";
-import { KOMUNIKAT_W_BUDOWIE, STAN_POCZATKOWY } from "@/lib/formularze";
+import { poprosONoweHaslo } from "@/lib/akcje/haslo";
+import { zalogujSie } from "@/lib/akcje/logowanie";
+import { STAN_POCZATKOWY } from "@/lib/formularze";
 
 export function LogowanieScreen() {
-  const [stanLogowania, akcjaLogowania] = useActionState(zaloguj, STAN_POCZATKOWY);
+  const [stanLogowania, akcjaLogowania, czekaLogowanie] = useActionState(
+    zalogujSie,
+    STAN_POCZATKOWY,
+  );
+  // Po udanej zmianie hasła wracamy tu z ?haslo=zmienione.
+  const haslZmienione = useSearchParams().get("haslo") === "zmienione";
+  const [stanResetu, akcjaResetu, czekaReset] = useActionState(poprosONoweHaslo, STAN_POCZATKOWY);
+  /** Czy pokazujemy pole na adres do resetu zamiast formularza logowania. */
+  const [resetHasla, setResetHasla] = useState(false);
   const [accountType, setAccountType] = useState<"klient" | "firma">("klient");
-  const [email, setEmail] = useState("anna.kowalska@example.com");
-  const [password, setPassword] = useState("password");
+  /*
+   * Pola startują puste.
+   *
+   * Wcześniej był tu wpisany na sztywno adres i hasło „password" z prototypu.
+   * Po podłączeniu prawdziwego logowania taki formularz wysyłałby cudzy adres
+   * przy pierwszym kliknięciu, a przeglądarka proponowałaby zapisanie go
+   * w menedżerze haseł.
+   */
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
 
   // Demo interactive states
   const [totpCode, _setTotpCode] = useState(["4", "0", "7", "", "", ""]);
-  const [newPassword, setNewPassword] = useState("SuperSilneHaslo123!");
   const [demoAttemptCount, _setDemoAttemptCount] = useState(3);
 
   return (
@@ -28,10 +45,7 @@ export function LogowanieScreen() {
           <div className="flex gap-1 bg-[#F2E9E2] rounded-[12px] p-1 mb-7">
             <button
               type="button"
-              onClick={() => {
-                setAccountType("klient");
-                setEmail("anna.kowalska@example.com");
-              }}
+              onClick={() => setAccountType("klient")}
               className={`grow text-[15px] rounded-[9px] py-2.5 font-semibold cursor-pointer border-0 transition-colors ${
                 accountType === "klient"
                   ? "text-[#241C2B] bg-white border border-[#D9CCC2] shadow-xs"
@@ -40,16 +54,9 @@ export function LogowanieScreen() {
             >
               Konto klienta
             </button>
-            <div className="mb-4">
-              <KomunikatFormularza stan={stanLogowania} />
-            </div>
-
             <button
               type="button"
-              onClick={() => {
-                setAccountType("firma");
-                setEmail("biuro@dworpodlipami.pl");
-              }}
+              onClick={() => setAccountType("firma")}
               className={`grow text-[15px] rounded-[9px] py-2.5 font-semibold cursor-pointer border-0 transition-colors ${
                 accountType === "firma"
                   ? "text-[#241C2B] bg-white border border-[#D9CCC2] shadow-xs"
@@ -69,66 +76,128 @@ export function LogowanieScreen() {
               : "Dostęp do panelu zarządzania obiektem, giełdy zleceń i kalendarza wolnych terminów."}
           </p>
 
-          <form action={akcjaLogowania} className="flex flex-col gap-4.5">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="log-mail" className="text-[14px] font-semibold text-[#3E3344]">
-                Adres e-mail
-              </label>
-              <input
-                id="log-mail"
-                name="log-mail"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
-              />
-            </div>
+          {haslZmienione && !resetHasla ? (
+            <p
+              role="status"
+              className="m-0 mb-5 rounded-[12px] border border-[#C7D6C8] bg-[#E7EDE7] p-4 text-[15px] leading-[1.6] text-[#3F5142]"
+            >
+              Hasło zostało zmienione. Zaloguj się nowym hasłem.
+            </p>
+          ) : null}
 
-            <div className="flex flex-col gap-2">
-              <div className="flex items-baseline justify-between">
-                <label htmlFor="log-haslo" className="text-[14px] font-semibold text-[#3E3344]">
-                  Hasło
+          {resetHasla ? (
+            /*
+              Reset zamiast logowania, w tym samym miejscu na ekranie.
+              Osobna podstrona byłaby kolejnym adresem do utrzymania, a tu
+              chodzi o jedno pole i jeden przycisk.
+            */
+            <form action={akcjaResetu} className="flex flex-col gap-4.5">
+              <KomunikatFormularza stan={stanResetu} />
+
+              <p className="m-0 text-[15px] leading-[1.6] text-[#6A5C70]">
+                Podaj adres, na który założono konto. Wyślemy link do ustawienia nowego hasła.
+              </p>
+
+              <div className="flex flex-col gap-2">
+                <label htmlFor="reset-mail" className="text-[14px] font-semibold text-[#3E3344]">
+                  Adres e-mail
                 </label>
-                <button
-                  type="button"
-                  onClick={() => alert(KOMUNIKAT_W_BUDOWIE)}
-                  className="text-[13px] text-[#8A5405] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
-                >
-                  Nie pamiętam hasła
-                </button>
+                <input
+                  id="reset-mail"
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  defaultValue={email}
+                  className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
+                />
               </div>
-              <input
-                id="log-haslo"
-                name="log-haslo"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
-              />
-            </div>
 
-            <label
-              htmlFor="log-pamietaj"
-              className="flex items-center gap-2.5 text-[14px] text-[#3E3344] cursor-pointer"
-            >
-              <input
-                id="log-pamietaj"
-                name="log-pamietaj"
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                className="w-[18px] h-[18px] accent-[#5E7360]"
-              />
-              Pamiętaj mnie na tym urządzeniu przez 30 dni
-            </label>
+              <button
+                type="submit"
+                disabled={czekaReset}
+                className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-4 cursor-pointer mt-1 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {czekaReset ? "Wysyłam..." : "Wyślij link"}
+              </button>
 
-            <button
-              type="submit"
-              className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-4 cursor-pointer mt-1 shadow-sm"
-            >
-              Zaloguj się ({accountType === "klient" ? "jako Klient" : "jako Firma"})
-            </button>
-          </form>
+              <button
+                type="button"
+                onClick={() => setResetHasla(false)}
+                className="text-[14px] text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
+              >
+                ← Wróć do logowania
+              </button>
+            </form>
+          ) : (
+            <form action={akcjaLogowania} className="flex flex-col gap-4.5">
+              <KomunikatFormularza stan={stanLogowania} />
+
+              <div className="flex flex-col gap-2">
+                <label htmlFor="log-mail" className="text-[14px] font-semibold text-[#3E3344]">
+                  Adres e-mail
+                </label>
+                <input
+                  id="log-mail"
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <div className="flex items-baseline justify-between">
+                  <label htmlFor="log-haslo" className="text-[14px] font-semibold text-[#3E3344]">
+                    Hasło
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setResetHasla(true)}
+                    className="text-[13px] text-[#8A5405] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
+                  >
+                    Nie pamiętam hasła
+                  </button>
+                </div>
+                <input
+                  id="log-haslo"
+                  name="haslo"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
+                />
+              </div>
+
+              <label
+                htmlFor="log-pamietaj"
+                className="flex items-center gap-2.5 text-[14px] text-[#3E3344] cursor-pointer"
+              >
+                <input
+                  id="log-pamietaj"
+                  name="pamietaj"
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="w-[18px] h-[18px] accent-[#5E7360]"
+                />
+                Pamiętaj mnie na tym urządzeniu przez 30 dni
+              </label>
+
+              <button
+                type="submit"
+                disabled={czekaLogowanie}
+                className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-4 cursor-pointer mt-1 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {czekaLogowanie ? "Loguję..." : "Zaloguj się"}
+              </button>
+            </form>
+          )}
 
           <div className="flex items-center gap-3.5 my-6">
             <span className="grow h-[1px] bg-[#EFE5DD]" />
@@ -321,50 +390,21 @@ export function LogowanieScreen() {
                   </span>
                 ))}
             </div>
-            <button
-              type="button"
-              onClick={() => alert(KOMUNIKAT_W_BUDOWIE)}
-              className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-3.5 cursor-pointer w-full shadow-sm"
-            >
-              Potwierdź kod
-            </button>
             <p className="mt-3.5 mb-0 text-[13px] leading-[1.6] text-[#6A5C70]">
               Pięć błędnych prób wstrzymuje logowanie na kwadrans. Konto zostaje czynne, tylko ten
               adres musi odczekać.
             </p>
           </div>
 
-          {/* New password */}
+          {/* Nowe hasło: objaśnienie, nie formularz. Prawdziwy formularz
+              stoi pod /nowe-haslo i otwiera go link z wiadomości. */}
           <div className="border border-[#D9CCC2] rounded-[18px] bg-white p-7 shadow-sm">
             <div className="font-fraunces font-medium text-[22px] mb-2">Nowe hasło</div>
-            <p className="m-0 mb-5 text-[14px] leading-[1.6] text-[#6A5C70]">
-              Link z maila jest jednorazowy i ważny godzinę. Po zmianie hasła wszystkie inne sesje
-              zostają wylogowane.
+            <p className="m-0 text-[14px] leading-[1.6] text-[#6A5C70]">
+              Link z maila jest jednorazowy i ważny godzinę. Hasło musi mieć najmniej dwanaście
+              znaków. Nie wymagamy znaków specjalnych, długość liczy się bardziej. Formularz otworzy
+              się po kliknięciu linku z wiadomości.
             </p>
-            <div className="flex flex-col gap-2 mb-4.5">
-              <label htmlFor="new-haslo-demo" className="text-[14px] font-semibold text-[#3E3344]">
-                Nowe hasło
-              </label>
-              <input
-                id="new-haslo-demo"
-                name="new-haslo-demo"
-                type="text"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
-              />
-              <span className="text-[13px] text-[#6A5C70]">
-                Najmniej dwanaście znaków. Nie wymagamy znaków specjalnych, długość liczy się
-                bardziej.
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => alert(KOMUNIKAT_W_BUDOWIE)}
-              className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-3.5 cursor-pointer w-full shadow-sm"
-            >
-              Ustaw nowe hasło
-            </button>
           </div>
 
           {/* Failed attempt */}

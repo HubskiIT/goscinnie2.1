@@ -130,6 +130,48 @@ export const companyMembers = pgTable(
   ],
 );
 
+/**
+ * NIP i telefon firmy, czyli dane do weryfikacji i do faktury.
+ *
+ * Dlaczego osobna tabela, a nie kolumny w `companies`: profil jest publiczny
+ * i czytany w całości przy każdym wejściu na `/f/<slug>`, a te dwa pola nie
+ * mają prawa tam trafić. Osobna tabela sprawia, że zapytanie o profil fizycznie
+ * ich nie widzi, zamiast polegać na tym, że ktoś pamiętał wyciąć je z selecta.
+ *
+ * Jedna firma, jeden wiersz: powtórne zgłoszenie NIP-u nadpisuje poprzedni
+ * przez `onConflictDoUpdate`, a nie dokłada drugiego wiersza.
+ */
+export const companyVerification = pgTable(
+  "company_verification",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    companyId: uuid("company_id")
+      .notNull()
+      .unique()
+      .references(() => companies.id),
+    /** Dziesięć cyfr, bez kresek i spacji. Normalizuje to walidator Zod. */
+    nip: text("nip").notNull(),
+    /** Dziewięć cyfr, bez prefiksu +48. Normalizuje to walidator Zod. */
+    telefon: text("telefon").notNull(),
+    /**
+     * Wypełniane ręcznie przez moderację po sprawdzeniu w rejestrze.
+     * `null` znaczy „zgłoszone, jeszcze niesprawdzone”, nie „odrzucone”.
+     */
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    ...znacznikiCzasu,
+  },
+  (t) => [
+    /*
+     * Pod pytanie „czy ten NIP zgłosił już ktoś inny”, zadawane przy moderacji.
+     *
+     * Celowo nie jest unikalny: ten sam przedsiębiorca prowadzi salę i catering
+     * na jednym NIP-ie i oba wpisy mają prawo istnieć. Powtórzony NIP to sygnał
+     * do sprawdzenia przez człowieka, nie błąd zapisu.
+     */
+    index("company_verification_nip_idx").on(t.nip),
+  ],
+);
+
 export const claimStatus = pgEnum("claim_status", ["pending", "approved", "rejected"]);
 
 /**
@@ -194,3 +236,4 @@ export type CompanyMember = typeof companyMembers.$inferSelect;
 export type CompanyClaim = typeof companyClaims.$inferSelect;
 export type Category = typeof categories.$inferSelect;
 export type EventType = typeof eventTypes.$inferSelect;
+export type CompanyVerification = typeof companyVerification.$inferSelect;

@@ -30,11 +30,33 @@ Potrzebne dopiero przy pracy nad zapleczem.
 ```bash
 pnpm db:up        # Postgres z PostGIS w Dockerze
 pnpm db:migrate   # migracje w przód
-pnpm db:seed      # dane zasiewowe
+pnpm db:slowniki  # kategorie, okazje, plany, miejscowości
+pnpm db:seed      # dane pokazowe, tylko lokalnie i w testach
 pnpm test         # Vitest
 ```
 
 `pnpm db:reset` czyści wolumen i przechodzi całą sekwencję od nowa.
+
+## Zmienne na produkcji
+
+Wdrożenie na Vercel uruchamia migracje i wypełnia słowniki, zanim zbuduje
+aplikację (`vercel-build`). Żeby to zadziałało, w ustawieniach projektu muszą
+być te zmienne. Same nazwy, wartości wpisuje właściciel.
+
+| Zmienna | Do czego |
+| --- | --- |
+| `DATABASE_URL` | połączenie aplikacji, przez pulę (u Supabase port 6543) |
+| `DATABASE_URL_MIGRACJE` | połączenie bezpośrednie (port 5432) dla migracji i słowników |
+| `BETTER_AUTH_SECRET` | podpisywanie sesji, losowy ciąg wygenerowany raz: `openssl rand -base64 32` |
+| `BETTER_AUTH_URL` | pełny adres aplikacji, z niego budują się linki w wiadomościach |
+| `APP_URL` | pełny adres aplikacji, używany przez `sitemap.xml` |
+
+Dlaczego dwa adresy bazy: pula w trybie transakcyjnym nie gwarantuje, że cała
+migracja pójdzie jednym połączeniem. Szczegóły w `docs/decyzje/007`.
+
+Zasiew pokazowy (`pnpm db:seed`) odmawia działania, gdy `NODE_ENV` to
+`production`. Na produkcji nie ma czego zasiewać: słowniki wchodzą osobnym
+skryptem, a firmy i zlecenia zakładają prawdziwi ludzie.
 
 ## Przed commitem
 

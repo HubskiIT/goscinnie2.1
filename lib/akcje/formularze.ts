@@ -5,7 +5,6 @@ import type { StanFormularza } from "@/lib/formularze";
 import {
   schematAbonamentu,
   schematKontaktu,
-  schematLogowania,
   schematOferty,
   schematRejestracji,
   schematZapytania,
@@ -65,8 +64,4 @@ export async function wyslijOferte(_poprzedni: StanFormularza, dane: FormData) {
 
 export async function wyslijZamowienieAbonamentu(_poprzedni: StanFormularza, dane: FormData) {
   return sprawdz(schematAbonamentu, dane);
-}
-
-export async function zaloguj(_poprzedni: StanFormularza, dane: FormData) {
-  return sprawdz(schematLogowania, dane);
 }
