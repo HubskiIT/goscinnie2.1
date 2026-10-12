@@ -139,18 +139,34 @@ async function wTyl(ile: number): Promise<void> {
   }
 }
 
-const polecenie = process.argv[2] ?? "up";
-const ile = Number(process.argv[3] ?? "1");
-
-try {
-  if (polecenie === "up") {
-    await wPrzod();
-  } else if (polecenie === "down") {
-    await wTyl(Number.isFinite(ile) && ile > 0 ? ile : 1);
-  } else {
-    console.error(`Nieznane polecenie: ${polecenie}. Użyj: up | down [ile]`);
-    process.exit(1);
-  }
-} finally {
+/** Zamyka połączenie runnera. Woła je ten, kto moduł zaimportował. */
+export async function zamknij(): Promise<void> {
   await sql.end();
+}
+
+/*
+ * Uruchomienie z wiersza poleceń, nie przy imporcie.
+ *
+ * Bez tego warunku `await import("./migrate.js")` w `scripts/vercel-build.ts`
+ * przepuszczał cały zestaw migracji już w trakcie importu, a `finally` zamykał
+ * połączenie. Wywołanie `wPrzod()` linijkę dalej trafiało na zamkniętego
+ * klienta i wdrożenie kończyło się `CONNECTION_ENDED` tuż po ostatniej
+ * migracji, czyli w miejscu, w którym wszystko wyglądało na udane.
+ */
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const polecenie = process.argv[2] ?? "up";
+  const ile = Number(process.argv[3] ?? "1");
+
+  try {
+    if (polecenie === "up") {
+      await wPrzod();
+    } else if (polecenie === "down") {
+      await wTyl(Number.isFinite(ile) && ile > 0 ? ile : 1);
+    } else {
+      console.error(`Nieznane polecenie: ${polecenie}. Użyj: up | down [ile]`);
+      process.exit(1);
+    }
+  } finally {
+    await zamknij();
+  }
 }

@@ -24,8 +24,12 @@ async function main(): Promise<void> {
 
   for (const krok of kroki) {
     if (krok === "migracja") {
-      const { wPrzod } = await import("./migrate.js");
-      await wPrzod();
+      const { wPrzod, zamknij } = await import("./migrate.js");
+      try {
+        await wPrzod();
+      } finally {
+        await zamknij();
+      }
     } else if (krok === "slowniki") {
       const { polacz } = await import("./slowniki.js");
       const { db, zamknij } = polacz();
