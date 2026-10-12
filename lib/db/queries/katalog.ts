@@ -150,6 +150,31 @@ export async function pobierzFirmyKatalogu(
   return wiersze.filter((w) => !widziane.has(w.slug) && widziane.add(w.slug)).map(doFirmy);
 }
 
+/**
+ * Adresy profili do mapy witryny.
+ *
+ * Ten sam warunek widoczności co w katalogu, i to nie jest kosmetyka:
+ * slug szkicu albo firmy zawieszonej w `sitemap.xml` wskazuje wyszukiwarkom
+ * profil, którego właściciel jeszcze nikomu nie pokazał, a strona pod tym
+ * adresem i tak odda 404. Mapa witryny obiecująca strony, których nie ma,
+ * jest gorsza od mapy krótkiej.
+ *
+ * `zmieniono` bierzemy z wiersza firmy, bo data ostatniej zmiany profilu jest
+ * tym, czego oczekuje `lastModified`. Wstawianie tam „teraz” przy każdym
+ * żądaniu znaczy „wszystko zmienione zawsze”, czyli nic.
+ */
+export async function pobierzSlugiFirmDoSitemapy(
+  widz: Widz,
+): Promise<{ slug: string; zmieniono: Date }[]> {
+  upewnijSieZeGalazUprawnienIstnieje(widz, "pobierzSlugiFirmDoSitemapy");
+
+  return db
+    .selectDistinct({ slug: companies.slug, zmieniono: companies.updatedAt })
+    .from(companies)
+    .where(jestWKatalogu())
+    .orderBy(asc(companies.slug));
+}
+
 /** Jedna firma z katalogu po slugu. `null`, gdy jej tam nie ma. */
 export async function pobierzFirmeKatalogu(
   widz: Widz,
