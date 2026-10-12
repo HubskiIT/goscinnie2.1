@@ -173,10 +173,10 @@ export function LogowanieScreen() {
           </div>
 
           <Link
-            href="/rejestracja-firmy"
+            href="/rejestracja"
             className="block w-full text-center text-[16px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-[12px] p-3.5 hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-white"
           >
-            Dodaj swoją firmę
+            Załóż konto
           </Link>
 
           <p className="mt-4.5 mb-0 text-[13px] leading-[1.65] text-[#6A5C70]">

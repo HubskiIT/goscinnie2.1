@@ -13,6 +13,9 @@ export const TRASY = {
   cennik: "/cennik",
   kontakt: "/kontakt",
   logowanie: "/logowanie",
+  /** Rozdroże: firma albo klient. Tu prowadzi każde ogólne „załóż konto". */
+  rejestracja: "/rejestracja",
+  rejestracjaKlienta: "/rejestracja/klient",
   rejestracjaFirmy: "/rejestracja-firmy",
   panel: "/panel",
   panelProfil: "/panel/profil",

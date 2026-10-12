@@ -403,7 +403,7 @@ export function MobileSidebar({ isOpen, onClose, variant = "public" }: MobileSid
                     <span>Zaloguj się</span>
                   </Link>
                   <Link
-                    href="/rejestracja-firmy"
+                    href="/rejestracja"
                     onClick={onClose}
                     className="grow flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#241C2B] text-white font-bold text-[14px] hover:bg-[#3E3344] transition-colors cursor-pointer border-0"
                   >

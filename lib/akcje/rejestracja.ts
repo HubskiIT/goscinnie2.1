@@ -1,17 +1,20 @@
 "use server";
 
 /**
- * Zakładanie konta w pierwszym kroku kreatora firmy.
+ * Zakładanie konta: w kreatorze firmy i na ekranie klienta.
  *
- * Konto tworzy better-auth, on też wysyła kod potwierdzający adres, bo wtyczka
- * emailOTP ma włączone `sendVerificationOnSignUp`. Ten plik nie dotyka ani
- * haseł, ani sesji.
+ * Konto jest jedno i to samo w obu przypadkach. Różni je wyłącznie schemat
+ * wejścia i ekran, z którego przychodzi. O tym, czy ktoś działa w imieniu
+ * firmy, rozstrzyga członkostwo w `company_members`, nie sposób rejestracji.
+ *
+ * Konto tworzy better-auth, on też wysyła kod potwierdzający adres. Ten plik
+ * nie dotyka ani haseł, ani sesji.
  */
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { bledyZod, type StanFormularza } from "@/lib/formularze";
-import { daneRejestracjiFirmy } from "@/lib/validators/konto";
+import { daneRejestracjiFirmy, daneRejestracjiKlienta } from "@/lib/validators/konto";
 
 export async function zarejestrujFirme(
   _poprzedni: StanFormularza,
@@ -47,6 +50,43 @@ export async function zarejestrujFirme(
   }
 
   // Poza blokiem try: przekierowanie w Next.js działa przez wyjątek.
+  redirect(`/weryfikacja?email=${encodeURIComponent(email)}`);
+}
+
+/**
+ * Zakładanie konta klienta, czyli człowieka szukającego sali lub usługodawcy.
+ *
+ * Różnica wobec firmy jest jedna: schemat. Reszta drogi jest ta sama, bo konto
+ * jest to samo. O tym, czy ktoś działa w imieniu firmy, nie rozstrzyga sposób
+ * założenia konta, tylko członkostwo w `company_members`.
+ */
+export async function zarejestrujKlienta(
+  _poprzedni: StanFormularza,
+  dane: FormData,
+): Promise<StanFormularza> {
+  const wejscie = Object.fromEntries(dane.entries());
+  const wynik = daneRejestracjiKlienta.safeParse(wejscie);
+
+  if (!wynik.success) return bledyZod(wynik.error, wejscie);
+
+  const { email, haslo } = wynik.data;
+
+  try {
+    await auth.api.signUpEmail({
+      body: {
+        email,
+        password: haslo,
+        // Nazwa konta to na razie część adresu przed małpą, tak samo jak
+        // u firmy. Prawdziwe imię klient podaje w profilu na /moje.
+        name: email.split("@")[0] ?? "Użytkownik",
+      },
+      headers: await headers(),
+      asResponse: false,
+    });
+  } catch (blad) {
+    return bladRejestracji(blad, email);
+  }
+
   redirect(`/weryfikacja?email=${encodeURIComponent(email)}`);
 }
 

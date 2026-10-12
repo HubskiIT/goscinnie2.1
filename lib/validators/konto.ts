@@ -57,6 +57,22 @@ export const daneRejestracjiFirmy = z
   })
   .refine(haslaZgodne, ZGODNOSC_HASEL);
 
+/**
+ * Zakładanie konta klienta, czyli człowieka szukającego sali albo usługodawcy.
+ *
+ * Te same trzy pola co u firmy i celowo ani jednego więcej. Imienia nie pytamy
+ * tutaj: na tym ekranie nie jest do niczego potrzebne, a pole, które można
+ * uzupełnić później, nie ma prawa stać między człowiekiem a kontem. Zbiera
+ * je profil na /moje.
+ */
+export const daneRejestracjiKlienta = z
+  .object({
+    email,
+    haslo,
+    haslo2: z.string(),
+  })
+  .refine(haslaZgodne, ZGODNOSC_HASEL);
+
 export const daneLogowania = z.object({
   email,
   haslo: z.string().min(1, "Podaj hasło."),
@@ -109,5 +125,6 @@ export const daneNowegoHasla = z
 export type DaneNowegoHasla = z.infer<typeof daneNowegoHasla>;
 
 export type DaneRejestracjiFirmy = z.infer<typeof daneRejestracjiFirmy>;
+export type DaneRejestracjiKlienta = z.infer<typeof daneRejestracjiKlienta>;
 export type DaneLogowania = z.infer<typeof daneLogowania>;
 export type DaneResetuHasla = z.infer<typeof daneResetuHasla>;
