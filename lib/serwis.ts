@@ -38,16 +38,14 @@ export const CZYM_JESTESMY_KROTKO = "Katalog lokali i usługodawców na każdą 
  *
  * JEDNA STAŁA, JEDNA LINIA DO PODMIANY. Tak ma zostać.
  *
- * Dopóki nie ma domeny, ma tu stać adres, który **naprawdę odbiera pocztę**.
- * Adres firmowy pod nieistniejącą domeną szkodzi bardziej niż zwykły: wygląda
- * poważnie i milczy, więc odbiorca uznaje, że firma go ignoruje, a nie że
- * dopiero zaczyna.
+ * Ten adres ma **naprawdę odbierać pocztę**. Adres firmowy, który milczy,
+ * szkodzi bardziej niż brak adresu: wygląda poważnie, więc odbiorca uznaje,
+ * że firma go ignoruje, a nie że dopiero zaczyna.
  *
- * Po kupieniu goscinnie.pl podmień to na adres w domenie. Lista pozostałych
- * rzeczy do zmiany przy tej okazji: docs/decyzje/008.
- *
- * DO USTAWIENIA: czeka na adres od Huberta. Do tego czasu nie wysyłaj linków
- * do profili osobom z zewnątrz.
+ * Stan na 12 października 2026: domena `goscinnie.pl` kupiona w OVH, adres
+ * wybrany przez właściciela. **Skrzynka musi zostać założona w panelu OVH** —
+ * dopóki jej nie ma, poczta na ten adres odbija się nadawcy. Lista pozostałych
+ * rzeczy do zmiany przy podpięciu domeny: docs/decyzje/008.
  */
 export const KONTAKT_EMAIL = "kontakt@goscinnie.pl";
 
