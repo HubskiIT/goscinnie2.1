@@ -21,6 +21,7 @@
  */
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
+import type { Wynik } from "@/lib/db/queries/wynik";
 import { users } from "@/lib/db/schema/tozsamosc";
 import { upewnijSieZeGalazUprawnienIstnieje, type Widz } from "@/lib/permissions";
 
@@ -81,4 +82,61 @@ export async function rolaKonta(widz: Widz, email: string): Promise<RolaKonta | 
     .limit(1);
 
   return wiersz?.rola ?? null;
+}
+
+/** Profil klienta: to, co człowiek może o sobie zmienić na /moje. */
+export type ProfilKlienta = {
+  /** Adres jest tożsamością konta i tu się go nie zmienia. */
+  email: string;
+  imie: string;
+  telefon: string | null;
+};
+
+/**
+ * Profil zalogowanego człowieka.
+ *
+ * `null` dla anonima: panel i tak odeśle go do logowania, a wyjątek
+ * w tym miejscu zamieniłby zwykłe wejście bez sesji w awarię.
+ */
+export async function pobierzProfilKlienta(widz: Widz): Promise<ProfilKlienta | null> {
+  upewnijSieZeGalazUprawnienIstnieje(widz, "pobierzProfilKlienta");
+
+  if (widz.rodzaj === "anonim") return null;
+
+  const [wiersz] = await db
+    .select({ email: users.email, imie: users.name, telefon: users.phone })
+    .from(users)
+    .where(eq(users.id, widz.userId))
+    .limit(1);
+
+  return wiersz ?? null;
+}
+
+/**
+ * Zapis profilu.
+ *
+ * Zmienia **wyłącznie wiersz pytającego**. Identyfikator użytkownika nie jest
+ * tu argumentem i nie ma być: gdyby przychodził z formularza, byłby polem,
+ * które da się podmienić, czyli drogą do edytowania cudzego konta.
+ *
+ * Pusty telefon zapisuje `null`, bo brak numeru to brak informacji, a nie
+ * pusty napis. To `update`, nie `delete`: wiersz konta nie znika nigdy.
+ */
+export async function zapiszProfilKlienta(
+  widz: Widz,
+  dane: { imie: string; telefon: string | null },
+): Promise<Wynik<{ id: string }>> {
+  upewnijSieZeGalazUprawnienIstnieje(widz, "zapiszProfilKlienta");
+
+  if (widz.rodzaj === "anonim") return { ok: false, powod: "brak-dostepu" };
+
+  const [zmienione] = await db
+    .update(users)
+    .set({ name: dane.imie, phone: dane.telefon, updatedAt: new Date() })
+    .where(eq(users.id, widz.userId))
+    .returning({ id: users.id });
+
+  if (!zmienione) return { ok: false, powod: "brak-dostepu" };
+
+  return { ok: true, dane: { id: zmienione.id } };
 }

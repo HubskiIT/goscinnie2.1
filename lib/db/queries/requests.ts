@@ -19,6 +19,7 @@ import { users } from "@/lib/db/schema/tozsamosc";
 import {
   mozeDodacZlecenie,
   type PowodOdmowy,
+  upewnijSieZeGalazUprawnienIstnieje,
   type Widz,
   widocznoscZlecenia,
 } from "@/lib/permissions";
@@ -484,4 +485,52 @@ export async function utworzZlecenie(
   if (!wstawione) return { ok: false, powod: "brak-dostepu" };
 
   return { ok: true, dane: { id: wstawione.id } };
+}
+
+/**
+ * Zlecenia, których autorem jest pytający.
+ *
+ * Zakres autorski, czyli z opisem, budżetem i liczbą ofert: autor jest
+ * jedynym widzem, który ma prawo do tej liczby.
+ *
+ * Dwie bariery, obie potrzebne i obie sprawdzane osobno:
+ * `upewnijSieZeGalazUprawnienIstnieje` odrzuca gałąź, której nie napisano,
+ * a `where` na `authorUserId` pilnuje, żeby nie wpadło tu cudze zlecenie,
+ * nawet gdyby pierwsza kiedyś puściła.
+ *
+ * Zlecenia zamknięte i wygasłe też wracają: dla autora to jego historia,
+ * a nie śmieci do ukrycia.
+ */
+export async function pobierzMojeZlecenia(widz: Widz): Promise<ZlecenieAutora[]> {
+  upewnijSieZeGalazUprawnienIstnieje(widz, "pobierzMojeZlecenia");
+
+  // Anonim nie ma własnych zleceń. Pusta lista, nie wyjątek: ekran panelu
+  // i tak odsyła niezalogowanego do logowania.
+  if (widz.rodzaj === "anonim") return [];
+
+  const wiersze = await db
+    .select({
+      id: requests.id,
+      rodzajOkazji: eventTypes.name,
+      dataWydarzenia: requests.eventDate,
+      liczbaOsob: requests.guests,
+      powiat: cities.powiat,
+      wojewodztwo: cities.wojewodztwo,
+      status: requests.status,
+      opis: requests.description,
+      budzetMin: requests.budgetMin,
+      budzetMax: requests.budgetMax,
+      miasto: cities.name,
+      kontaktEmail: users.email,
+      kontaktTelefon: users.phone,
+      liczbaOfert: sql<number>`(select count(*)::int from ${bids} where ${bids.requestId} = ${requests.id})`,
+    })
+    .from(requests)
+    .innerJoin(eventTypes, eq(requests.eventTypeId, eventTypes.id))
+    .innerJoin(cities, eq(requests.cityId, cities.id))
+    .innerJoin(users, eq(requests.authorUserId, users.id))
+    .where(eq(requests.authorUserId, widz.userId))
+    .orderBy(desc(requests.createdAt));
+
+  return wiersze;
 }

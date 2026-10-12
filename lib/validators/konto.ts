@@ -73,6 +73,29 @@ export const daneRejestracjiKlienta = z
   })
   .refine(haslaZgodne, ZGODNOSC_HASEL);
 
+/**
+ * Profil klienta edytowany na /moje.
+ *
+ * Adresu e-mail tu nie ma: jest tożsamością konta, a jego zmiana wymaga
+ * ponownego potwierdzenia skrzynki, czyli osobnej ścieżki.
+ *
+ * Telefon normalizujemy na granicy do dziewięciu cyfr, tym samym transformem
+ * co w kreatorze firmy. Inaczej ten sam numer zapisany raz z kreskami, raz
+ * z plusem i raz bez, dałby trzy różne wartości dla jednego człowieka.
+ * Puste pole znaczy „nie podaję” i trafia do bazy jako brak wartości.
+ */
+export const daneProfiluKlienta = z.object({
+  imie: z.string().trim().min(2, "Podaj imię.").max(80, "To imię jest za długie."),
+  telefon: z
+    .string()
+    .trim()
+    .transform((w) => w.replace(/[\s-]/g, "").replace(/^(\+48|0048)/, ""))
+    .refine((w) => w === "" || /^\d{9}$/.test(w), "Numer telefonu ma dziewięć cyfr.")
+    .transform((w) => (w === "" ? null : w)),
+});
+
+export type DaneProfiluKlienta = z.infer<typeof daneProfiluKlienta>;
+
 export const daneLogowania = z.object({
   email,
   haslo: z.string().min(1, "Podaj hasło."),
