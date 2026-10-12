@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Figtree, Fraunces } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const figtree = Figtree({
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pl" className={`${figtree.variable} ${fraunces.variable}`}>
       <body suppressHydrationWarning className="antialiased">
         {children}
+        <Analytics />
       </body>
     </html>
   );
