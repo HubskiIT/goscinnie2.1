@@ -26,7 +26,7 @@ import { users } from "@/lib/db/schema/tozsamosc";
 /** Prefiks adresów zakładanych przez ten plik. Po nim sprzątamy. */
 const PREFIKS = "konto-test-";
 
-/** Hasło spełniające wymóg dwunastu znaków. */
+/** Hasło z zapasem ponad wymagane minimum. Reguły sprawdza tests/haslo.test.ts. */
 const HASLO = "bardzo-dlugie-haslo-testowe";
 
 function adres(co: string): string {

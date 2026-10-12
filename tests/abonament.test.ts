@@ -23,6 +23,7 @@ import { requests } from "@/lib/db/schema/gielda";
 import { companies, companyMembers } from "@/lib/db/schema/katalog";
 import { rateLimits } from "@/lib/db/schema/sesje";
 import { users } from "@/lib/db/schema/tozsamosc";
+import { HASLO_ZASIEWOWE } from "@/lib/db/seed";
 import { type Widz, widocznoscZlecenia, ZAJAWKA_OPISU_ZNAKOW } from "@/lib/permissions";
 
 /** Opis wyraźnie dłuższy niż zajawka, żeby obcięcie było widoczne. */
@@ -260,7 +261,7 @@ describe("ścieżka przez sesję, nie przez ręcznie zbudowanego widza", () => {
     await przesunOknoLimitu(email);
 
     const logowanie = await auth.api.signInEmail({
-      body: { email, password: "goscinnie-lokalnie-2026" },
+      body: { email, password: HASLO_ZASIEWOWE },
       returnHeaders: true,
       // Własny adres na każde wywołanie, żeby wspólny licznik po IP nie zliczał
       // wszystkich testów w tym pliku do jednej puli.

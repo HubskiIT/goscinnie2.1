@@ -31,7 +31,27 @@ export function KomunikatFormularza({ stan }: { stan: StanFormularza }) {
     );
   }
 
-  const komunikaty = Object.values(stan.bledy).flat();
+  /*
+   * Klucz z nazwy pola, nie z treści komunikatu.
+   *
+   * Wcześniej kluczem była sama treść, więc dwa pola z identycznym
+   * komunikatem (łatwe o to przy haśle i jego powtórzeniu) dawały
+   * zduplikowany klucz Reacta i jedna pozycja znikała.
+   *
+   * Powtórzoną treść pokazujemy raz: panel jest podsumowaniem, a przypisanie
+   * do konkretnego pola i tak robi `BladPola` pod polem.
+   */
+  const komunikaty: { klucz: string; tresc: string }[] = [];
+  const juzPokazane = new Set<string>();
+
+  for (const [pole, teksty] of Object.entries(stan.bledy)) {
+    for (const [indeks, tresc] of teksty.entries()) {
+      if (juzPokazane.has(tresc)) continue;
+      juzPokazane.add(tresc);
+      komunikaty.push({ klucz: `${pole}-${indeks}`, tresc });
+    }
+  }
+
   return (
     <div
       role="alert"
@@ -40,7 +60,7 @@ export function KomunikatFormularza({ stan }: { stan: StanFormularza }) {
       <p className="m-0 mb-1.5 font-semibold">Popraw te pola, zanim wyślesz:</p>
       <ul className="m-0 list-disc pl-5">
         {komunikaty.map((komunikat) => (
-          <li key={komunikat}>{komunikat}</li>
+          <li key={komunikat.klucz}>{komunikat.tresc}</li>
         ))}
       </ul>
     </div>

@@ -17,7 +17,14 @@ import { db, schema } from "./index";
  * wejść na dowolne konto z zasiewu i zobaczyć widok autora bez zakładania
  * konta ręcznie za każdym resetem bazy.
  */
-const HASLO_ZASIEWOWE = "goscinnie-lokalnie-2026";
+/*
+ * Hasło zasiewowe musi spełniać `REGULY_HASLA`, inaczej zasiew przestaje być
+ * przykładem zgodnym z tym, czego formularz wymaga od człowieka. Logowania
+ * to nie dotyczy (przy logowaniu sprawdzamy tylko, czy pole nie jest puste),
+ * ale rozjazd między zasiewem a regułą zauważa się dopiero wtedy, gdy ktoś
+ * próbuje założyć konto takim hasłem i dostaje odmowę.
+ */
+export const HASLO_ZASIEWOWE = "Goscinnie-lokalnie-2026";
 
 type WierszMiasta = [
   simc: string,

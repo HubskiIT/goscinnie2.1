@@ -4,7 +4,9 @@ import { Check, Headphones, Landmark, Lock, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
+import { BladPola, idBledu, maBlad } from "@/components/BladPola";
 import { KomunikatFormularza } from "@/components/KomunikatFormularza";
+import { ListaWymaganHasla } from "@/components/ListaWymaganHasla";
 import { PoleMiejscowosci } from "@/components/PoleMiejscowosci";
 import { KATEGORIE_USLUGODAWCOW, pobierzKategorie } from "@/content/kategorie";
 import { pobierzRodzajeLokali, RODZAJE_LOKALI } from "@/content/rodzaje-lokali";
@@ -17,6 +19,7 @@ import {
 } from "@/lib/akcje/profil";
 import { zarejestrujFirme } from "@/lib/akcje/rejestracja";
 import { STAN_POCZATKOWY, type StanFormularza } from "@/lib/formularze";
+import { MINIMALNA_DLUGOSC_HASLA } from "@/lib/haslo";
 import type { Krok, SzkicKreatora } from "@/lib/kreator-krok";
 import { krokPoczatkowy } from "@/lib/kreator-krok";
 import { odczytajPojemnosc, pojemnoscDoPola } from "@/lib/pojemnosc";
@@ -85,6 +88,7 @@ export function RejestracjaFirmyScreen({
   // Step 1: Account
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
 
   // Step 2: Type & Category
   const [accountType, setAccountType] = useState<"lokal" | "usluga">(
@@ -301,14 +305,35 @@ export function RejestracjaFirmyScreen({
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        minLength={12}
+                        minLength={MINIMALNA_DLUGOSC_HASLA}
+                        autoComplete="new-password"
+                        aria-invalid={maBlad(stan, "haslo")}
+                        aria-describedby="wymagania-hasla"
                         className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] outline-none focus:border-[#241C2B]"
                       />
+                      <BladPola stan={stan} pole="haslo" />
+                    </div>
+                    <div>
+                      <label htmlFor="haslo2" className="block text-[#6A5C70] font-medium mb-1.5">
+                        Powtórz hasło
+                      </label>
+                      <input
+                        id="haslo2"
+                        name="haslo2"
+                        type="password"
+                        value={password2}
+                        onChange={(e) => setPassword2(e.target.value)}
+                        required
+                        minLength={MINIMALNA_DLUGOSC_HASLA}
+                        autoComplete="new-password"
+                        aria-invalid={maBlad(stan, "haslo2")}
+                        aria-describedby={maBlad(stan, "haslo2") ? idBledu("haslo2") : undefined}
+                        className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] outline-none focus:border-[#241C2B]"
+                      />
+                      <BladPola stan={stan} pole="haslo2" />
                     </div>
                   </div>
-                  <p className="text-[12px] text-[#6A5C70]">
-                    Hasło musi mieć co najmniej 12 znaków.
-                  </p>
+                  <ListaWymaganHasla id="wymagania-hasla" />
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-[#EFE5DD] flex justify-end">

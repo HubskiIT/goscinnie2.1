@@ -2,10 +2,12 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useActionState } from "react";
+import { BladPola, idBledu, maBlad } from "@/components/BladPola";
 import { KomunikatFormularza } from "@/components/KomunikatFormularza";
+import { ListaWymaganHasla } from "@/components/ListaWymaganHasla";
 import { ustawNoweHaslo } from "@/lib/akcje/haslo";
 import { STAN_POCZATKOWY } from "@/lib/formularze";
-import { MINIMALNA_DLUGOSC_HASLA } from "@/lib/validators/konto";
+import { MINIMALNA_DLUGOSC_HASLA } from "@/lib/haslo";
 
 /**
  * Ustawienie nowego hasła z linku przysłanego mailem.
@@ -35,8 +37,8 @@ function NoweHaslo() {
           Ustaw nowe hasło
         </h1>
         <p className="m-0 mb-6 text-[15px] leading-[1.6] text-[#6A5C70]">
-          Hasło musi mieć co najmniej {MINIMALNA_DLUGOSC_HASLA} znaków. Nie wymagamy wielkich liter
-          ani cyfr: długość chroni lepiej niż wykrzyknik na końcu.
+          Wpisz nowe hasło dwa razy. Po nieudanej próbie oba pola wracają puste, bo hasła nie
+          odsyłamy z powrotem do przeglądarki.
         </p>
 
         {token === "" ? (
@@ -65,8 +67,30 @@ function NoweHaslo() {
                 required
                 minLength={MINIMALNA_DLUGOSC_HASLA}
                 autoComplete="new-password"
+                aria-invalid={maBlad(stan, "haslo")}
+                aria-describedby="wymagania-hasla"
                 className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
               />
+              <BladPola stan={stan} pole="haslo" />
+              <ListaWymaganHasla id="wymagania-hasla" />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="nowe-haslo-2" className="text-[14px] font-semibold text-[#3E3344]">
+                Powtórz nowe hasło
+              </label>
+              <input
+                id="nowe-haslo-2"
+                name="haslo2"
+                type="password"
+                required
+                minLength={MINIMALNA_DLUGOSC_HASLA}
+                autoComplete="new-password"
+                aria-invalid={maBlad(stan, "haslo2")}
+                aria-describedby={maBlad(stan, "haslo2") ? idBledu("haslo2") : undefined}
+                className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
+              />
+              <BladPola stan={stan} pole="haslo2" />
             </div>
 
             <button

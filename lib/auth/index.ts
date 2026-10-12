@@ -20,6 +20,7 @@ import { emailOTP } from "better-auth/plugins";
 import { db } from "@/lib/db";
 import { accounts, sessions, verifications } from "@/lib/db/schema/sesje";
 import { users } from "@/lib/db/schema/tozsamosc";
+import { MINIMALNA_DLUGOSC_HASLA } from "@/lib/haslo";
 import { leniwy } from "@/lib/leniwy";
 import { adresIp, kluczIp, kluczKonta, LIMIT_PO_IP, LIMIT_PO_KONCIE, zuzyjProbe } from "./limity";
 
@@ -94,7 +95,15 @@ function utworzAuth() {
 
     emailAndPassword: {
       enabled: true,
-      minPasswordLength: 12,
+      /*
+       * Druga bariera długości hasła, niezależna od Zoda.
+       *
+       * Musi być **nie większa** niż nasze minimum, inaczej hasło przechodzące
+       * walidację odbija się tutaj, a formularz pokazuje błąd biblioteki
+       * zamiast własnego. Składu biblioteka nie zna i nie musi: każda droga
+       * do ustawienia hasła przechodzi najpierw przez `lib/validators/konto`.
+       */
+      minPasswordLength: MINIMALNA_DLUGOSC_HASLA,
       requireEmailVerification: true,
       password: {
         hash: (haslo) => hash(haslo, ARGON2),

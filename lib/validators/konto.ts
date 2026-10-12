@@ -1,17 +1,15 @@
 /**
  * Walidacja danych konta. Zod na granicy, ten sam schemat po stronie
  * formularza i po stronie serwera.
- */
-import { z } from "zod";
-
-/**
- * Dwanaście znaków, bez wymogu wielkich liter, cyfr i znaków specjalnych.
  *
- * Wymuszanie składu haseł daje hasła gorsze, nie lepsze: ludzie dopisują
- * wykrzyknik na końcu i zamieniają „o” na zero, a to jest pierwsza rzecz,
- * jaką sprawdza łamacz. Długość realnie podnosi koszt ataku.
+ * Same reguły hasła leżą w `lib/haslo.ts`, nie tutaj. Ten plik po nich
+ * iteruje, a nie powtarza ich własnymi słowami: lista pod polem w formularzu
+ * i komunikaty stąd mają pochodzić z jednej tablicy, inaczej ekran ogłasza
+ * jedno, a serwer egzekwuje drugie.
  */
-export const MINIMALNA_DLUGOSC_HASLA = 12;
+
+import { z } from "zod";
+import { MAKSYMALNA_DLUGOSC_HASLA, REGULY_HASLA } from "@/lib/haslo";
 
 export const email = z
   .string()
@@ -21,28 +19,43 @@ export const email = z
 
 export const haslo = z
   .string()
-  .min(MINIMALNA_DLUGOSC_HASLA, `Hasło musi mieć co najmniej ${MINIMALNA_DLUGOSC_HASLA} znaków.`)
-  // Górna granica chroni przed żądaniem, które każe argon2id przemielić
-  // megabajt tekstu. Bez niej samo hashowanie staje się wektorem ataku.
-  .max(200, "Hasło jest za długie.");
+  .max(MAKSYMALNA_DLUGOSC_HASLA, "Hasło jest za długie.")
+  .superRefine((wartosc, kontekst) => {
+    for (const regula of REGULY_HASLA) {
+      if (regula.spelnia(wartosc)) continue;
+      kontekst.addIssue({ code: "custom", message: `Hasło musi mieć ${regula.opis}.` });
+    }
+  });
 
-export const daneRejestracji = z.object({
-  imie: z.string().trim().min(2, "Podaj imię.").max(80),
-  email,
-  haslo,
-});
+/**
+ * Zgodność hasła z powtórzeniem.
+ *
+ * Komunikat trafia pod pole `haslo2` przez `path`, a nie pod zbiorczy klucz
+ * błędów bez ścieżki. Bez tego ląduje w panelu „Popraw te pola” bez żadnego
+ * wskazania, którego pola dotyczy.
+ *
+ * Treść jest samoopisowa, bo panel pokazuje same komunikaty, bez etykiet pól.
+ */
+const ZGODNOSC_HASEL = {
+  message: "Hasła nie są identyczne. Wpisz to samo hasło w obu polach.",
+  path: ["haslo2"],
+};
+
+const haslaZgodne = (dane: { haslo: string; haslo2: string }) => dane.haslo === dane.haslo2;
 
 /**
  * Zakładanie konta w kreatorze firmy: adres i hasło, bez imienia.
  *
  * Kreator nie pyta o imię, bo pyta o nazwę firmy w trzecim kroku, a to dwie
- * różne rzeczy: jeden człowiek może prowadzić dwie firmy. `daneRejestracji`
- * wyżej obsługuje zakładanie konta klienta, gdzie imię ma sens.
+ * różne rzeczy: jeden człowiek może prowadzić dwie firmy.
  */
-export const daneRejestracjiFirmy = z.object({
-  email,
-  haslo,
-});
+export const daneRejestracjiFirmy = z
+  .object({
+    email,
+    haslo,
+    haslo2: z.string(),
+  })
+  .refine(haslaZgodne, ZGODNOSC_HASEL);
 
 export const daneLogowania = z.object({
   email,
@@ -85,14 +98,16 @@ export type DaneWeryfikacji = z.infer<typeof daneWeryfikacji>;
 export type DaneWyslaniaKodu = z.infer<typeof daneWyslaniaKodu>;
 
 /** Ustawienie nowego hasła z linku. Token pochodzi z adresu, nie od człowieka. */
-export const daneNowegoHasla = z.object({
-  token: z.string().trim().min(1, "Brak tokenu. Otwórz link z wiadomości jeszcze raz."),
-  haslo,
-});
+export const daneNowegoHasla = z
+  .object({
+    token: z.string().trim().min(1, "Brak tokenu. Otwórz link z wiadomości jeszcze raz."),
+    haslo,
+    haslo2: z.string(),
+  })
+  .refine(haslaZgodne, ZGODNOSC_HASEL);
 
 export type DaneNowegoHasla = z.infer<typeof daneNowegoHasla>;
 
-export type DaneRejestracji = z.infer<typeof daneRejestracji>;
 export type DaneRejestracjiFirmy = z.infer<typeof daneRejestracjiFirmy>;
 export type DaneLogowania = z.infer<typeof daneLogowania>;
 export type DaneResetuHasla = z.infer<typeof daneResetuHasla>;

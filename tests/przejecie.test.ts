@@ -22,9 +22,10 @@ import {
 } from "@/lib/db/schema/katalog";
 import { rateLimits } from "@/lib/db/schema/sesje";
 import { users } from "@/lib/db/schema/tozsamosc";
+import { HASLO_ZASIEWOWE } from "@/lib/db/seed";
 import { mozeEdytowacProfil, mozeZglosicPrzejecie, type Widz } from "@/lib/permissions";
 
-const HASLO = "goscinnie-lokalnie-2026";
+const HASLO = HASLO_ZASIEWOWE;
 
 const IMPORTOWANY = "firma-8";
 const PRZEJETY = "firma-11";
