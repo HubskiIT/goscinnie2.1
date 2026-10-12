@@ -16,7 +16,12 @@ import { cities } from "@/lib/db/schema/geografia";
 import { bids, requests } from "@/lib/db/schema/gielda";
 import { eventTypes } from "@/lib/db/schema/katalog";
 import { users } from "@/lib/db/schema/tozsamosc";
-import { type Widz, widocznoscZlecenia } from "@/lib/permissions";
+import {
+  mozeDodacZlecenie,
+  type PowodOdmowy,
+  type Widz,
+  widocznoscZlecenia,
+} from "@/lib/permissions";
 
 /** Zlecenie w wersji dla widza bez prawa do opisu i budżetu. */
 export type ZlecenieJawne = {
@@ -368,4 +373,115 @@ export async function pobierzZlecenieDlaWidza(
   }
 
   return { zakres: "jawny", zlecenie: await pobierzZlecenie(widz, id) };
+}
+
+/**
+ * Jak długo zlecenie wisi na giełdzie, licząc od wystawienia.
+ *
+ * Miesiąc, bo po tym czasie nikt już go nie obsłuży, a wiszące w nieskończoność
+ * zlecenia zamieniają giełdę w archiwum, po którym firmy przestają zaglądać.
+ */
+export const WAZNOSC_ZLECENIA_DNI = 30;
+
+/** Powody odmowy przy wystawianiu zlecenia. */
+export type OdmowaZlecenia = PowodOdmowy | "miejscowosc-bez-wspolrzednych" | "nieznana-okazja";
+
+/** Wejście do `utworzZlecenie`. Kwoty już w groszach, bo przeliczył je Zod. */
+export type DaneNowegoZlecenia = {
+  okazja: string;
+  dataWydarzenia: string;
+  liczbaOsob: number;
+  cityId: string;
+  opis: string;
+  budzetMin: number | null;
+  budzetMax: number | null;
+};
+
+/**
+ * Wystawienie zlecenia przez klienta.
+ *
+ * Trzy rzeczy, których ta funkcja **nie bierze z wejścia**, i to jest sedno:
+ *
+ * 1. **autora** — wyłącznie z widza. Identyfikator przysłany formularzem jest
+ *    danymi, nie tożsamością. Gdyby autor pochodził z wejścia, każdy mógłby
+ *    wystawić zlecenie w cudzym imieniu i czytać oferty złożone komuś innemu.
+ * 2. **współrzędnych** — wyłącznie z wiersza miejscowości, podzapytaniem.
+ *    Punkt z przeglądarki znaczyłby, że zlecenie da się postawić gdziekolwiek.
+ * 3. **daty wygaśnięcia** — liczy ją baza. Wszystkie odczyty porównują
+ *    z `now()` bazy, więc policzenie tego w Node wprowadziłoby drugi zegar.
+ */
+export async function utworzZlecenie(
+  widz: Widz,
+  dane: DaneNowegoZlecenia,
+): Promise<{ ok: true; dane: { id: string } } | { ok: false; powod: OdmowaZlecenia }> {
+  const rozstrzygniecie = mozeDodacZlecenie(widz);
+  if (!rozstrzygniecie.wolno) return { ok: false, powod: rozstrzygniecie.powod };
+
+  /*
+   * Zawężenie typu: TypeScript nie wie, że `mozeDodacZlecenie` odrzuciło już
+   * anonima, a `widz.userId` istnieje dopiero po tym warunku.
+   *
+   * Przy okazji jest to siatka pod regułą uprawnień i to sprawdzone, nie
+   * deklarowane: po przepuszczeniu anonima w `mozeDodacZlecenie` test
+   * „anonim dostaje odmowę i nie powstaje żaden wiersz” dalej przechodzi,
+   * bo zatrzymuje go ten warunek.
+   *
+   * Czego ta linia NIE jest: samodzielnie sprawdzalną barierą. Zdjęta sama,
+   * przy działającej regule uprawnień, jest nieosiągalna i żaden test tego
+   * nie zauważy. Nie dopisuj tu więcej takich warunków w przekonaniu, że
+   * każdy coś chroni.
+   */
+  if (widz.rodzaj === "anonim") return { ok: false, powod: "brak-dostepu" };
+
+  const [okazja] = await db
+    .select({ id: eventTypes.id })
+    .from(eventTypes)
+    .where(eq(eventTypes.slug, dane.okazja))
+    .limit(1);
+
+  // Okazja spoza słownika to odmowa, nie zlecenie z przypadkową okazją.
+  if (!okazja) return { ok: false, powod: "nieznana-okazja" };
+
+  const [miejscowosc] = await db
+    .select({ id: cities.id, maPunkt: sql<boolean>`${cities.point} is not null` })
+    .from(cities)
+    .where(eq(cities.id, dane.cityId))
+    .limit(1);
+
+  if (!miejscowosc) return { ok: false, powod: "brak-dostepu" };
+
+  /*
+   * 533 miejscowości z PRNG nie mają współrzędnych. Zlecenia bez punktu nie
+   * znajdzie żadne wyszukiwanie po promieniu, a punkt zerowy wysyła je na
+   * Zatokę Gwinejską i do wyników każdego promienia liczonego od zera.
+   * To samo uzasadnienie co przy lokalizacji firmy w kreatorze.
+   */
+  if (!miejscowosc.maPunkt) return { ok: false, powod: "miejscowosc-bez-wspolrzednych" };
+
+  const [wstawione] = await db
+    .insert(requests)
+    .values({
+      authorUserId: widz.userId,
+      eventTypeId: okazja.id,
+      eventDate: dane.dataWydarzenia,
+      guests: dane.liczbaOsob,
+      cityId: miejscowosc.id,
+      point: sql`(select ${cities.point} from ${cities} where ${cities.id} = ${dane.cityId})`,
+      description: dane.opis,
+      budgetMin: dane.budzetMin,
+      budgetMax: dane.budzetMax,
+      /*
+       * Dwa warunki naraz: zlecenie nie wisi dłużej niż miesiąc i nie wisi
+       * po dacie wydarzenia. `least` bierze wcześniejszy z nich.
+       */
+      expiresAt: sql`least(
+        (${dane.dataWydarzenia}::date + interval '1 day')::timestamptz,
+        now() + make_interval(days => ${WAZNOSC_ZLECENIA_DNI})
+      )`,
+    })
+    .returning({ id: requests.id });
+
+  if (!wstawione) return { ok: false, powod: "brak-dostepu" };
+
+  return { ok: true, dane: { id: wstawione.id } };
 }

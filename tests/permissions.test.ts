@@ -18,6 +18,7 @@ import { pobierzListeZlecen } from "@/lib/db/queries/requests";
 import { requests } from "@/lib/db/schema/gielda";
 import {
   KOD_HTTP,
+  mozeDodacZlecenie,
   mozeZlozycOferte,
   mozeZobaczycKontakt,
   mozeZobaczycSzczegoly,
@@ -352,3 +353,46 @@ describe("przypadki 3 i 5 na poziomie samej reguły", () => {
  * zostać: nowy endpoint dotykający requests albo bids dokłada przypadek,
  * a nie kolejne todo.
  */
+
+describe("kto może wystawić zlecenie", () => {
+  const KLIENT: Widz = { rodzaj: "klient", userId: "22222222-2222-4222-8222-222222222222" };
+  const AUTOR: Widz = { rodzaj: "autor", userId: "33333333-3333-4333-8333-333333333333" };
+  const FIRMA_Z_ABONAMENTEM: Widz = {
+    rodzaj: "firma",
+    userId: "44444444-4444-4444-8444-444444444444",
+    companyId: "55555555-5555-4555-8555-555555555555",
+    abonament: true,
+  };
+  const FIRMA_BEZ_ABONAMENTU: Widz = { ...FIRMA_Z_ABONAMENTEM, abonament: false };
+  const MODERATOR: Widz = { rodzaj: "moderator", userId: "66666666-6666-4666-8666-666666666666" };
+
+  it("klient może, bo to jego podstawowa czynność w serwisie", () => {
+    expect(mozeDodacZlecenie(KLIENT)).toEqual({ wolno: true });
+  });
+
+  it("autor innego zlecenia może wystawić kolejne", () => {
+    expect(mozeDodacZlecenie(AUTOR)).toEqual({ wolno: true });
+  });
+
+  it("firma może, i to niezależnie od abonamentu", () => {
+    /*
+     * NAJWAŻNIEJSZY PRZYPADEK W TYM BLOKU. Właściciel sali, który organizuje
+     * komunię córki, jest jednocześnie firmą i klientem. Autorem zlecenia jest
+     * człowiek, nie firma, więc nie ma tu konfliktu, a abonament dotyczy
+     * czytania cudzych zleceń, nie wystawiania własnego.
+     *
+     * Ograniczenie tej funkcji do gałęzi „klient” jest najłatwiejszym błędem,
+     * jaki da się tu popełnić, i wygląda przy tym na zaostrzenie uprawnień.
+     */
+    expect(mozeDodacZlecenie(FIRMA_Z_ABONAMENTEM)).toEqual({ wolno: true });
+    expect(mozeDodacZlecenie(FIRMA_BEZ_ABONAMENTU)).toEqual({ wolno: true });
+  });
+
+  it("anonim nie może: zlecenie bez konta nie ma komu pokazać ofert", () => {
+    expect(mozeDodacZlecenie(ANONIM)).toEqual({ wolno: false, powod: "brak-dostepu" });
+  });
+
+  it("moderator rzuca, bo jego gałęzi jeszcze nie napisano", () => {
+    expect(() => mozeDodacZlecenie(MODERATOR)).toThrow(NiezaimplementowanaGalazUprawnien);
+  });
+});

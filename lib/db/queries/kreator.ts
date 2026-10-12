@@ -13,6 +13,7 @@
  */
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
+import type { Odmowa, Wynik } from "@/lib/db/queries/wynik";
 import { plans, subscriptions } from "@/lib/db/schema/abonament";
 import { cities } from "@/lib/db/schema/geografia";
 import {
@@ -29,8 +30,9 @@ import {
   type Widz,
 } from "@/lib/permissions";
 
-export type Odmowa = { ok: false; powod: PowodOdmowy };
-export type Wynik<T> = { ok: true; dane: T } | Odmowa;
+// Typy wyniku mieszkają w lib/db/queries/wynik.ts, bo korzysta z nich też
+// moduł zleceń. Reeksport, żeby istniejące importy z tego modułu działały.
+export type { Odmowa, Wynik };
 
 /**
  * Stan szkicu, na którym stoi kreator. Czytany przy wejściu na stronę, żeby

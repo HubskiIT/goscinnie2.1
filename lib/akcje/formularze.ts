@@ -9,7 +9,6 @@ import {
   schematRejestracji,
   schematZapytania,
   schematZgloszenia,
-  schematZlecenia,
 } from "@/lib/validators/formularze";
 
 /**
@@ -40,10 +39,6 @@ function sprawdz(schemat: ZodType, dane: FormData): StanFormularza {
 
 export async function wyslijZapytanie(_poprzedni: StanFormularza, dane: FormData) {
   return sprawdz(schematZapytania, dane);
-}
-
-export async function wyslijZlecenie(_poprzedni: StanFormularza, dane: FormData) {
-  return sprawdz(schematZlecenia, dane);
 }
 
 export async function wyslijKontakt(_poprzedni: StanFormularza, dane: FormData) {

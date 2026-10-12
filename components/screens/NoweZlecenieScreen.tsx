@@ -1,30 +1,94 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import Link from "next/link";
+import { useActionState, useEffect, useState } from "react";
+import { BladPola, idBledu, maBlad } from "@/components/BladPola";
 import { KomunikatFormularza } from "@/components/KomunikatFormularza";
-import { wyslijZlecenie } from "@/lib/akcje/formularze";
-import { STAN_POCZATKOWY } from "@/lib/formularze";
+import { PoleMiejscowosci } from "@/components/PoleMiejscowosci";
+import { OKAZJE } from "@/content/okazje";
+import { dodajZlecenie } from "@/lib/akcje/zlecenia";
+import { STAN_POCZATKOWY, wartoscPola } from "@/lib/formularze";
+import { TRASY } from "@/lib/trasy";
 
-export function NoweZlecenieScreen() {
-  const [stan, akcja] = useActionState(wyslijZlecenie, STAN_POCZATKOWY);
-  const [currentStep, setCurrentStep] = useState(2);
-  const [date, setDate] = useState("12.06.2027");
-  const [guests, setGuests] = useState("80");
-  const [city, setCity] = useState("Wrocław");
-  const [radius, setRadius] = useState("do 25 km");
-  const [budget, setBudget] = useState("18 000 zł");
-  const [description, setDescription] = useState(
-    "Szukamy sali na komunię córki. Osiemdziesięciu gości, w tym dwadzieścioro dzieci, więc przydałby się kąt do zabawy albo ogród. Zależy nam na sali na wyłączność i na własnym torcie bez opłaty.",
-  );
-  const [selectedTags, setSelectedTags] = useState<string[]>(["Sala na wyłączność", "Ogród"]);
+/**
+ * Klucz szkicu w `sessionStorage`.
+ *
+ * Anonim widzi formularz i może go wypełnić, bo wejścia z wyszukiwarki
+ * prowadzą wprost tutaj, a ekran zaczynający się od żądania konta odbija
+ * większość z nich. Przy wysłaniu wpisane wartości czekają w przeglądarce,
+ * a człowiek idzie założyć konto i wraca do wypełnionego formularza.
+ *
+ * Działa, bo adres potwierdzamy **kodem wpisywanym w tej samej karcie**,
+ * a nie linkiem z maila otwieranym gdzie indziej. Gdyby weryfikacja kiedyś
+ * wróciła do linku, ten mechanizm przestanie działać po cichu i trzeba będzie
+ * go zastąpić szkicem po stronie serwera.
+ */
+const KLUCZ_SZKICU = "goscinnie:szkic-zlecenia";
 
-  const tags = ["Sala na wyłączność", "Ogród", "Nocleg", "Parking", "Dostęp dla wózka"];
+const POLA_SZKICU = [
+  "okazja",
+  "dataWydarzenia",
+  "liczbaOsob",
+  "miejscowosc",
+  "cityId",
+  "opis",
+  "budzetMin",
+  "budzetMax",
+] as const;
 
-  const toggleTag = (t: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(t) ? prev.filter((item) => item !== t) : [...prev, t],
-    );
-  };
+type Szkic = Partial<Record<(typeof POLA_SZKICU)[number], string>>;
+
+function odczytajSzkic(): Szkic {
+  try {
+    const zapisany = sessionStorage.getItem(KLUCZ_SZKICU);
+    return zapisany === null ? {} : (JSON.parse(zapisany) as Szkic);
+  } catch {
+    // Prywatne okno, zablokowane dane witryny, uszkodzony wpis. Pusty
+    // formularz jest gorszy od wypełnionego, ale lepszy od białego ekranu.
+    return {};
+  }
+}
+
+function zapiszSzkic(formularz: HTMLFormElement): void {
+  const dane = new FormData(formularz);
+  const szkic: Szkic = {};
+  for (const pole of POLA_SZKICU) {
+    const wartosc = dane.get(pole);
+    if (typeof wartosc === "string" && wartosc !== "") szkic[pole] = wartosc;
+  }
+
+  try {
+    sessionStorage.setItem(KLUCZ_SZKICU, JSON.stringify(szkic));
+  } catch {
+    // Brak miejsca albo zablokowany magazyn. Trudno: formularz i tak zadziała,
+    // tylko po rejestracji będzie pusty.
+  }
+}
+
+function wyczyscSzkic(): void {
+  try {
+    sessionStorage.removeItem(KLUCZ_SZKICU);
+  } catch {
+    // Nie ma czego sprzątać albo nie wolno. Nic z tego nie wynika.
+  }
+}
+
+const KLASA_POLA =
+  "text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border";
+const KLASA_ETYKIETY = "text-[14px] font-semibold text-[#3E3344]";
+
+export function NoweZlecenieScreen({ zalogowany }: { zalogowany: boolean }) {
+  const [stan, akcja, czeka] = useActionState(dodajZlecenie, STAN_POCZATKOWY);
+  const [szkic, setSzkic] = useState<Szkic>({});
+
+  // Szkic czytamy po zamontowaniu, bo `sessionStorage` nie istnieje na serwerze.
+  useEffect(() => {
+    setSzkic(odczytajSzkic());
+  }, []);
+
+  /** Wartość pola: najpierw to, co odesłała nieudana walidacja, potem szkic. */
+  const wartosc = (pole: (typeof POLA_SZKICU)[number]): string =>
+    wartoscPola(stan, pole) || (szkic[pole] ?? "");
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
@@ -34,368 +98,201 @@ export function NoweZlecenieScreen() {
             Opisz raz, odpowiedzą sami
           </h1>
           <p className="m-0 mb-8 text-[17px] leading-[1.6] text-[#3E3344] max-w-[64ch]">
-            Cztery kroki, około dwóch minut. Wystawienie zlecenia jest bezpłatne i nie zobowiązuje
-            do niczego. Nie podajesz numeru telefonu.
+            Wystawienie zlecenia jest bezpłatne i nie zobowiązuje do niczego. Nie podajesz numeru
+            telefonu: firmy poznają Twój kontakt dopiero wtedy, gdy sam dodasz ich ofertę do
+            krótkiej listy.
           </p>
 
-          {/* Stepper */}
-          <div className="flex items-center gap-3.5 mb-10 overflow-x-auto pb-2">
-            {/* Step 1 */}
-            <button
-              type="button"
-              onClick={() => setCurrentStep(1)}
-              className="flex items-center gap-3 cursor-pointer bg-transparent border-0 p-0 shrink-0"
-            >
-              <span className="w-[30px] h-[30px] rounded-full bg-[#5E7360] text-[#FBF7F4] text-[14px] font-bold flex items-center justify-center">
-                ✓
-              </span>
-              <span className="text-[15px] font-semibold text-[#3E3344]">Okazja</span>
-            </button>
-            <span className="grow h-[1px] bg-[#E2D5CA] min-w-8" />
+          {!zalogowany && (
+            <p className="mb-7 rounded-[12px] border border-[#E2D5CA] bg-[#F2E9E2] p-4 text-[15px] leading-[1.6] text-[#3E3344]">
+              Wypełnij spokojnie formularz. Do wysłania potrzebne jest konto, więc po kliknięciu
+              „Opublikuj zlecenie" przeniesiemy Cię na{" "}
+              <Link href={TRASY.rejestracja} className="underline">
+                rejestrację
+              </Link>
+              , a wpisane dane będą czekać.
+            </p>
+          )}
 
-            {/* Step 2 */}
-            <button
-              type="button"
-              onClick={() => setCurrentStep(2)}
-              className="flex items-center gap-3 cursor-pointer bg-transparent border-0 p-0 shrink-0"
-            >
-              <span
-                className={`w-[30px] h-[30px] rounded-full text-[14px] font-bold flex items-center justify-center ${
-                  currentStep === 2
-                    ? "bg-[#241C2B] text-[#FBF7F4]"
-                    : currentStep > 2
-                      ? "bg-[#5E7360] text-[#FBF7F4]"
-                      : "border-[1.5px] border-[#D9CCC2] text-[#8B7F91]"
-                }`}
-              >
-                2
-              </span>
-              <span
-                className={`text-[15px] font-semibold ${
-                  currentStep === 2 ? "text-[#241C2B]" : "text-[#8B7F91]"
-                }`}
-              >
-                Szczegóły
-              </span>
-            </button>
-            <span className="grow h-[1px] bg-[#E2D5CA] min-w-8" />
-
-            {/* Step 3 */}
-            <button
-              type="button"
-              onClick={() => setCurrentStep(3)}
-              className="flex items-center gap-3 cursor-pointer bg-transparent border-0 p-0 shrink-0"
-            >
-              <span
-                className={`w-[30px] h-[30px] rounded-full text-[14px] font-bold flex items-center justify-center ${
-                  currentStep === 3
-                    ? "bg-[#241C2B] text-[#FBF7F4]"
-                    : currentStep > 3
-                      ? "bg-[#5E7360] text-[#FBF7F4]"
-                      : "border-[1.5px] border-[#D9CCC2] text-[#8B7F91]"
-                }`}
-              >
-                3
-              </span>
-              <span
-                className={`text-[15px] font-semibold ${
-                  currentStep === 3 ? "text-[#241C2B]" : "text-[#8B7F91]"
-                }`}
-              >
-                Budżet
-              </span>
-            </button>
-            <span className="grow h-[1px] bg-[#E2D5CA] min-w-8" />
-
-            {/* Step 4 */}
-            <button
-              type="button"
-              onClick={() => setCurrentStep(4)}
-              className="flex items-center gap-3 cursor-pointer bg-transparent border-0 p-0 shrink-0"
-            >
-              <span
-                className={`w-[30px] h-[30px] rounded-full text-[14px] font-bold flex items-center justify-center ${
-                  currentStep === 4
-                    ? "bg-[#241C2B] text-[#FBF7F4]"
-                    : "border-[1.5px] border-[#D9CCC2] text-[#8B7F91]"
-                }`}
-              >
-                4
-              </span>
-              <span
-                className={`text-[15px] font-semibold ${
-                  currentStep === 4 ? "text-[#241C2B]" : "text-[#8B7F91]"
-                }`}
-              >
-                Kontakt
-              </span>
-            </button>
-          </div>
-
-          {/* Form Card */}
           <form
             action={akcja}
-            className="border border-[#D9CCC2] rounded-[20px] bg-white p-7 sm:p-9 shadow-sm"
+            onSubmit={(zdarzenie) => {
+              /*
+               * Szkic jest wyłącznie na przejście przez rejestrację. Zalogowany
+               * nigdzie nie wychodzi: błędy walidacji wracają do pól razem ze
+               * stanem formularza, a udany zapis przekierowuje. Trzymanie mu
+               * szkicu skończyłoby się tym, że następny pusty formularz w tej
+               * samej karcie wypełniłby się starą treścią.
+               */
+              if (zalogowany) wyczyscSzkic();
+              else zapiszSzkic(zdarzenie.currentTarget);
+            }}
+            className="border border-[#D9CCC2] rounded-[20px] bg-white p-7 sm:p-9 shadow-sm flex flex-col gap-5"
           >
-            <div className={currentStep === 1 ? "" : "hidden"}>
-              <div>
-                <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">Wybierz okazję</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-                  {["Komunia", "Wesele", "Chrzciny", "Urodziny", "Event firmowy", "Stypa"].map(
-                    (o) => (
-                      <button
-                        key={o}
-                        type="button"
-                        onClick={() => setCurrentStep(2)}
-                        className="border border-[#D9CCC2] hover:border-[#241C2B] rounded-xl p-4 text-left font-semibold text-[16px] bg-[#FBF7F4] hover:bg-white cursor-pointer"
-                      >
-                        {o}
-                      </button>
-                    ),
-                  )}
-                </div>
-              </div>
+            <KomunikatFormularza stan={stan} />
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="z-okazja" className={KLASA_ETYKIETY}>
+                Okazja
+              </label>
+              <select
+                id="z-okazja"
+                name="okazja"
+                required
+                defaultValue={wartosc("okazja")}
+                aria-invalid={maBlad(stan, "okazja")}
+                aria-describedby={maBlad(stan, "okazja") ? idBledu("okazja") : undefined}
+                className={KLASA_POLA}
+              >
+                <option value="">Wybierz okazję</option>
+                {OKAZJE.map((okazja) => (
+                  <option key={okazja.slug} value={okazja.slug}>
+                    {okazja.nazwa}
+                  </option>
+                ))}
+              </select>
+              <BladPola stan={stan} pole="okazja" />
             </div>
 
-            <div className={currentStep === 2 ? "" : "hidden"}>
-              <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">
-                Szczegóły wydarzenia
-              </h2>
-
-              <div className="flex flex-col sm:flex-row gap-4 mb-5">
-                <div className="grow flex flex-col gap-2">
-                  <label htmlFor="z-data" className="text-[14px] font-semibold text-[#3E3344]">
-                    Data wydarzenia
-                  </label>
-                  <input
-                    id="z-data"
-                    name="z-data"
-                    type="text"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
-                  />
-                  <span className="text-[13px] text-[#6A5C70]">
-                    Nie znasz jeszcze daty? Wpisz miesiąc.
-                  </span>
-                </div>
-                <div className="w-full sm:w-[220px] flex flex-col gap-2">
-                  <label htmlFor="z-osoby" className="text-[14px] font-semibold text-[#3E3344]">
-                    Liczba osób
-                  </label>
-                  <input
-                    id="z-osoby"
-                    name="z-osoby"
-                    type="text"
-                    value={guests}
-                    onChange={(e) => setGuests(e.target.value)}
-                    className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
-                  />
-                  <span className="text-[13px] text-[#6A5C70]">Może być przybliżona.</span>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 mb-5">
-                <div className="grow flex flex-col gap-2">
-                  <label htmlFor="z-miasto" className="text-[14px] font-semibold text-[#3E3344]">
-                    Miejscowość
-                  </label>
-                  <input
-                    id="z-miasto"
-                    name="z-miasto"
-                    type="text"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
-                  />
-                </div>
-                <div className="w-full sm:w-[260px] flex flex-col gap-2">
-                  <label htmlFor="z-promien" className="text-[14px] font-semibold text-[#3E3344]">
-                    Jak daleko możesz dojechać
-                  </label>
-                  <input
-                    id="z-promien"
-                    name="z-promien"
-                    type="text"
-                    value={radius}
-                    onChange={(e) => setRadius(e.target.value)}
-                    className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2 mb-5">
-                <label htmlFor="z-opis" className="text-[14px] font-semibold text-[#3E3344]">
-                  Czego szukasz, własnymi słowami
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="grow flex flex-col gap-2">
+                <label htmlFor="z-data" className={KLASA_ETYKIETY}>
+                  Data wydarzenia
                 </label>
-                <textarea
-                  id="z-opis"
-                  name="z-opis"
-                  rows={4}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="text-[16px] leading-[1.7] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-4 w-full box-border"
+                <input
+                  id="z-data"
+                  name="dataWydarzenia"
+                  type="date"
+                  required
+                  defaultValue={wartosc("dataWydarzenia")}
+                  aria-invalid={maBlad(stan, "dataWydarzenia")}
+                  className={KLASA_POLA}
                 />
-                <div className="flex justify-between text-[13px] text-[#6A5C70]">
-                  <span>Im konkretniej, tym trafniejsze oferty.</span>
-                  <span>{description.length} z 2000 znaków</span>
-                </div>
+                <BladPola stan={stan} pole="dataWydarzenia" />
               </div>
 
-              <div className="flex flex-col gap-2.5 mb-7">
-                <span className="text-[14px] font-semibold text-[#3E3344]">Czego potrzebujesz</span>
-                <div className="flex gap-2.5 flex-wrap">
-                  {tags.map((t) => {
-                    const isSelected = selectedTags.includes(t);
-                    return (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => toggleTag(t)}
-                        className={`text-[14px] rounded-full px-4 py-2 cursor-pointer transition-colors ${
-                          isSelected
-                            ? "font-semibold text-[#241C2B] bg-white border-[1.5px] border-[#241C2B] shadow-sm"
-                            : "text-[#3E3344] bg-white border border-[#D9CCC2] hover:border-[#241C2B]"
-                        }`}
-                      >
-                        {t}
-                      </button>
-                    );
-                  })}
-                </div>
+              <div className="w-full sm:w-[220px] flex flex-col gap-2">
+                <label htmlFor="z-osoby" className={KLASA_ETYKIETY}>
+                  Liczba osób
+                </label>
+                <input
+                  id="z-osoby"
+                  name="liczbaOsob"
+                  type="number"
+                  min={1}
+                  required
+                  defaultValue={wartosc("liczbaOsob")}
+                  aria-invalid={maBlad(stan, "liczbaOsob")}
+                  className={KLASA_POLA}
+                />
+                <span className="text-[13px] text-[#6A5C70]">Może być przybliżona.</span>
+                <BladPola stan={stan} pole="liczbaOsob" />
               </div>
             </div>
 
-            <div className={currentStep === 3 ? "" : "hidden"}>
-              <div className="mb-6">
-                <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">Szacowany budżet</h2>
-                <div className="flex flex-col gap-2 mb-4">
-                  <label htmlFor="z-budzet" className="text-[14px] font-semibold text-[#3E3344]">
-                    Maksymalny budżet całkowity (lub za osobę)
-                  </label>
-                  <input
-                    id="z-budzet"
-                    name="z-budzet"
-                    type="text"
-                    value={budget}
-                    onChange={(e) => setBudget(e.target.value)}
-                    className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 max-w-sm"
-                  />
-                  <span className="text-[13px] text-[#6A5C70]">
-                    Podanie budżetu pomaga salom zaproponować właściwe menu.
-                  </span>
-                </div>
+            <div className="flex flex-col gap-2">
+              {/*
+                Zapis wymaga `cities.id`, bo z wiersza miejscowości bierzemy
+                współrzędne do wyszukiwania po promieniu. Zwykłe pole tekstowe
+                nie miałoby czym go wypełnić.
+              */}
+              <PoleMiejscowosci
+                nazwaPola="miejscowosc"
+                nazwaPolaId="cityId"
+                wartoscPoczatkowa={wartosc("miejscowosc")}
+                idPoczatkowe={wartosc("cityId")}
+                klasaEtykiety={KLASA_ETYKIETY}
+                klasaPola={KLASA_POLA}
+              />
+              <span className="text-[13px] text-[#6A5C70]">
+                Zacznij pisać i wybierz miejscowość z listy. Firmy widzą powiat, nie dokładny adres.
+              </span>
+              <BladPola stan={stan} pole="cityId" />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="z-opis" className={KLASA_ETYKIETY}>
+                Czego szukasz, własnymi słowami
+              </label>
+              <textarea
+                id="z-opis"
+                name="opis"
+                rows={5}
+                required
+                defaultValue={wartosc("opis")}
+                aria-invalid={maBlad(stan, "opis")}
+                className={`${KLASA_POLA} leading-[1.7]`}
+              />
+              <span className="text-[13px] text-[#6A5C70]">
+                Im konkretniej, tym trafniejsze oferty. Od 20 do 2000 znaków.
+              </span>
+              <BladPola stan={stan} pole="opis" />
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="grow flex flex-col gap-2">
+                <label htmlFor="z-budzet-min" className={KLASA_ETYKIETY}>
+                  Budżet od (zł)
+                </label>
+                <input
+                  id="z-budzet-min"
+                  name="budzetMin"
+                  type="number"
+                  min={0}
+                  defaultValue={wartosc("budzetMin")}
+                  aria-invalid={maBlad(stan, "budzetMin")}
+                  className={KLASA_POLA}
+                />
+                <BladPola stan={stan} pole="budzetMin" />
+              </div>
+
+              <div className="grow flex flex-col gap-2">
+                <label htmlFor="z-budzet-max" className={KLASA_ETYKIETY}>
+                  Budżet do (zł)
+                </label>
+                <input
+                  id="z-budzet-max"
+                  name="budzetMax"
+                  type="number"
+                  min={0}
+                  defaultValue={wartosc("budzetMax")}
+                  aria-invalid={maBlad(stan, "budzetMax")}
+                  className={KLASA_POLA}
+                />
+                <BladPola stan={stan} pole="budzetMax" />
               </div>
             </div>
 
-            <div className={currentStep === 4 ? "" : "hidden"}>
-              <div className="mb-6">
-                <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">Dane kontaktowe</h2>
-                <p className="text-[15px] text-[#55485A] mb-4">
-                  Twój adres e-mail służy do powiadomień o nowych ofertach. Firmy nie zobaczą go,
-                  dopóki sam ich nie dodasz do krótkiej listy.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="z-imie" className="text-[14px] font-semibold text-[#3E3344]">
-                      Imię
-                    </label>
-                    <input
-                      id="z-imie"
-                      name="z-imie"
-                      type="text"
-                      defaultValue="Anna"
-                      className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="z-mail" className="text-[14px] font-semibold text-[#3E3344]">
-                      Adres e-mail
-                    </label>
-                    <input
-                      id="z-mail"
-                      name="z-mail"
-                      type="email"
-                      defaultValue="anna.kowalska@example.com"
-                      className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <p className="m-0 text-[13px] text-[#6A5C70]">
+              Budżet jest nieobowiązkowy, ale podany pomaga firmom zaproponować właściwe menu. Widzą
+              go tylko firmy z abonamentem.
+            </p>
 
-            {/* Actions */}
             <div className="flex items-center gap-4 pt-4 border-t border-[#EFE5DD]">
-              {currentStep < 4 ? (
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep(currentStep + 1)}
-                  className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-4 cursor-pointer shadow-sm"
-                >
-                  {currentStep === 1
-                    ? "Dalej, szczegóły"
-                    : currentStep === 2
-                      ? "Dalej, budżet"
-                      : "Dalej, kontakt"}
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-4 cursor-pointer shadow-sm"
-                >
-                  Opublikuj zlecenie
-                </button>
-              )}
-
-              {currentStep > 1 && (
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep(currentStep - 1)}
-                  className="text-[15px] text-[#3E3344] hover:text-[#241C2B] bg-transparent border-0 border-b border-[#D9CCC2] pb-0.5 cursor-pointer"
-                >
-                  Wróć
-                </button>
-              )}
-            </div>
-
-            <div className="pt-4">
-              <KomunikatFormularza stan={stan} />
+              <button
+                type="submit"
+                disabled={czeka}
+                className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-4 cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {czeka ? "Wysyłam..." : "Opublikuj zlecenie"}
+              </button>
             </div>
           </form>
         </div>
 
-        {/* Aside: Live preview */}
         <aside className="w-full lg:w-[400px] shrink-0 flex flex-col gap-4">
           <div className="border border-[#D9CCC2] rounded-[20px] bg-white overflow-hidden shadow-sm">
             <div className="p-4 px-5 bg-[#F2E9E2] border-b border-[#E2D5CA] text-[14px] font-bold">
-              Tak zobaczy to firma
+              Co widzi firma
             </div>
             <div className="p-5 sm:p-6">
-              <div className="font-fraunces font-medium text-[20px] mb-3.5">
-                Komunia, {guests} osób, powiat wrocławski
-              </div>
-              <div className="grid grid-cols-2 gap-3.5 py-4 border-y border-[#EFE5DD] mb-4">
-                <div>
-                  <div className="text-[12px] text-[#6A5C70]">Data</div>
-                  <div className="text-[14px] font-semibold">{date}</div>
-                </div>
-                <div>
-                  <div className="text-[12px] text-[#6A5C70]">Osób</div>
-                  <div className="text-[14px] font-semibold">{guests}</div>
-                </div>
-                <div>
-                  <div className="text-[12px] text-[#6A5C70]">Lokalizacja</div>
-                  <div className="text-[14px] font-semibold">powiat, nie adres</div>
-                </div>
-                <div>
-                  <div className="text-[12px] text-[#6A5C70]">Imię i telefon</div>
-                  <div className="text-[14px] font-semibold text-[#8B7F91]">ukryte</div>
-                </div>
-              </div>
+              <p className="m-0 mb-3.5 text-[14px] leading-[1.65] text-[#55485A]">
+                Rodzaj okazji, datę, liczbę osób i powiat widzi każdy. Twój opis i budżet widzą
+                tylko firmy z abonamentem.
+              </p>
               <p className="m-0 text-[14px] leading-[1.65] text-[#55485A]">
-                Firma pozna Twoje imię, adres e-mail i numer dopiero wtedy, gdy sam dodasz jej
-                ofertę do krótkiej listy. Do tego czasu rozmawiacie przez serwis, a filtr zasłania
-                numery i adresy po obu stronach.
+                Imię, adres e-mail i numer firma pozna dopiero wtedy, gdy sam dodasz jej ofertę do
+                krótkiej listy. Do tego czasu rozmawiacie przez serwis.
               </p>
             </div>
           </div>

@@ -7,9 +7,10 @@
  * w kroku czwartym kosztowałoby wszystko, co wpisano wcześniej.
  */
 import { z } from "zod";
+import { kwotaZlotowkiOpcjonalna, MAKS_KWOTA_ZLOTOWKI } from "@/lib/validators/kwoty";
 
 /** Górna granica ceny. Chroni przed pomyłką o trzy zera przy wpisywaniu. */
-export const MAKS_CENA_ZLOTOWKI = 1_000_000;
+export const MAKS_CENA_ZLOTOWKI = MAKS_KWOTA_ZLOTOWKI;
 
 /** Górna granica pojemności. Stadion to nie sala weselna. */
 export const MAKS_POJEMNOSC = 100_000;
@@ -35,19 +36,11 @@ export const daneKategorii = z.object({
 export type DaneKategorii = z.infer<typeof daneKategorii>;
 
 /**
- * Cena w **złotówkach**, bo tyle wpisuje człowiek. Do groszy przeliczamy na
- * granicy, w jednym miejscu, a nie w komponencie i osobno w zapytaniu.
- * Pusta wartość znaczy „do uzupełnienia”, nie „za darmo”.
+ * Cena w złotówkach, przeliczana na grosze. Wspólna z budżetem zlecenia,
+ * patrz lib/validators/kwoty.ts: dwie kopie tego przeliczenia to dwie szanse
+ * na rozjazd, w którym jedna droga mnoży przez sto, a druga już nie.
  */
-const cenaZlotowki = z
-  .union([
-    z.literal(""),
-    z.coerce
-      .number({ message: "Cena musi być liczbą." })
-      .positive("Cena musi być większa od zera.")
-      .max(MAKS_CENA_ZLOTOWKI, "Ta cena wygląda na pomyłkę."),
-  ])
-  .transform((wartosc) => (wartosc === "" ? null : Math.round(wartosc * 100)));
+const cenaZlotowki = kwotaZlotowkiOpcjonalna("Cena");
 
 const pojemnosc = z
   .union([

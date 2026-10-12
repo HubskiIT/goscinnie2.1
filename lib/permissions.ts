@@ -396,6 +396,43 @@ export function mozeZarzadzacKrotkaLista(widz: Widz): Rozstrzygniecie {
   }
 }
 
+/**
+ * Czy ten widz może wystawić zlecenie.
+ *
+ * Prawo bezwarunkowe, bez drugiego argumentu: wystawienie zlecenia nie zależy
+ * od żadnego kontekstu, tylko od tego, czy jest komu je przypisać.
+ *
+ * ANONIM NIE MOŻE i to nie jest ostrożność, tylko schemat: `requests
+ * .author_user_id` jest `not null`, a dane kontaktowe autora bierzemy z jego
+ * konta. Zlecenie bez konta nie miałoby komu pokazać ofert.
+ *
+ * FIRMA MOŻE, I TO NIEZALEŻNIE OD ABONAMENTU. Właściciel sali, który
+ * organizuje komunię córki, jest jednocześnie firmą i klientem. Autorem
+ * zlecenia jest człowiek, nie firma, więc nie ma tu żadnego konfliktu.
+ * Abonament dotyczy czytania cudzych zleceń, nie wystawiania własnego.
+ * Ograniczenie tej funkcji do gałęzi „klient” jest najłatwiejszym błędem,
+ * jaki da się tu popełnić, i dlatego ma własny przypadek w testach.
+ */
+export function mozeDodacZlecenie(widz: Widz): Rozstrzygniecie {
+  switch (widz.rodzaj) {
+    case "klient":
+    case "firma":
+    case "autor":
+      return { wolno: true };
+
+    case "anonim":
+      return { wolno: false, powod: "brak-dostepu" };
+
+    case "moderator":
+      throw new NiezaimplementowanaGalazUprawnien(opiszWidza(widz), "mozeDodacZlecenie");
+
+    default: {
+      const nigdy: never = widz;
+      throw new NiezaimplementowanaGalazUprawnien(String(nigdy), "mozeDodacZlecenie");
+    }
+  }
+}
+
 /** Co ten widz widzi na liście ofert zlecenia. */
 export type ZakresOfert =
   /** Autor: wszystkie oferty, z cenami i treścią. */

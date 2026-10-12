@@ -64,17 +64,6 @@ export const schematZapytania = z.object({
   "q-mail": email,
 });
 
-export const schematZlecenia = z.object({
-  "z-miasto": tekst(2, 80, "Miejscowość"),
-  "z-promien": z.coerce.number().int().min(0).max(300),
-  "z-data": dataWydarzenia,
-  "z-osoby": liczbaGosci,
-  "z-opis": tekst(20, 2000, "Opis"),
-  "z-budzet": z.string().trim().max(40).optional(),
-  "z-imie": tekst(2, 80, "Imię"),
-  "z-mail": email,
-});
-
 export const schematKontaktu = z.object({
   "k-temat": tekst(3, 120, "Temat"),
   "k-mail": email,
