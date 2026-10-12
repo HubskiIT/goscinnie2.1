@@ -21,12 +21,15 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { type RolaKonta, rolaKonta } from "@/lib/db/queries/konto";
 import type { StanFormularza } from "@/lib/formularze";
 import { bledyZod } from "@/lib/formularze";
+import type { Widz } from "@/lib/permissions";
+import { trasaPoWeryfikacji } from "@/lib/trasy";
 import { daneWeryfikacji, daneWyslaniaKodu } from "@/lib/validators/konto";
 
-/** Dokąd trafia człowiek po potwierdzeniu adresu: prosto w kreator firmy. */
-const PO_WERYFIKACJI = "/rejestracja-firmy?krok=2";
+/** Widz na czas weryfikacji: ciasteczko sesji powstaje dopiero w odpowiedzi. */
+const WIDZ_ANONIMOWY: Widz = { rodzaj: "anonim" };
 
 export async function zweryfikujEmail(
   _poprzedni: StanFormularza,
@@ -54,9 +57,28 @@ export async function zweryfikujEmail(
     return bladWeryfikacji(blad, wynik.data.email);
   }
 
+  /*
+   * Dokąd dalej, zależnie od tego, po co ktoś zakładał konto.
+   *
+   * Roli NIE czytamy przez `widzZZadania`: ciasteczko sesji powstaje
+   * w odpowiedzi na to samo żądanie, więc sesja z przychodzących nagłówków
+   * jeszcze nie istnieje i widz wyszedłby anonimowy. Czytamy po adresie,
+   * i dopiero tutaj, czyli po poprawnym kodzie: kod przyszedł na ten adres,
+   * więc ten, kto go wpisał, ma do niego dostęp.
+   *
+   * Awaria odczytu nie może zatrzymać potwierdzonej rejestracji, dlatego
+   * kończy się kierunkiem domyślnym, a nie błędem.
+   */
+  let rola: RolaKonta | null = null;
+  try {
+    rola = await rolaKonta(WIDZ_ANONIMOWY, wynik.data.email);
+  } catch (blad) {
+    console.error(`Odczyt roli konta ${wynik.data.email} po weryfikacji:`, blad);
+  }
+
   // Poza blokiem try: przekierowanie w Next.js działa przez wyjątek, więc
   // w środku zostałoby złapane jako błąd weryfikacji.
-  redirect(PO_WERYFIKACJI);
+  redirect(trasaPoWeryfikacji(rola));
 }
 
 /**

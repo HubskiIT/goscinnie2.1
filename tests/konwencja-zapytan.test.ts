@@ -19,6 +19,7 @@ import { describe, expect, it } from "vitest";
 import * as zapytaniaOfert from "@/lib/db/queries/bids";
 import * as zapytaniaFirm from "@/lib/db/queries/firmy";
 import * as zapytaniaKatalogu from "@/lib/db/queries/katalog";
+import * as zapytaniaKonta from "@/lib/db/queries/konto";
 import * as zapytaniaKreatora from "@/lib/db/queries/kreator";
 import * as zapytaniaZlecen from "@/lib/db/queries/requests";
 import { NiezaimplementowanaGalazUprawnien, type Widz } from "@/lib/permissions";
@@ -62,6 +63,7 @@ type DowolneZapytanie = (...argumenty: unknown[]) => unknown;
  * jego funkcje nie są przez nic pilnowane.
  */
 const MODULY: Array<[string, Record<string, unknown>]> = [
+  ["konto", zapytaniaKonta],
   ["requests", zapytaniaZlecen],
   ["bids", zapytaniaOfert],
   ["firmy", zapytaniaFirm],

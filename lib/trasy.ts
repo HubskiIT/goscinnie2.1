@@ -2,6 +2,7 @@
  * Jedyne miejsce, w którym żyją adresy serwisu.
  * Komponenty nie składają ścieżek z kawałków tekstu.
  */
+import type { RolaKonta } from "@/lib/db/queries/konto";
 export const TRASY = {
   glowna: "/",
   lokale: "/lokale",
@@ -23,6 +24,24 @@ export const TRASY = {
   moje: "/moje",
   wiadomosci: "/wiadomosci",
 } as const;
+
+/** Drugi krok kreatora, czyli pierwszy po założeniu konta. */
+export const KREATOR_KROK_2 = `${TRASY.rejestracjaFirmy}?krok=2`;
+
+/**
+ * Dokąd odesłać człowieka po potwierdzeniu adresu kodem z maila.
+ *
+ * Wcześniej była tu stała prowadząca zawsze do kreatora firmy, bo inna droga
+ * do konta nie istniała. Klient, który potwierdzał adres, lądował na ekranie
+ * „Dodaj swoją firmę do katalogu".
+ *
+ * Nieznana rola i brak odczytu prowadzą na `/moje`. To jest właściwy kierunek
+ * pomyłki: `/moje` niczego nie odsłania i nie zaczyna żadnego procesu,
+ * a kreator firmy wyglądałby jak polecenie założenia firmy.
+ */
+export function trasaPoWeryfikacji(rola: RolaKonta | null): string {
+  return rola === "company_owner" ? KREATOR_KROK_2 : TRASY.moje;
+}
 
 export const firma = (slug: string) => `/f/${slug}`;
 export const zapytanieDoFirmy = (slug: string) => `/f/${slug}/zapytanie`;

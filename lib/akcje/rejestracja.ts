@@ -13,8 +13,13 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { oznaczKontoJakoFirmowe } from "@/lib/db/queries/konto";
 import { bledyZod, type StanFormularza } from "@/lib/formularze";
+import type { Widz } from "@/lib/permissions";
 import { daneRejestracjiFirmy, daneRejestracjiKlienta } from "@/lib/validators/konto";
+
+/** Widz na czas rejestracji: sesji jeszcze nie ma, bo konto dopiero powstaje. */
+const WIDZ_ANONIMOWY: Widz = { rodzaj: "anonim" };
 
 export async function zarejestrujFirme(
   _poprzedni: StanFormularza,
@@ -28,7 +33,7 @@ export async function zarejestrujFirme(
   const { email, haslo } = wynik.data;
 
   try {
-    await auth.api.signUpEmail({
+    const odpowiedz = await auth.api.signUpEmail({
       body: {
         email,
         password: haslo,
@@ -45,6 +50,16 @@ export async function zarejestrujFirme(
       headers: await headers(),
       asResponse: false,
     });
+
+    /*
+     * Zapamiętanie, po co ktoś przyszedł, żeby po wpisaniu kodu z maila
+     * trafił do kreatora, a nie na ekran klienta. Rola nie nadaje żadnych
+     * uprawnień, patrz komentarz w lib/db/queries/konto.ts.
+     *
+     * Identyfikator bierzemy z odpowiedzi biblioteki, nigdy z formularza.
+     * Widz jest anonimowy, bo sesji w tym momencie jeszcze nie ma.
+     */
+    await oznaczKontoJakoFirmowe(WIDZ_ANONIMOWY, odpowiedz.user.id);
   } catch (blad) {
     return bladRejestracji(blad, email);
   }

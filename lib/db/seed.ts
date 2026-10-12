@@ -240,6 +240,36 @@ export async function zasiej(): Promise<void> {
     })),
   );
 
+  /*
+   * Konto firmowe w trakcie zakładania: rola `company_owner`, ale żadnego
+   * członkostwa w firmie, bo kreator stanął na pierwszym kroku.
+   *
+   * Osobny `insert`, celowo poza tablicą `uzytkownicy`: gdyby wpadło do niej,
+   * trafiłoby do `wlasciciele` i poprzestawiało przypisanie firm do ludzi.
+   *
+   * Bez takiego konta w zasiewie gałąź „firma jeszcze bez firmy” nie ma na
+   * czym być sprawdzona, a to właśnie ona decyduje, czy człowiek po wpisaniu
+   * kodu z maila wraca do kreatora, czy ląduje na ekranie klienta.
+   */
+  const [firmaBezProfilu] = await db
+    .insert(schema.users)
+    .values({
+      email: "firma-bez-profilu@przyklad.pl",
+      name: "Firma w trakcie zakładania",
+      emailVerified: true,
+      role: "company_owner",
+    })
+    .returning();
+
+  if (!firmaBezProfilu) throw new Error("Zasiew: nie powstało konto firmy bez profilu.");
+
+  await db.insert(schema.accounts).values({
+    userId: firmaBezProfilu.id,
+    accountId: firmaBezProfilu.id,
+    providerId: "credential",
+    password: skrot,
+  });
+
   const wlasciciele = uzytkownicy.filter((u) => u.role === "company_owner");
   const klienci = uzytkownicy.filter((u) => u.role === "client");
 
