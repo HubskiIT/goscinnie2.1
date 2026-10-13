@@ -119,17 +119,22 @@ export const daneResetuHasla = z.object({
 /** Długość kodu potwierdzającego adres. Musi zgadzać się z `otpLength` wtyczki. */
 export const DLUGOSC_KODU = 6;
 
-export const daneWeryfikacji = z.object({
-  email,
-  kod: z
-    .string()
-    .trim()
-    // Ludzie przepisują kod z maila razem ze spacjami, które wkleja się
-    // razem z nim. Zdejmujemy je, zamiast odrzucać poprawny kod.
-    .transform((w) => w.replace(/\s/g, ""))
-    .refine((w) => w.length === DLUGOSC_KODU, `Kod ma ${DLUGOSC_KODU} cyfr.`)
-    .refine((w) => /^\d+$/.test(w), "Kod składa się z samych cyfr."),
-});
+/**
+ * Kod z maila, wspólny dla potwierdzania adresu i zmiany hasła.
+ *
+ * Jeden schemat, bo to ten sam kod z tej samej tabeli. Dwa osobne znaczyłyby
+ * dzień, w którym jeden ekran zdejmuje spacje, a drugi odrzuca wklejony kod.
+ */
+export const kod = z
+  .string()
+  .trim()
+  // Ludzie przepisują kod z maila razem ze spacjami, które wkleja się
+  // razem z nim. Zdejmujemy je, zamiast odrzucać poprawny kod.
+  .transform((w) => w.replace(/\s/g, ""))
+  .refine((w) => w.length === DLUGOSC_KODU, `Kod ma ${DLUGOSC_KODU} cyfr.`)
+  .refine((w) => /^\d+$/.test(w), "Kod składa się z samych cyfr.");
+
+export const daneWeryfikacji = z.object({ email, kod });
 
 export const daneWyslaniaKodu = z.object({ email });
 
@@ -151,16 +156,23 @@ export const kodZBiblioteki = z
 export type DaneWeryfikacji = z.infer<typeof daneWeryfikacji>;
 export type DaneWyslaniaKodu = z.infer<typeof daneWyslaniaKodu>;
 
-/** Ustawienie nowego hasła z linku. Token pochodzi z adresu, nie od człowieka. */
-export const daneNowegoHasla = z
+/**
+ * Ustawienie nowego hasła kodem z maila.
+ *
+ * Kod zamiast tokenu z adresu, bo wysyłkę kodu robimy sami i widzimy jej
+ * awarię, a link szedł przez better-auth, które każdy błąd połyka.
+ * Patrz docs/decyzje/011.
+ */
+export const daneNowegoHaslaKodem = z
   .object({
-    token: z.string().trim().min(1, "Brak tokenu. Otwórz link z wiadomości jeszcze raz."),
+    email,
+    kod,
     haslo,
     haslo2: z.string(),
   })
   .refine(haslaZgodne, ZGODNOSC_HASEL);
 
-export type DaneNowegoHasla = z.infer<typeof daneNowegoHasla>;
+export type DaneNowegoHaslaKodem = z.infer<typeof daneNowegoHaslaKodem>;
 
 export type DaneRejestracjiFirmy = z.infer<typeof daneRejestracjiFirmy>;
 export type DaneRejestracjiKlienta = z.infer<typeof daneRejestracjiKlienta>;

@@ -145,16 +145,29 @@ function utworzAuth() {
         verify: ({ hash: skrot, password }) => verify(skrot, password, ARGON2),
       },
 
-      sendResetPassword: async ({ user, url }) => {
-        const { pobierzNadawce } = await import("@/lib/poczta");
-        const { resetHasla } = await import("@/lib/poczta/szablony");
-        const nadawca = await pobierzNadawce();
-        await nadawca.wyslij(resetHasla(user.email, url));
-      },
+      /*
+       * Zmiana hasła unieważnia pozostałe sesje.
+       *
+       * Hasło zmienia zwykle ktoś, kto podejrzewa, że dostęp do konta ma ktoś
+       * jeszcze. Zostawienie cudzej sesji przy życiu czyniłoby cały reset
+       * pozornym: hasło nowe, a tamten dalej w środku.
+       */
+      revokeSessionsOnPasswordReset: true,
 
-      // Wysyłką kodu zajmuje się wtyczka emailOTP niżej. Nie ma tu
-      // `sendVerificationEmail`, bo `overrideDefaultEmailVerification`
-      // przekierowuje całą weryfikację adresu na kod.
+      /*
+       * NIE MA TU `sendResetPassword` I TO JEST DECYZJA.
+       *
+       * Reset idzie teraz kodem, a kod wysyła `lib/konto/kody.ts`. Gdyby ta
+       * funkcja tu została, żyłby obok drugi, nieutrzymywany sposób ustawienia
+       * hasła: endpoint `/request-password-reset` wysyłający link przez
+       * warstwę, która połyka błędy. Dwie drogi do ustawienia hasła, z których
+       * jedna jest niewidoczna w testach, są gorsze niż jedna.
+       *
+       * Bez tej funkcji `/request-password-reset` odmawia kodem
+       * RESET_PASSWORD_DISABLED, czyli stara droga zamyka się głośno.
+       *
+       * Nie ma tu też `sendVerificationEmail` — patrz OPCJE_WERYFIKACJI wyżej.
+       */
     },
 
     plugins: [

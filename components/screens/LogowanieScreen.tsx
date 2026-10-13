@@ -62,7 +62,8 @@ export function LogowanieScreen() {
               <KomunikatFormularza stan={stanResetu} />
 
               <p className="m-0 text-[15px] leading-[1.6] text-[#6A5C70]">
-                Podaj adres, na który założono konto. Wyślemy link do ustawienia nowego hasła.
+                Podaj adres, na który założono konto. Wyślemy sześciocyfrowy kod, którym ustawisz
+                nowe hasło.
               </p>
 
               <div className="flex flex-col gap-2">
@@ -85,7 +86,7 @@ export function LogowanieScreen() {
                 disabled={czekaReset}
                 className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] p-4 cursor-pointer mt-1 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {czekaReset ? "Wysyłam..." : "Wyślij link"}
+                {czekaReset ? "Wysyłam..." : "Wyślij kod"}
               </button>
 
               <button

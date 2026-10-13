@@ -1,20 +1,27 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useActionState } from "react";
 import { BladPola, idBledu, maBlad } from "@/components/BladPola";
 import { KomunikatFormularza } from "@/components/KomunikatFormularza";
 import { ListaWymaganHasla } from "@/components/ListaWymaganHasla";
-import { ustawNoweHaslo } from "@/lib/akcje/haslo";
+import { ustawNoweHasloKodem } from "@/lib/akcje/haslo";
 import { STAN_POCZATKOWY } from "@/lib/formularze";
 import { MINIMALNA_DLUGOSC_HASLA } from "@/lib/haslo";
+import { TRASY } from "@/lib/trasy";
+import { DLUGOSC_KODU } from "@/lib/validators/konto";
 
 /**
- * Ustawienie nowego hasła z linku przysłanego mailem.
+ * Ustawienie nowego hasła kodem z maila.
  *
- * Token siedzi w adresie, więc strona czyta parametry zapytania, a to wymaga
- * granicy Suspense: bez niej budowanie produkcyjne przerywa się na
- * prerenderowaniu tej strony.
+ * Kod zamiast linku z tokenem, bo wysyłkę kodu robimy sami i widzimy jej
+ * awarię, a link szedł przez better-auth, które każdy błąd połyka.
+ * Patrz docs/decyzje/011.
+ *
+ * Adres siedzi w adresie strony, więc strona czyta parametry zapytania,
+ * a to wymaga granicy Suspense: bez niej budowanie produkcyjne przerywa się
+ * na prerenderowaniu tej strony.
  */
 export default function NoweHasloPage() {
   return (
@@ -26,9 +33,8 @@ export default function NoweHasloPage() {
 
 function NoweHaslo() {
   const parametry = useSearchParams();
-  // better-auth dokleja token do adresu przekierowania z maila.
-  const token = parametry.get("token") ?? "";
-  const [stan, akcja, czeka] = useActionState(ustawNoweHaslo, STAN_POCZATKOWY);
+  const email = parametry.get("email") ?? "";
+  const [stan, akcja, czeka] = useActionState(ustawNoweHasloKodem, STAN_POCZATKOWY);
 
   return (
     <section className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] min-h-screen px-6 sm:px-12 md:px-[130px] pt-14 pb-16">
@@ -37,24 +43,48 @@ function NoweHaslo() {
           Ustaw nowe hasło
         </h1>
         <p className="m-0 mb-6 text-[15px] leading-[1.6] text-[#6A5C70]">
-          Wpisz nowe hasło dwa razy. Po nieudanej próbie oba pola wracają puste, bo hasła nie
-          odsyłamy z powrotem do przeglądarki.
+          Wpisz kod, który wysłaliśmy na {email === "" ? "Twój adres" : email}, i nowe hasło dwa
+          razy. Po nieudanej próbie oba pola z hasłem wracają puste, bo hasła nie odsyłamy z
+          powrotem do przeglądarki.
         </p>
 
-        {token === "" ? (
+        {email === "" ? (
           <p
             role="alert"
             className="m-0 rounded-[12px] border border-[#D8B4A0] bg-[#F7E9E2] p-4 text-[15px] leading-[1.6] text-[#7A3B1E]"
           >
-            W tym adresie nie ma tokenu. Otwórz link z wiadomości jeszcze raz albo poproś o nowy na
-            ekranie logowania.
+            W tym adresie nie ma adresu e-mail. Wróć na{" "}
+            <Link href={TRASY.logowanie} className="underline">
+              ekran logowania
+            </Link>{" "}
+            i poproś o kod jeszcze raz.
           </p>
         ) : (
           <form action={akcja} className="flex flex-col gap-4.5">
             <KomunikatFormularza stan={stan} />
 
-            {/* Token jedzie ukrytym polem, bo akcja serwerowa nie widzi adresu strony. */}
-            <input type="hidden" name="token" value={token} />
+            {/* Adres jedzie ukrytym polem: akcja serwerowa nie widzi adresu strony. */}
+            <input type="hidden" name="email" value={email} />
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="haslo-kod" className="text-[14px] font-semibold text-[#3E3344]">
+                Kod z wiadomości
+              </label>
+              <input
+                id="haslo-kod"
+                name="kod"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={DLUGOSC_KODU}
+                autoComplete="one-time-code"
+                required
+                aria-invalid={maBlad(stan, "kod")}
+                aria-describedby={maBlad(stan, "kod") ? idBledu("kod") : undefined}
+                className="text-[20px] tracking-[6px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
+              />
+              <BladPola stan={stan} pole="kod" />
+            </div>
 
             <div className="flex flex-col gap-2">
               <label htmlFor="nowe-haslo" className="text-[14px] font-semibold text-[#3E3344]">
@@ -100,6 +130,10 @@ function NoweHaslo() {
             >
               {czeka ? "Zapisuję..." : "Ustaw nowe hasło"}
             </button>
+
+            <p className="m-0 text-[13px] leading-[1.65] text-[#6A5C70]">
+              Kod jest ważny 15 minut. Jeśli poprosisz o kolejny, ten przestanie działać.
+            </p>
           </form>
         )}
       </div>
