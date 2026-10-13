@@ -133,6 +133,21 @@ export const daneWeryfikacji = z.object({
 
 export const daneWyslaniaKodu = z.object({ email });
 
+/**
+ * Kod zwrócony przez better-auth, zanim włożymy go do maila.
+ *
+ * Granica jak każda inna, choć po drugiej stronie jest biblioteka, a nie
+ * człowiek. `createVerificationOTP` zwraca kod **bez** `ctx.json`
+ * (email-otp/routes.mjs:143), więc przy `asResponse: false` kształt odpowiedzi
+ * jest obietnicą, a nie gwarancją. Niesprawdzony kształt kończy się mailem
+ * z pustą ramką albo z wklejonym `[object Object]` zamiast kodu — i to jest
+ * awaria, której nie widać w logach, bo wysyłka się udaje.
+ */
+export const kodZBiblioteki = z
+  .string({ message: "Biblioteka zwróciła kod w nieoczekiwanej postaci." })
+  .trim()
+  .regex(new RegExp(`^\\d{${DLUGOSC_KODU}}$`), `Kod z biblioteki ma mieć ${DLUGOSC_KODU} cyfr.`);
+
 export type DaneWeryfikacji = z.infer<typeof daneWeryfikacji>;
 export type DaneWyslaniaKodu = z.infer<typeof daneWyslaniaKodu>;
 

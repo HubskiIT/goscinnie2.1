@@ -21,10 +21,20 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import {
+  adresIp,
+  kluczKodu,
+  kluczKoduIp,
+  LIMIT_KODU_PO_IP,
+  LIMIT_KODU_PO_KONCIE,
+  zuzyjProbe,
+} from "@/lib/auth/limity";
 import { type RolaKonta, rolaKonta } from "@/lib/db/queries/konto";
 import type { StanFormularza } from "@/lib/formularze";
 import { bledyZod } from "@/lib/formularze";
+import { wyslijKodPotwierdzeniaAdresu } from "@/lib/konto/kody";
 import type { Widz } from "@/lib/permissions";
+import { KONTAKT_EMAIL } from "@/lib/serwis";
 import { trasaPoWeryfikacji } from "@/lib/trasy";
 import { daneWeryfikacji, daneWyslaniaKodu } from "@/lib/validators/konto";
 
@@ -85,8 +95,14 @@ export async function zweryfikujEmail(
  * Ponowne wysłanie kodu.
  *
  * Osobna akcja, bo to osobny przycisk: kod wygasa po kwadransie, a maile
- * potrafią przyjść z opóźnieniem albo wylądować w spamie. Limit żądań
- * pilnuje better-auth, nie ten formularz.
+ * potrafią przyjść z opóźnieniem albo wylądować w spamie.
+ *
+ * TEN FORMULARZ PODLEGA REGULE RESETU HASŁA, NIE REJESTRACJI. Adres bierze
+ * się tu z adresu strony, który każdy może podmienić, więc odpowiedź musi być
+ * jednakowa niezależnie od tego, czy konto istnieje, czy czeka na
+ * potwierdzenie, czy wysyłka się udała. Jedyny wyjątek to awaria wykryta
+ * **przed** zajrzeniem do bazy, bo ta zdarza się tak samo dla każdego adresu.
+ * Patrz docs/decyzje/011.
  */
 export async function wyslijKodPonownie(
   _poprzedni: StanFormularza,
@@ -97,36 +113,41 @@ export async function wyslijKodPonownie(
 
   if (!wynik.success) return bledyZod(wynik.error, wejscie);
 
-  try {
-    await auth.api.sendVerificationOTP({
-      body: { email: wynik.data.email, type: "email-verification" },
-      headers: await headers(),
-    });
-  } catch (blad) {
-    /*
-     * Przy zbyt częstym klikaniu better-auth odpowiada 429. To jedyny
-     * przypadek, o którym warto powiedzieć wprost, bo inaczej człowiek
-     * klika dalej i nie rozumie, czemu nic nie przychodzi.
-     */
-    if (kodHttp(blad) === 429) {
+  const { email } = wynik.data;
+  const naglowki = await headers();
+
+  /*
+   * Własny limiter, bo limiter better-auth siedzi w routerze, a my wołamy
+   * `auth.api`, które go omija. Wcześniejsza gałąź `kodHttp(blad) === 429`
+   * nie miała więc jak się odpalić i tylko wyglądała na zabezpieczenie.
+   */
+  const poKoncie = await zuzyjProbe(kluczKodu("weryfikacja", email), LIMIT_KODU_PO_KONCIE);
+  const poIp = await zuzyjProbe(kluczKoduIp("weryfikacja", adresIp(naglowki)), LIMIT_KODU_PO_IP);
+
+  if (poKoncie.wolno && poIp.wolno) {
+    const wyslano = await wyslijKodPotwierdzeniaAdresu(email);
+
+    if (!wyslano.ok && wyslano.przedOdczytemKonta) {
       return {
         status: "informacja",
-        tresc: "Kod był już wysyłany przed chwilą. Odczekaj minutę i spróbuj ponownie.",
+        waga: "ostrzezenie",
+        tresc:
+          "Wysyłanie wiadomości u nas nie działa. To nasza awaria, nie Twoja pomyłka. " +
+          `Spróbuj za jakiś czas albo napisz na ${KONTAKT_EMAIL}.`,
       };
     }
-
-    /*
-     * Pozostałe błędy kwitujemy tak samo jak sukces.
-     *
-     * „Nie ma takiego konta" powiedziane wprost zamienia ten formularz
-     * w sprawdzarkę, czy dany adres jest zarejestrowany.
-     */
-    console.error("Ponowne wysłanie kodu:", blad);
   }
 
+  /*
+   * Jedna odpowiedź na wszystko, co zostało: sukces, nieznany adres, konto
+   * już potwierdzone, wyczerpany limit i nieudana wysyłka. Każde rozróżnienie
+   * w tym miejscu zamienia formularz w sprawdzarkę adresów.
+   */
   return {
     status: "informacja",
-    tresc: "Jeśli ten adres czeka na potwierdzenie, kod właśnie poleciał ponownie.",
+    tresc:
+      "Jeśli ten adres czeka na potwierdzenie, kod właśnie poleciał ponownie. " +
+      `Jeśli wiadomość nie przyjdzie w ciągu kilku minut, napisz na ${KONTAKT_EMAIL}.`,
   };
 }
 

@@ -15,7 +15,9 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { oznaczKontoJakoFirmowe } from "@/lib/db/queries/konto";
 import { bledyZod, type StanFormularza } from "@/lib/formularze";
+import { wyslijKodPotwierdzeniaAdresu } from "@/lib/konto/kody";
 import type { Widz } from "@/lib/permissions";
+import { KONTAKT_EMAIL } from "@/lib/serwis";
 import { daneRejestracjiFirmy, daneRejestracjiKlienta } from "@/lib/validators/konto";
 
 /** Widz na czas rejestracji: sesji jeszcze nie ma, bo konto dopiero powstaje. */
@@ -64,6 +66,9 @@ export async function zarejestrujFirme(
     return bladRejestracji(blad, email);
   }
 
+  const wyslano = await wyslijKodPotwierdzeniaAdresu(email);
+  if (!wyslano.ok) return kodNieWyszedl(email);
+
   // Poza blokiem try: przekierowanie w Next.js działa przez wyjątek.
   redirect(`/weryfikacja?email=${encodeURIComponent(email)}`);
 }
@@ -102,7 +107,40 @@ export async function zarejestrujKlienta(
     return bladRejestracji(blad, email);
   }
 
+  const wyslano = await wyslijKodPotwierdzeniaAdresu(email);
+  if (!wyslano.ok) return kodNieWyszedl(email);
+
   redirect(`/weryfikacja?email=${encodeURIComponent(email)}`);
+}
+
+/**
+ * Konto powstało, ale kod nie wyszedł.
+ *
+ * NIE PRZEKIEROWUJEMY. Ekran „sprawdź skrzynkę" przy niewysłanym mailu jest
+ * kłamstwem, a człowiek czeka wtedy na kod, który nigdy nie przyjdzie — to
+ * jest dokładnie ta awaria, przez którą ten plik wygląda, jak wygląda.
+ *
+ * KONTA NIE KASUJEMY (zasada 5 z CLAUDE.md). Zostaje niepotwierdzone, a kod
+ * czeka w bazie: ponowne wysłanie z ekranu weryfikacji zadziała, gdy poczta
+ * wróci. Dlatego komunikat prowadzi właśnie tam.
+ *
+ * Przyczyny nie pokazujemy. Tutaj akurat wolno by było, bo adres jest znany
+ * — konto właśnie na niego powstało — ale „domena nadawcy niezweryfikowana"
+ * nic nie mówi właścicielowi sali, a mówi obcemu człowiekowi o naszej
+ * infrastrukturze. Pełna klasyfikacja jest w logu serwera.
+ */
+function kodNieWyszedl(email: string): StanFormularza {
+  return {
+    status: "informacja",
+    waga: "ostrzezenie",
+    tresc:
+      "Konto zostało założone, ale nie udało się wysłać kodu na ten adres. " +
+      `Spróbuj poprosić o kod ponownie za chwilę albo napisz na ${KONTAKT_EMAIL}.`,
+    odnosnik: {
+      tekst: "Przejdź do wpisywania kodu",
+      adres: `/weryfikacja?email=${encodeURIComponent(email)}`,
+    },
+  };
 }
 
 /**

@@ -26,7 +26,21 @@ export type StanFormularza =
    * jechać jako błąd i wyświetlała się na czerwono w ramce „Popraw te pola”,
    * choć nic do poprawiania nie było.
    */
-  | { status: "informacja"; tresc: string };
+  | {
+      status: "informacja";
+      tresc: string;
+      /**
+       * `ostrzezenie` znaczy „coś nie wyszło, ale nie jest to błąd pola".
+       *
+       * Osobne od `bledy`, bo tam trafiają rzeczy do poprawienia w formularzu,
+       * a tu rzeczy, których człowiek nie poprawi: nieudana wysyłka maila.
+       * Bez tego rozróżnienia awaria wysyłki musiałaby jechać jako błąd pola
+       * albo jako neutralna informacja, a jest ani jednym, ani drugim.
+       */
+      waga?: "neutralna" | "ostrzezenie";
+      /** Dokąd dalej, gdy komunikat zostawia człowieka w pół drogi. */
+      odnosnik?: { tekst: string; adres: string };
+    };
 
 export const STAN_POCZATKOWY: StanFormularza = { status: "poczatkowy" };
 

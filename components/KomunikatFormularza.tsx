@@ -10,13 +10,31 @@ export function KomunikatFormularza({ stan }: { stan: StanFormularza }) {
   if (stan.status === "poczatkowy" || stan.status === "zapisano") return null;
 
   if (stan.status === "informacja") {
+    /*
+     * Ostrzeżenie dostaje `role="alert"`, bo czytnik ekranu ma je ogłosić
+     * od razu. Neutralna informacja zostaje przy `role="status"`: ogłoszenie
+     * każdego komunikatu jako alarmu kończy się tym, że żaden nie znaczy nic.
+     */
+    const ostrzezenie = stan.waga === "ostrzezenie";
+
     return (
-      <p
-        role="status"
-        className="m-0 rounded-[12px] border border-[#D9CCC2] bg-[#F2E9E2] p-4 text-[15px] leading-[1.6] text-[#3E3344]"
+      <div
+        role={ostrzezenie ? "alert" : "status"}
+        className={
+          ostrzezenie
+            ? "rounded-[12px] border border-[#D8B4A0] bg-[#F7E9E2] p-4 text-[15px] leading-[1.6] text-[#7A3B1E]"
+            : "rounded-[12px] border border-[#D9CCC2] bg-[#F2E9E2] p-4 text-[15px] leading-[1.6] text-[#3E3344]"
+        }
       >
-        {stan.tresc}
-      </p>
+        <p className="m-0">{stan.tresc}</p>
+        {stan.odnosnik ? (
+          <p className="m-0 mt-2">
+            <a href={stan.odnosnik.adres} className="font-semibold underline">
+              {stan.odnosnik.tekst}
+            </a>
+          </p>
+        ) : null}
+      </div>
     );
   }
 

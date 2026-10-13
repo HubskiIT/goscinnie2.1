@@ -38,6 +38,39 @@ const ARGON2 = {
   parallelism: 1,
 } as const;
 
+/**
+ * Trzy przełączniki, którymi odbieramy better-auth wysyłkę kodów.
+ *
+ * DLACZEGO W OGÓLE JE ODBIERAMY. Biblioteka woła każdą funkcję wysyłającą
+ * przez `runInBackgroundOrAwait` (node_modules/better-auth/dist/context/
+ * create-context.mjs:215-225), która łapie wyjątek i zamienia go na wpis
+ * w logu. Nic nie wraca do wywołującego, więc rejestracja kończyła się
+ * ekranem „wpisz kod z maila" także wtedy, gdy Resend odmówił wysyłki.
+ * Nie ma opcji, która by to wyłączyła — sprawdzone w typach.
+ *
+ * DLACZEGO TRZY, A NIE JEDEN. Każdy gasi inną drogę i wszystkie trzy muszą
+ * być wyłączone naraz:
+ *
+ *   sendOnSignUp                     brama w api/routes/sign-up.mjs:248
+ *   sendVerificationOnSignUp         hook `after` wtyczki, email-otp/index.mjs:50
+ *   overrideDefaultEmailVerification wstrzyknięcie sendVerificationEmail, tamże:23
+ *
+ * `requireEmailVerification` zostaje **włączone** i jest od tego niezależne:
+ * trzyma blokadę logowania niepotwierdzonych kont (sign-in.mjs:337 rzuca
+ * EMAIL_NOT_VERIFIED także bez żadnej funkcji wysyłającej).
+ *
+ * Osobny eksport, a nie wartości wpisane w konfigurację, bo każdy przełącznik
+ * ma własny test. Dwa z nich bronią tej samej ścieżki w koniunkcji, więc test
+ * na skutek padłby dopiero po zdjęciu obu i dowodziłby tylko, że działa
+ * co najmniej jeden.
+ *
+ * Patrz docs/decyzje/011.
+ */
+export const OPCJE_WERYFIKACJI = {
+  emailVerification: { sendOnSignUp: false },
+  emailOTP: { sendVerificationOnSignUp: false, overrideDefaultEmailVerification: false },
+} as const;
+
 function utworzAuth() {
   const sekret = process.env.BETTER_AUTH_SECRET;
   if (!sekret) {
@@ -91,6 +124,8 @@ function utworzAuth() {
        * którego wymaga link aktywacyjny.
        */
       autoSignInAfterVerification: true,
+
+      ...OPCJE_WERYFIKACJI.emailVerification,
     },
 
     emailAndPassword: {
@@ -152,19 +187,28 @@ function utworzAuth() {
         // zgadywanie przestaje mieć sens.
         allowedAttempts: 3,
 
-        // Kod leci sam po założeniu konta, bez osobnego kliknięcia.
-        sendVerificationOnSignUp: true,
+        ...OPCJE_WERYFIKACJI.emailOTP,
 
-        // Cała weryfikacja adresu idzie przez kod, także gdy ktoś poprosi
-        // o ponowne wysłanie. Bez tego istniałyby dwie drogi naraz: kod
-        // i link, a tylko jedna z nich byłaby obsłużona przez interfejs.
-        overrideDefaultEmailVerification: true,
-
-        sendVerificationOTP: async ({ email, otp }) => {
-          const { pobierzNadawce } = await import("@/lib/poczta");
-          const { weryfikacjaEmail } = await import("@/lib/poczta/szablony");
-          const nadawca = await pobierzNadawce();
-          await nadawca.wyslij(weryfikacjaEmail(email, otp));
+        /*
+         * KANAREK, NIE WYSYŁKA. Nie usuwaj: typ wtyczki wymaga tego pola.
+         *
+         * Kody wysyła `lib/konto/kody.ts`, bo better-auth woła tę funkcję
+         * przez warstwę, która połyka każdy wyjątek (`runInBackgroundOrAwait`
+         * w context/create-context.mjs). Wysyłka stąd byłaby wysyłką, o której
+         * awarii nikt by się nie dowiedział.
+         *
+         * Przełączniki w OPCJE_WERYFIKACJI sprawiają, że biblioteka nie ma
+         * powodu tego wołać. Gdyby zawołała po aktualizacji, ten log jest
+         * jedynym śladem, jaki da się z tego miejsca wycisnąć.
+         *
+         * Patrz docs/decyzje/011.
+         */
+        sendVerificationOTP: async ({ email, type }) => {
+          console.error(
+            `sendVerificationOTP zostało wywołane dla ${email} (${type}), a nie powinno. ` +
+              "Kody wysyła lib/konto/kody.ts. Sprawdź OPCJE_WERYFIKACJI po aktualizacji " +
+              "better-auth, patrz docs/decyzje/011.",
+          );
         },
       }),
 

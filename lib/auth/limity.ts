@@ -60,6 +60,31 @@ export function kluczIp(ip: string): string {
 }
 
 /**
+ * Limity proszenia o kod z maila: potwierdzenie adresu i zmiana hasła.
+ *
+ * Osobne od limitów logowania, bo chronią przed czymś innym. Tu nie chodzi
+ * o zgadywanie hasła, tylko o to, żeby formularz nie służył do zasypywania
+ * cudzej skrzynki pocztą ani do wyczerpywania limitu naszego konta w Resend.
+ *
+ * Własny limiter, a nie ten z wtyczki better-auth, i to nie z wyboru:
+ * limity wtyczki egzekwuje router (`api/index.mjs:165`), a my wołamy
+ * `auth.api`, czyli `getEndpoints` (`auth/base.mjs:21`). Ta droga limiter
+ * omija, więc jego limity nigdy się nie odpalały.
+ */
+export const LIMIT_KODU_PO_KONCIE = { proby: 3, oknoSekund: 15 * 60 } as const;
+export const LIMIT_KODU_PO_IP = { proby: 20, oknoSekund: 15 * 60 } as const;
+
+/** Klucz limitu kodów dla konta. `cel` rozdziela potwierdzanie od resetu hasła. */
+export function kluczKodu(cel: "weryfikacja" | "reset", email: string): string {
+  return `kod:${cel}:konto:${email.trim().toLowerCase()}`;
+}
+
+/** Klucz limitu kodów dla adresu IP. */
+export function kluczKoduIp(cel: "weryfikacja" | "reset", ip: string): string {
+  return `kod:${cel}:ip:${ip}`;
+}
+
+/**
  * Nagłówek, któremu ufamy na produkcji.
  *
  * Vercel nadpisuje `x-vercel-forwarded-for` na swoim brzegu, więc klient nie

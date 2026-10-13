@@ -138,9 +138,20 @@ describe("zły kod nie potwierdza adresu", () => {
     const email = adres("niepotwierdzony");
     await zalozKonto(email);
 
+    /*
+     * Kod tworzy nasz lej, nie `signUpEmail`.
+     *
+     * Wysyłkę odebraliśmy bibliotece, bo wołała ją przez warstwę połykającą
+     * błędy (patrz docs/decyzje/011). Samo założenie konta nie zostawia już
+     * zgłoszenia i to jest zamierzone — pilnuje tego osobny test
+     * w tests/wysylka-kodu.test.ts.
+     */
+    const { wyslijKodPotwierdzeniaAdresu } = await import("@/lib/konto/kody");
+    await wyslijKodPotwierdzeniaAdresu(email);
+
     const zapisane = await zgloszenieWeryfikacji(email);
 
-    expect(zapisane, "zakładanie konta nie utworzyło zgłoszenia weryfikacji").not.toBeNull();
+    expect(zapisane, "wysyłka kodu nie utworzyła zgłoszenia weryfikacji").not.toBeNull();
     /*
      * Gdyby kod leżał wprost, wyciek tabeli `verifications` dawałby gotowe
      * kody do cudzych kont. Skrót jest dłuższy niż sześć cyfr i nie składa

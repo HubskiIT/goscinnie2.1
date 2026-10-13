@@ -270,6 +270,36 @@ export async function zasiej(): Promise<void> {
     password: skrot,
   });
 
+  /*
+   * Konto, które zatrzymało się na potwierdzaniu adresu.
+   *
+   * Wszystkie dwadzieścia kont wyżej ma `emailVerified: true`, bo udają konta
+   * istniejące od dawna. Przez to ścieżka „poproś o kod ponownie" nie miała
+   * na czym być sprawdzona na rekordzie z zasiewu, a sprawdzanie jej wyłącznie
+   * na koncie zakładanym przez sam test jest ślepe na błędy zasiewu.
+   *
+   * Osobny `insert`, poza tablicą `uzytkownicy`, żeby nie poprzestawiać
+   * przypisania firm i zleceń do ludzi.
+   */
+  const [niepotwierdzony] = await db
+    .insert(schema.users)
+    .values({
+      email: "niepotwierdzony@przyklad.pl",
+      name: "Konto bez potwierdzenia",
+      emailVerified: false,
+      role: "client",
+    })
+    .returning();
+
+  if (!niepotwierdzony) throw new Error("Zasiew: nie powstało konto niepotwierdzone.");
+
+  await db.insert(schema.accounts).values({
+    userId: niepotwierdzony.id,
+    accountId: niepotwierdzony.id,
+    providerId: "credential",
+    password: skrot,
+  });
+
   const wlasciciele = uzytkownicy.filter((u) => u.role === "company_owner");
   const klienci = uzytkownicy.filter((u) => u.role === "client");
 

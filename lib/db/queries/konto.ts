@@ -140,3 +140,47 @@ export async function zapiszProfilKlienta(
 
   return { ok: true, dane: { id: zmienione.id } };
 }
+
+/**
+ * Czy istnieje konto o tym adresie.
+ *
+ * Potrzebne, bo `createVerificationOTP` z better-auth **nie sprawdza istnienia
+ * konta** — inaczej niż `sendVerificationOTP`, które dla nieznanego adresu
+ * kasuje zgłoszenie i kończy bez wysyłki (email-otp/routes.mjs:102-105).
+ * Bez tego sprawdzenia dowolny wpisany adres zostawiałby wiersz w `verification`
+ * i dostawał od nas maila, czyli formularz stałby się narzędziem do wysyłania
+ * poczty obcym ludziom.
+ *
+ * Wynik tej funkcji **nie ma prawa trafić do komunikatu** pokazywanego temu,
+ * kto wpisał adres. Służy wyłącznie do rozstrzygnięcia, czy wysyłać.
+ */
+export async function czyKontoIstnieje(widz: Widz, email: string): Promise<boolean> {
+  upewnijSieZeGalazUprawnienIstnieje(widz, "czyKontoIstnieje");
+
+  const [wiersz] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  return wiersz !== undefined;
+}
+
+/**
+ * Czy konto o tym adresie istnieje i wciąż czeka na potwierdzenie.
+ *
+ * Ponowne wysłanie kodu potwierdzającego ma sens tylko dla takiego konta.
+ * Dla konta już potwierdzonego kod byłby do niczego, a jego wysłanie
+ * powiadamiałoby właściciela o cudzej próbie.
+ */
+export async function czyKontoCzekaNaPotwierdzenie(widz: Widz, email: string): Promise<boolean> {
+  upewnijSieZeGalazUprawnienIstnieje(widz, "czyKontoCzekaNaPotwierdzenie");
+
+  const [wiersz] = await db
+    .select({ potwierdzony: users.emailVerified })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  return wiersz !== undefined && !wiersz.potwierdzony;
+}
