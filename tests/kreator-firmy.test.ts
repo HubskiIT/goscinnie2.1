@@ -33,6 +33,7 @@ import {
   zapiszOpisSzkicu,
   zapiszWeryfikacjeSzkicu,
 } from "@/lib/db/queries/kreator";
+import { dodajZdjecie, usunZdjecie } from "@/lib/db/queries/zdjecia";
 import { subscriptions } from "@/lib/db/schema/abonament";
 import { cities } from "@/lib/db/schema/geografia";
 import {
@@ -40,6 +41,7 @@ import {
   companies,
   companyCategories,
   companyMembers,
+  companyPhotos,
   companyVerification,
 } from "@/lib/db/schema/katalog";
 import { users } from "@/lib/db/schema/tozsamosc";
@@ -697,6 +699,9 @@ async function posprzatajPoSobie(): Promise<void> {
      * Zasada 5 dotyczy kodu aplikacji: dane biznesowe nie znikają z bazy
      * przez działanie serwisu. Sprzątanie po teście nią nie jest.
      */
+    // Zdjęcia przed firmą: klucz obcy ma `on delete no action`, więc firma ze
+    // zdjęciem nie da się usunąć i wysypałby się `beforeEach` całego pliku.
+    await db.delete(companyPhotos).where(eq(companyPhotos.companyId, firma.id));
     await db.delete(subscriptions).where(eq(subscriptions.companyId, firma.id));
     await db.delete(companyVerification).where(eq(companyVerification.companyId, firma.id));
     await db.delete(companyCategories).where(eq(companyCategories.companyId, firma.id));
@@ -829,5 +834,145 @@ describe("katalog", () => {
     const obcy = await klientBezFirmy();
     expect((await pobierzMojeFirmy(obcy)).map((f) => f.slug)).not.toContain(slug);
     expect(await pobierzMojeFirmy(ANONIM)).toEqual([]);
+  });
+});
+
+/**
+ * Zdjęcia w katalogu: co z nich widzi klient.
+ *
+ * REGUŁY TEGO BLOKU:
+ *
+ * 1. zdjęciem z karty jest to z pozycji zerowej, a pozostałe idą do galerii
+ *    profilu i **nie powtarzają** tego z karty;
+ * 2. firma widzi w karcie swoje zdjęcie, nigdy cudze;
+ * 3. zdjęcie zarchiwizowane nie pokazuje się nigdzie, a jego miejsce zajmuje
+ *    następne w kolejności.
+ *
+ * Każdy test negatywny ma obok firmę, która zdjęcie ma. Bez tego „nikt nie ma
+ * zdjęcia" i „ta firma nie ma" dałyby ten sam wynik, a podzapytanie bez
+ * powiązania z firmą przeszłoby niezauważone.
+ */
+describe("zdjęcia w katalogu", () => {
+  const ANONIM: Widz = { rodzaj: "anonim" };
+  const ADRES_SUPABASE = "https://przyklad-testowy.supabase.co";
+
+  /** Zapamiętane, żeby test nie zostawiał po sobie zmienionego środowiska. */
+  let bylAdres: string | undefined;
+
+  beforeAll(() => {
+    bylAdres = process.env.SUPABASE_URL;
+    // Bez adresu projektu `adresZdjecia` oddaje null i każde zdjęcie wyglądałoby
+    // na nieistniejące, czyli wszystkie testy tego bloku przechodziłyby z pustki.
+    process.env.SUPABASE_URL = ADRES_SUPABASE;
+  });
+
+  afterAll(() => {
+    if (bylAdres === undefined) delete process.env.SUPABASE_URL;
+    else process.env.SUPABASE_URL = bylAdres;
+  });
+
+  /** Spodziewany adres publiczny, składany tu z palca, nie `adresZdjecia`. */
+  function adresWzorcowy(sciezka: string): string {
+    return `${ADRES_SUPABASE}/storage/v1/object/public/zdjecia/${sciezka}`;
+  }
+
+  async function firmaWKatalogu(): Promise<{ widz: Widz; companyId: string; slug: string }> {
+    const { widz, companyId } = await przejdzKreator();
+    await opublikujSzkic(widz, companyId, zaRok());
+    return { widz, companyId, slug: await slugFirmy(companyId) };
+  }
+
+  it("karta pokazuje zdjęcie z pozycji zerowej, galeria pozostałe", async () => {
+    const firma = await firmaWKatalogu();
+
+    for (const nazwa of ["pierwsze.webp", "drugie.webp", "trzecie.webp"]) {
+      const wynik = await dodajZdjecie(firma.widz, firma.companyId, {
+        sciezka: `${firma.companyId}/${nazwa}`,
+        szerokosc: 1600,
+        wysokosc: 1200,
+      });
+      expect(wynik.ok).toBe(true);
+    }
+
+    const profil = await pobierzFirmeKatalogu(ANONIM, firma.slug);
+
+    expect(profil?.glowneZdjecie).toBe(adresWzorcowy(`${firma.companyId}/pierwsze.webp`));
+    // Galeria to „pozostałe", więc zdjęcie z karty nie wraca w niej drugi raz.
+    expect(profil?.galeria).toEqual([
+      adresWzorcowy(`${firma.companyId}/drugie.webp`),
+      adresWzorcowy(`${firma.companyId}/trzecie.webp`),
+    ]);
+  });
+
+  it("firma bez zdjęć nie dostaje cudzego, choć obok jest firma ze zdjęciem", async () => {
+    const zeZdjeciem = await firmaWKatalogu();
+    await dodajZdjecie(zeZdjeciem.widz, zeZdjeciem.companyId, {
+      sciezka: `${zeZdjeciem.companyId}/jest.webp`,
+      szerokosc: 1600,
+      wysokosc: 1200,
+    });
+
+    const bezZdjecia = await firmaWKatalogu();
+
+    const profilBez = await pobierzFirmeKatalogu(ANONIM, bezZdjecia.slug);
+    expect(profilBez?.glowneZdjecie).toBeNull();
+    expect(profilBez?.galeria).toEqual([]);
+
+    // Instancja pozytywna: w bazie zdjęcie jest, tylko nie tej firmy.
+    const profilZe = await pobierzFirmeKatalogu(ANONIM, zeZdjeciem.slug);
+    expect(profilZe?.glowneZdjecie).toBe(adresWzorcowy(`${zeZdjeciem.companyId}/jest.webp`));
+  });
+
+  it("lista katalogu daje każdej firmie jej własne zdjęcie", async () => {
+    const pierwsza = await firmaWKatalogu();
+    await dodajZdjecie(pierwsza.widz, pierwsza.companyId, {
+      sciezka: `${pierwsza.companyId}/pierwsza.webp`,
+      szerokosc: 1600,
+      wysokosc: 1200,
+    });
+
+    const druga = await firmaWKatalogu();
+    await dodajZdjecie(druga.widz, druga.companyId, {
+      sciezka: `${druga.companyId}/druga.webp`,
+      szerokosc: 1600,
+      wysokosc: 1200,
+    });
+
+    const lista = await pobierzFirmyKatalogu(ANONIM, [KATEGORIA_LOKALU]);
+    const poSlugu = new Map(lista.map((f) => [f.slug, f.glowneZdjecie]));
+
+    expect(poSlugu.get(pierwsza.slug)).toBe(adresWzorcowy(`${pierwsza.companyId}/pierwsza.webp`));
+    expect(poSlugu.get(druga.slug)).toBe(adresWzorcowy(`${druga.companyId}/druga.webp`));
+  });
+
+  it("zarchiwizowanego zdjęcia nie widać, a kartę przejmuje następne", async () => {
+    const firma = await firmaWKatalogu();
+
+    const pierwsze = await dodajZdjecie(firma.widz, firma.companyId, {
+      sciezka: `${firma.companyId}/do-usuniecia.webp`,
+      szerokosc: 1600,
+      wysokosc: 1200,
+    });
+    await dodajZdjecie(firma.widz, firma.companyId, {
+      sciezka: `${firma.companyId}/zostaje.webp`,
+      szerokosc: 1600,
+      wysokosc: 1200,
+    });
+
+    expect(pierwsze.ok).toBe(true);
+    if (!pierwsze.ok) return;
+
+    expect((await pobierzFirmeKatalogu(ANONIM, firma.slug))?.glowneZdjecie).toBe(
+      adresWzorcowy(`${firma.companyId}/do-usuniecia.webp`),
+    );
+
+    const usuniete = await usunZdjecie(firma.widz, firma.companyId, pierwsze.dane.id);
+    expect(usuniete.ok).toBe(true);
+
+    const profil = await pobierzFirmeKatalogu(ANONIM, firma.slug);
+
+    expect(profil?.glowneZdjecie).toBe(adresWzorcowy(`${firma.companyId}/zostaje.webp`));
+    // Usunięte nie wraca też z drugiej strony, czyli w galerii.
+    expect(profil?.galeria).toEqual([]);
   });
 });

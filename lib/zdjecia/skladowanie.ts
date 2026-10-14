@@ -27,26 +27,50 @@ export type WynikWysylki = { ok: true; sciezka: string } | { ok: false; blad: Bl
 type Konfiguracja = { adres: string; klucz: string };
 
 /**
- * Adres projektu i klucz serwisowy.
+ * Adres projektu, bez klucza.
+ *
+ * Osobno od `konfiguracja`, bo publiczny adres zdjęcia nie ma nic wspólnego
+ * z kluczem do zapisu. Gdy jedna funkcja odpowiadała za jedno i drugie, brak
+ * klucza ukrywał **wszystkie** zdjęcia, także te dawno wysłane: odczyt padał
+ * na warunku, który dotyczy wyłącznie zapisu.
+ */
+function adresProjektu(srodowisko: NodeJS.ProcessEnv = process.env): string | null {
+  const adres = srodowisko.SUPABASE_URL?.trim();
+  if (!adres) return null;
+
+  return adres.replace(/\/+$/, "");
+}
+
+/**
+ * Adres projektu i klucz serwisowy, czyli komplet potrzebny do wysłania.
  *
  * Brak którejkolwiek zmiennej to błąd konfiguracji, nie pusty wynik: firma
  * dostałaby wtedy komunikat „nie udało się wysłać zdjęcia" bez żadnego śladu,
  * dlaczego, a przyczyna byłaby po naszej stronie.
  */
 function konfiguracja(srodowisko: NodeJS.ProcessEnv = process.env): Konfiguracja | null {
-  const adres = srodowisko.SUPABASE_URL?.trim();
+  const adres = adresProjektu(srodowisko);
   const klucz = srodowisko.SUPABASE_KLUCZ_SERWISOWY?.trim();
 
   if (!adres || !klucz) return null;
-  return { adres: adres.replace(/\/+$/, ""), klucz };
+  return { adres, klucz };
 }
 
-/** Publiczny adres zdjęcia. Składany przy odczycie, nie zapisywany w bazie. */
-export function adresZdjecia(sciezka: string, srodowisko: NodeJS.ProcessEnv = process.env): string {
-  const ustawienia = konfiguracja(srodowisko);
-  if (!ustawienia) return "";
+/**
+ * Publiczny adres zdjęcia. Składany przy odczycie, nie zapisywany w bazie.
+ *
+ * `null`, a nie pusty napis, gdy brakuje konfiguracji: pusty napis w `src`
+ * obrazka znaczy dla przeglądarki „pobierz jeszcze raz tę stronę", a dla
+ * człowieka wygląda jak zepsute zdjęcie. `null` da się odfiltrować.
+ */
+export function adresZdjecia(
+  sciezka: string,
+  srodowisko: NodeJS.ProcessEnv = process.env,
+): string | null {
+  const adres = adresProjektu(srodowisko);
+  if (!adres) return null;
 
-  return `${ustawienia.adres}/storage/v1/object/public/${KOSZ}/${sciezka}`;
+  return `${adres}/storage/v1/object/public/${KOSZ}/${sciezka}`;
 }
 
 /**

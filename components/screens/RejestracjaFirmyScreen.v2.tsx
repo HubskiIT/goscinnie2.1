@@ -8,6 +8,7 @@ import { BladPola, idBledu, maBlad } from "@/components/BladPola";
 import { KomunikatFormularza } from "@/components/KomunikatFormularza";
 import { ListaWymaganHasla } from "@/components/ListaWymaganHasla";
 import { PoleMiejscowosci } from "@/components/PoleMiejscowosci";
+import { WysylkaZdjec } from "@/components/WysylkaZdjec";
 import { KATEGORIE_USLUGODAWCOW, pobierzKategorie } from "@/content/kategorie";
 import { pobierzRodzajeLokali, RODZAJE_LOKALI } from "@/content/rodzaje-lokali";
 import {
@@ -18,6 +19,7 @@ import {
   zapiszKrokOpis,
 } from "@/lib/akcje/profil";
 import { zarejestrujFirme } from "@/lib/akcje/rejestracja";
+import type { ZdjecieDoPokazania } from "@/lib/akcje/zdjecia";
 import { STAN_POCZATKOWY, type StanFormularza } from "@/lib/formularze";
 import { MINIMALNA_DLUGOSC_HASLA } from "@/lib/haslo";
 import type { Krok, SzkicKreatora } from "@/lib/kreator-krok";
@@ -56,9 +58,12 @@ const KROKI: Krok[] = [1, 2, 3, 4, 6];
  */
 export function RejestracjaFirmyScreen({
   szkic = null,
+  zdjecia = [],
   zalogowany = false,
 }: {
   szkic?: SzkicKreatora | null;
+  /** Zdjęcia odczytane na serwerze, żeby galeria nie migała pustką. */
+  zdjecia?: readonly ZdjecieDoPokazania[];
   /** Czy krok pierwszy, czyli zakładanie konta, jest już za nami. */
   zalogowany?: boolean;
 }) {
@@ -554,6 +559,14 @@ export function RejestracjaFirmyScreen({
                       Co najmniej 20 znaków, maksymalnie 2000
                     </p>
                   </div>
+
+                  {/*
+                   * Zdjęcia zapisują się same, od razu po wybraniu pliku, a nie
+                   * przyciskiem „Dalej". Dlatego stoją na końcu kroku, za polami,
+                   * które przycisk zapisuje: żeby nie wyglądało, że jedno pole
+                   * z tej samej sekcji działa inaczej niż pozostałe.
+                   */}
+                  <WysylkaZdjec poczatkowe={zdjecia} />
                 </div>
 
                 <div className="pt-4">

@@ -48,6 +48,7 @@ export function lokalZFirmy(firma: FirmaWKatalogu): Lokal {
     opis: firma.opis,
     udogodnienia: [],
     okazje: [],
+    zdjecie: firma.glowneZdjecie,
   };
 }
 
@@ -64,6 +65,7 @@ export function uslugodawcaZFirmy(firma: FirmaWKatalogu): Uslugodawca {
     jednostkaCeny: "",
     opis: firma.opis,
     udogodnienia: [],
+    zdjecie: firma.glowneZdjecie,
   };
 }
 

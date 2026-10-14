@@ -21,18 +21,24 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { widzZZadania } from "@/lib/auth/widz";
 import { pobierzSzkicFirmy } from "@/lib/db/queries/kreator";
-import { dodajZdjecie, MAKS_ZDJEC, usunZdjecie } from "@/lib/db/queries/zdjecia";
+import { dodajZdjecie, pobierzZdjeciaFirmy, usunZdjecie } from "@/lib/db/queries/zdjecia";
 import type { StanFormularza } from "@/lib/formularze";
 import { KONTAKT_EMAIL } from "@/lib/serwis";
-import { MAKS_BAJTOW, type PowodOdrzucenia, przygotujZdjecie } from "@/lib/zdjecia/obrobka";
-import { sciezkaZdjecia, wyslijZdjecie } from "@/lib/zdjecia/skladowanie";
+import { MAKS_MEGABAJTOW, MAKS_ZDJEC } from "@/lib/zdjecia/granice";
+import { type PowodOdrzucenia, przygotujZdjecie } from "@/lib/zdjecia/obrobka";
+import { adresZdjecia, sciezkaZdjecia, wyslijZdjecie } from "@/lib/zdjecia/skladowanie";
 
-const MEGABAJTY = Math.round(MAKS_BAJTOW / (1024 * 1024));
+/** Zdjęcie w postaci, jakiej potrzebuje przeglądarka: adres, nie ścieżka. */
+export type ZdjecieDoPokazania = {
+  id: string;
+  adres: string;
+  pozycja: number;
+};
 
 /** Komunikaty odmowy przy obróbce, w języku człowieka. */
 const KOMUNIKAT_ODRZUCENIA: Record<PowodOdrzucenia, string> = {
   typ: "Przyjmujemy zdjęcia JPEG, PNG, WebP i HEIC z iPhone'a. Ten plik jest w innym formacie.",
-  rozmiar: `Zdjęcie waży za dużo. Przyjmujemy pliki do ${MEGABAJTY} MB.`,
+  rozmiar: `Zdjęcie waży za dużo. Przyjmujemy pliki do ${MAKS_MEGABAJTOW} MB.`,
   nieczytelne: "Nie udało się odczytać tego pliku. Spróbuj innego zdjęcia.",
 };
 
@@ -108,4 +114,32 @@ export async function usunZdjecieFirmy(
   if (!wynik.ok) return blad("Nie udało się usunąć tego zdjęcia.");
 
   return { status: "zapisano" };
+}
+
+/**
+ * Zdjęcia firmy, którą prowadzi zalogowany człowiek.
+ *
+ * Osobna akcja odczytu, bo akcje zapisu oddają `StanFormularza`, a formularz
+ * po wysłaniu pliku musi pokazać nowy stan galerii. Alternatywą było
+ * odświeżanie całej strony po każdym zdjęciu, co w kreatorze kasowałoby
+ * wpisane, a jeszcze niezapisane pola kroku.
+ *
+ * Firmy nie bierzemy z formularza, tak samo jak przy dodawaniu: szkic
+ * odnajdujemy po sesji.
+ */
+export async function mojeZdjecia(): Promise<ZdjecieDoPokazania[]> {
+  const widz = await widzZZadania(await headers());
+  if (widz.rodzaj === "anonim") redirect("/logowanie");
+
+  const szkic = await pobierzSzkicFirmy(widz);
+  if (!szkic) return [];
+
+  const zdjecia = await pobierzZdjeciaFirmy(widz, szkic.id);
+
+  return zdjecia.flatMap((z) => {
+    const adres = adresZdjecia(z.sciezka);
+    // Brak adresu znaczy brak konfiguracji Storage. Wiersz zostaje w bazie,
+    // ale nie ma czego pokazać, więc nie udajemy, że jest.
+    return adres ? [{ id: z.id, adres, pozycja: z.pozycja }] : [];
+  });
 }

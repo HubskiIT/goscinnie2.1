@@ -17,10 +17,12 @@
  */
 import { and, asc, eq, exists, gt, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { pobierzZdjeciaFirmy } from "@/lib/db/queries/zdjecia";
 import { subscriptions } from "@/lib/db/schema/abonament";
 import { cities } from "@/lib/db/schema/geografia";
 import { categories, companies, companyCategories, companyMembers } from "@/lib/db/schema/katalog";
 import { upewnijSieZeGalazUprawnienIstnieje, type Widz } from "@/lib/permissions";
+import { adresZdjecia } from "@/lib/zdjecia/skladowanie";
 
 export type FirmaWKatalogu = {
   slug: string;
@@ -41,6 +43,20 @@ export type FirmaWKatalogu = {
   };
   szerokosc: number | null;
   dlugosc: number | null;
+  /**
+   * Zdjęcie z karty w katalogu, czyli to z pozycji zerowej. `null`, gdy firma
+   * żadnego nie dodała — wtedy karta pokazuje samo tło, jak dotąd.
+   */
+  glowneZdjecie: string | null;
+  /**
+   * Pozostałe zdjęcia, od drugiego.
+   *
+   * Wypełnia je **tylko** `pobierzFirmeKatalogu`, czyli jeden profil. Na
+   * listach katalogu zostaje pusta, i to nie jest przeoczenie: galeria dla
+   * każdej firmy z listy to jedno zapytanie na firmę, a karta i tak pokazuje
+   * jedno zdjęcie.
+   */
+  galeria: string[];
 };
 
 /** Warunek „firma jest w katalogu”, wspólny dla listy i pojedynczego profilu. */
@@ -78,6 +94,18 @@ const KOLUMNY = {
   wojewodztwo: cities.wojewodztwo,
   szerokosc: sql<number | null>`ST_Y(${companies.point}::geometry)`,
   dlugosc: sql<number | null>`ST_X(${companies.point}::geometry)`,
+  /*
+   * Zdjęcie główne podzapytaniem, nie złączeniem i nie osobnym zapytaniem
+   * na firmę. Złączenie zwielokrotniłoby wiersze firmy, a zapytanie na firmę
+   * znaczyłoby dwudziestu zapytań na stronę wyników.
+   */
+  sciezkaGlownegoZdjecia: sql<string | null>`(
+    select z.path
+    from company_photos z
+    where z.company_id = ${companies.id} and z.archived_at is null
+    order by z.position asc
+    limit 1
+  )`,
 };
 
 type Wiersz = {
@@ -95,9 +123,10 @@ type Wiersz = {
   wojewodztwo: string;
   szerokosc: number | null;
   dlugosc: number | null;
+  sciezkaGlownegoZdjecia: string | null;
 };
 
-function doFirmy(w: Wiersz): FirmaWKatalogu {
+function doFirmy(w: Wiersz, galeria: string[] = []): FirmaWKatalogu {
   return {
     slug: w.slug,
     nazwa: w.nazwa,
@@ -116,6 +145,11 @@ function doFirmy(w: Wiersz): FirmaWKatalogu {
     // Sterownik oddaje liczby z funkcji PostGIS jako tekst.
     szerokosc: w.szerokosc === null ? null : Number(w.szerokosc),
     dlugosc: w.dlugosc === null ? null : Number(w.dlugosc),
+    // Adres składamy tutaj, bo w bazie leży sama ścieżka w koszu. Gdyby adres
+    // był w bazie, przeniesienie zdjęć do innego dostawcy wymagałoby migracji
+    // danych, a nie zmiany jednej zmiennej środowiskowej.
+    glowneZdjecie: w.sciezkaGlownegoZdjecia ? adresZdjecia(w.sciezkaGlownegoZdjecia) : null,
+    galeria,
   };
 }
 
@@ -147,7 +181,9 @@ export async function pobierzFirmyKatalogu(
 
   // Firma z dwiema kategoriami z tej samej listy wychodzi z zapytania dwa razy.
   const widziane = new Set<string>();
-  return wiersze.filter((w) => !widziane.has(w.slug) && widziane.add(w.slug)).map(doFirmy);
+  return wiersze
+    .filter((w) => !widziane.has(w.slug) && widziane.add(w.slug))
+    .map((w) => doFirmy(w));
 }
 
 /**
@@ -183,7 +219,7 @@ export async function pobierzFirmeKatalogu(
   upewnijSieZeGalazUprawnienIstnieje(widz, "pobierzFirmeKatalogu");
 
   const [wiersz] = await db
-    .select(KOLUMNY)
+    .select({ ...KOLUMNY, id: companies.id })
     .from(companies)
     .innerJoin(cities, eq(cities.id, companies.cityId))
     .innerJoin(
@@ -194,7 +230,21 @@ export async function pobierzFirmeKatalogu(
     .where(and(jestWKatalogu(), eq(companies.slug, slug)))
     .limit(1);
 
-  return wiersz ? doFirmy(wiersz) : null;
+  if (!wiersz) return null;
+
+  /*
+   * Galerię dociągamy osobnym zapytaniem, bo profil to jedna firma, więc nie
+   * grozi tu zapytanie na wiersz listy. Identyfikator firmy zostaje w tej
+   * funkcji: profil jest publiczny, a identyfikator wewnętrzny nie ma po co
+   * jechać do przeglądarki.
+   */
+  const wszystkie = await pobierzZdjeciaFirmy(widz, wiersz.id);
+  const galeria = wszystkie.slice(1).flatMap((z) => {
+    const adres = adresZdjecia(z.sciezka);
+    return adres ? [adres] : [];
+  });
+
+  return doFirmy(wiersz, galeria);
 }
 
 export type MojaFirma = {

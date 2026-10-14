@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ZdjecieFirmy } from "@/components/ZdjecieFirmy";
 import { zlote } from "@/content/format";
 import { pobierzKategorie_ } from "@/content/kategorie";
 import { pobierzRodzajLokalu } from "@/content/rodzaje-lokali";
@@ -11,10 +12,14 @@ interface ProfilFirmyScreenProps {
 /**
  * Profil firmy, która dodała się przez kreator.
  *
- * Pokazuje wyłącznie to, co firma wpisała. Nie ma tu galerii, kalendarza,
- * cennika pozycji, opinii ani udogodnień, bo kreator o nie jeszcze nie pyta.
- * Ekran przykładowego lokalu (ProfilScreen) ma te sekcje wypełnione treścią
- * prototypu i dla prawdziwej firmy pokazywałby cudze zdjęcia i cudze liczby.
+ * Pokazuje wyłącznie to, co firma wpisała. Nie ma tu kalendarza, cennika
+ * pozycji, opinii ani udogodnień, bo kreator o nie jeszcze nie pyta. Ekran
+ * przykładowego lokalu (ProfilScreen) ma te sekcje wypełnione treścią
+ * prototypu i dla prawdziwej firmy pokazywałby cudze liczby.
+ *
+ * Zdjęcia są, odkąd kreator o nie pyta. Firma bez zdjęć nie dostaje w ich
+ * miejsce żadnego komunikatu: profil ma wtedy po prostu mniej sekcji, a nie
+ * dziurę z napisem o tym, czego właściciel nie zrobił.
  */
 export function ProfilFirmyScreen({ firma }: ProfilFirmyScreenProps) {
   const rodzajLokalu = pobierzRodzajLokalu(firma.kategoria);
@@ -77,10 +82,35 @@ export function ProfilFirmyScreen({ firma }: ProfilFirmyScreenProps) {
             </div>
           ) : null}
 
+          {firma.glowneZdjecie ? (
+            <ZdjecieFirmy
+              adres={firma.glowneZdjecie}
+              nazwaFirmy={firma.nazwa}
+              className="w-full h-[280px] sm:h-[380px] rounded-[16px] mb-8"
+            />
+          ) : null}
+
           <h2 className="m-0 mb-3 font-fraunces font-medium text-[24px]">O firmie</h2>
           <p className="m-0 text-[16px] leading-[1.75] text-[#3E3344] whitespace-pre-line">
             {firma.opis}
           </p>
+
+          {firma.galeria.length > 0 ? (
+            <>
+              <h2 className="m-0 mt-10 mb-3 font-fraunces font-medium text-[24px]">Zdjęcia</h2>
+              <ul className="m-0 list-none grid grid-cols-2 sm:grid-cols-3 gap-3 p-0">
+                {firma.galeria.map((adres) => (
+                  <li key={adres}>
+                    <ZdjecieFirmy
+                      adres={adres}
+                      nazwaFirmy={firma.nazwa}
+                      className="w-full h-[140px] rounded-[12px]"
+                    />
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
         </main>
 
         <aside className="w-full lg:w-[360px] shrink-0">

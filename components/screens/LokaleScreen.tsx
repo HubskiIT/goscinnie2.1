@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { EtykietaPrzykladu } from "@/components/EtykietaPrzykladu";
 import { WyszukiwarkaLokali } from "@/components/WyszukiwarkaLokali";
+import { ZdjecieFirmy } from "@/components/ZdjecieFirmy";
 import { zlote } from "@/content/format";
 import type { Lokal } from "@/content/ogloszenia";
 import { useKrotkaLista } from "@/hooks/use-krotka-lista";
@@ -32,6 +33,7 @@ export function LokaleScreen({ lokale, kryteria }: LokaleScreenProps) {
     details: lokal.pojemnoscMax === null ? "" : `do ${lokal.pojemnoscMax} osób`,
     isImported: lokal.status === "visitcard",
     przykladowe: lokal.przykladowe,
+    zdjecie: lokal.zdjecie ?? null,
   }));
 
   return (
@@ -105,9 +107,11 @@ export function LokaleScreen({ lokale, kryteria }: LokaleScreenProps) {
                 key={venue.slug}
                 className="border border-[#E2D5CA] rounded-[18px] bg-white flex flex-col sm:flex-row overflow-hidden"
               >
-                <div
-                  className={`w-full sm:w-[272px] h-[180px] sm:h-auto shrink-0 bg-[#E4D9CF]`}
-                ></div>
+                <ZdjecieFirmy
+                  adres={venue.zdjecie}
+                  nazwaFirmy={venue.name}
+                  className="w-full sm:w-[272px] h-[180px] sm:h-full shrink-0"
+                />
 
                 <div className="grow p-6 flex flex-col">
                   <div className="flex items-start justify-between gap-5">

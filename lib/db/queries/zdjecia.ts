@@ -18,9 +18,7 @@ import {
   upewnijSieZeGalazUprawnienIstnieje,
   type Widz,
 } from "@/lib/permissions";
-
-/** Ile zdjęć może mieć jedna firma: jedno główne i dziewięć w galerii. */
-export const MAKS_ZDJEC = 10;
+import { MAKS_ZDJEC } from "@/lib/zdjecia/granice";
 
 export type ZdjecieFirmy = {
   id: string;

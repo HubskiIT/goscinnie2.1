@@ -46,6 +46,14 @@ export interface Lokal {
   udogodnienia: readonly string[];
   /** Okazje, które lokal przyjmuje. Firma zaznacza je sama w kreatorze. */
   okazje: readonly string[];
+  /**
+   * Publiczny adres zdjęcia z karty.
+   *
+   * Opcjonalne, bo przykładowe ogłoszenia z tego pliku zdjęć nie mają i nigdy
+   * nie będą miały: to atrapy, a nie prawdziwe firmy. Wypełniają je wyłącznie
+   * firmy z bazy, przez lib/katalog.ts.
+   */
+  zdjecie?: string | null;
 }
 
 export interface Uslugodawca {
@@ -62,6 +70,8 @@ export interface Uslugodawca {
   jednostkaCeny: string;
   opis: string;
   udogodnienia: readonly string[];
+  /** Jak w `Lokal`: wypełniają je wyłącznie firmy z bazy. */
+  zdjecie?: string | null;
 }
 
 export interface Zlecenie {

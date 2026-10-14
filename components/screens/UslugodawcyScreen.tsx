@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { EtykietaPrzykladu } from "@/components/EtykietaPrzykladu";
+import { ZdjecieFirmy } from "@/components/ZdjecieFirmy";
 import { zlote } from "@/content/format";
 import { pobierzKategorie } from "@/content/kategorie";
 import type { Uslugodawca } from "@/content/ogloszenia";
@@ -43,6 +44,7 @@ export function UslugodawcyScreen({
         price: u.cenaOdGrosze === null ? "Cena niepodana" : `od ${zlote(u.cenaOdGrosze)}`,
         unit: u.jednostkaCeny,
         przykladowe: u.przykladowe,
+        zdjecie: u.zdjecie ?? null,
       }))
       .filter((u) => {
         if (!fraza) return true;
@@ -199,7 +201,7 @@ export function UslugodawcyScreen({
               key={p.slug}
               className="border border-[#E2D5CA] rounded-[18px] bg-white overflow-hidden flex flex-col shadow-xs hover:shadow-md transition-shadow"
             >
-              <div className="h-[168px] bg-[#E4D9CF]" />
+              <ZdjecieFirmy adres={p.zdjecie} nazwaFirmy={p.name} className="h-[168px]" />
               <div className="p-5 sm:p-6 flex flex-col grow">
                 <div className="text-[13px] text-[#3F5142] mb-1 font-medium">{p.category}</div>
                 <h3 className="m-0 mb-2 font-fraunces font-medium text-[21px]">

@@ -11,27 +11,7 @@
  * o Storage, więc da się go sprawdzić bez jednego i drugiego.
  */
 import sharp from "sharp";
-
-/** Dłuższy bok po skalowaniu. Powyżej tego katalog nic nie zyskuje. */
-export const MAKS_BOK = 1600;
-
-/** Ile plik może ważyć **przed** obróbką. Zdjęcie z telefonu regularnie tyle waży. */
-export const MAKS_BAJTOW = 8 * 1024 * 1024;
-
-/**
- * Formaty przyjmowane od człowieka.
- *
- * HEIC jest tu, bo tak zapisuje iPhone i bez niego połowa właścicieli sal
- * dostawałaby odmowę przy pierwszym zdjęciu z telefonu. Wychodzi i tak
- * WebP, więc przeglądarka nigdy nie dostaje HEIC-a.
- */
-export const PRZYJMOWANE_TYPY = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/heic",
-  "image/heif",
-] as const;
+import { MAKS_BAJTOW, MAKS_BOK, PRZYJMOWANE_TYPY } from "@/lib/zdjecia/granice";
 
 export type Zdjecie = {
   dane: Buffer;

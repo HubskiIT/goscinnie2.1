@@ -17,15 +17,11 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import sharp from "sharp";
 import { afterAll, describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
-import {
-  dodajZdjecie,
-  MAKS_ZDJEC,
-  pobierzZdjeciaFirmy,
-  usunZdjecie,
-} from "@/lib/db/queries/zdjecia";
+import { dodajZdjecie, pobierzZdjeciaFirmy, usunZdjecie } from "@/lib/db/queries/zdjecia";
 import { companyMembers, companyPhotos } from "@/lib/db/schema/katalog";
 import { NiezaimplementowanaGalazUprawnien, type Widz } from "@/lib/permissions";
-import { MAKS_BAJTOW, MAKS_BOK, przygotujZdjecie } from "@/lib/zdjecia/obrobka";
+import { MAKS_BAJTOW, MAKS_BOK, MAKS_ZDJEC } from "@/lib/zdjecia/granice";
+import { przygotujZdjecie } from "@/lib/zdjecia/obrobka";
 
 const ANONIM: Widz = { rodzaj: "anonim" };
 const MODERATOR: Widz = { rodzaj: "moderator", userId: "11111111-1111-4111-8111-111111111111" };

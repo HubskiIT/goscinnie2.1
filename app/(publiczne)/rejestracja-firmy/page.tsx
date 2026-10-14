@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { RejestracjaFirmyScreen } from "@/components/screens/RejestracjaFirmyScreen.v2";
+import type { ZdjecieDoPokazania } from "@/lib/akcje/zdjecia";
 import { widzZZadania } from "@/lib/auth/widz";
 import { pobierzSzkicFirmy } from "@/lib/db/queries/kreator";
+import { pobierzZdjeciaFirmy } from "@/lib/db/queries/zdjecia";
 import type { SzkicKreatora } from "@/lib/kreator-krok";
+import { adresZdjecia } from "@/lib/zdjecia/skladowanie";
 
 export const metadata: Metadata = {
   title: "Dodaj firmę",
@@ -38,7 +41,26 @@ export default async function Strona() {
     opublikowany: szkic.status === "active",
   };
 
+  /*
+   * Zdjęcia czytamy tu, a nie akcją `mojeZdjecia` z komponentu, z dwóch
+   * powodów. Pierwszy: galeria ma być na miejscu od pierwszego rysowania,
+   * bez mignięcia pustką. Drugi: ta strona jest publiczna, bo krok pierwszy
+   * to zakładanie konta, a `mojeZdjecia` odsyła anonima na logowanie.
+   */
+  const zdjecia: ZdjecieDoPokazania[] = szkic
+    ? (await pobierzZdjeciaFirmy(widz, szkic.id)).flatMap((z) => {
+        const adres = adresZdjecia(z.sciezka);
+        return adres ? [{ id: z.id, adres, pozycja: z.pozycja }] : [];
+      })
+    : [];
+
   // Zalogowany człowiek ma krok pierwszy (zakładanie konta) za sobą, nawet
   // jeśli jeszcze nie tknął kreatora.
-  return <RejestracjaFirmyScreen szkic={doKreatora} zalogowany={widz.rodzaj !== "anonim"} />;
+  return (
+    <RejestracjaFirmyScreen
+      szkic={doKreatora}
+      zdjecia={zdjecia}
+      zalogowany={widz.rodzaj !== "anonim"}
+    />
+  );
 }
