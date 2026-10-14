@@ -10,6 +10,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { hash } from "@node-rs/argon2";
+import { cenaRocznaStartGrosze, klasaKategorii } from "@/content/cennik";
 import { db, schema } from "./index";
 
 /**
@@ -303,14 +304,33 @@ export async function zasiej(): Promise<void> {
   const wlasciciele = uzytkownicy.filter((u) => u.role === "company_owner");
   const klienci = uzytkownicy.filter((u) => u.role === "client");
 
-  // Ceny planów zależą od kategorii — nie ma jednego cennika dla sali i dla DJ-a.
+  /*
+   * Ceny planów zależą od kategorii i biorą się z content/cennik.ts, tak samo
+   * jak na produkcji (scripts/slowniki.ts).
+   *
+   * Wcześniej stało tu 99900 dla każdej kategorii, mimo komentarza mówiącego,
+   * że ceny zależą od kategorii. Lokalna baza pokazywała więc firmie inną
+   * kwotę niż ta, którą zobaczy po wdrożeniu.
+   *
+   * Kategoria „sale” jest zasiewowa i nie ma jej w słownikach treści, więc nie
+   * ma własnej klasy cenowej. Dostaje klasę B, czyli środkową: to dane
+   * pokazowe, a nie oferta.
+   */
   const wstawionePlany = await db
     .insert(schema.plans)
     .values(
-      kategorie.flatMap((k) => [
-        { categoryId: k.id, code: "start" as const, priceAnnual: 99900, bidsLimit: 15 },
-        { categoryId: k.id, code: "pro" as const, priceAnnual: 249900, bidsLimit: null },
-      ]),
+      kategorie.flatMap((k) => {
+        const klasa = klasaKategorii(k.slug) ?? "B";
+        return [
+          {
+            categoryId: k.id,
+            code: "start" as const,
+            priceAnnual: cenaRocznaStartGrosze(klasa),
+            bidsLimit: 15,
+          },
+          { categoryId: k.id, code: "pro" as const, priceAnnual: 249900, bidsLimit: null },
+        ];
+      }),
     )
     .returning();
 

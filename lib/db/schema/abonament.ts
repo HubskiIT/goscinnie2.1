@@ -1,4 +1,14 @@
-import { index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { categories, companies } from "./katalog";
 import { znacznikiCzasu } from "./typy";
 
@@ -12,18 +22,33 @@ export const paymentIntentStatus = pgEnum("payment_intent_status", [
   "failed",
 ]);
 
-export const plans = pgTable("plans", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  categoryId: uuid("category_id")
-    .notNull()
-    .references(() => categories.id),
-  code: planCode("code").notNull(),
-  // W groszach, rocznie.
-  priceAnnual: integer("price_annual").notNull(),
-  // null = bez limitu (plan pro). Wyczerpanie limitu w planie start daje 429.
-  bidsLimit: integer("bids_limit"),
-  ...znacznikiCzasu,
-});
+export const plans = pgTable(
+  "plans",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    categoryId: uuid("category_id")
+      .notNull()
+      .references(() => categories.id),
+    code: planCode("code").notNull(),
+    // W groszach, rocznie.
+    priceAnnual: integer("price_annual").notNull(),
+    // null = bez limitu (plan pro). Wyczerpanie limitu w planie start daje 429.
+    bidsLimit: integer("bids_limit"),
+    ...znacznikiCzasu,
+  },
+  (t) => [
+    /*
+     * Jeden plan danego kodu na kategorię.
+     *
+     * Ograniczenie w bazie, nie w kodzie, bo `scripts/slowniki.ts` uruchamia
+     * się przy **każdym** wdrożeniu i na nim opiera swoją idempotencję.
+     * Sprawdzanie w kodzie przepuściłoby dwa równoległe wdrożenia, a drugi
+     * komplet planów dla tej samej kategorii znaczy, że publikacja profilu
+     * trafia raz w jeden cennik, raz w drugi.
+     */
+    uniqueIndex("plans_category_code_uniq").on(t.categoryId, t.code),
+  ],
+);
 
 export const subscriptions = pgTable("subscriptions", {
   id: uuid("id").primaryKey().defaultRandom(),

@@ -18,6 +18,7 @@ import { gunzipSync } from "node:zlib";
 import { eq, isNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { cenaRocznaStartGrosze, klasaKategorii } from "@/content/cennik";
 import { KATEGORIE_USLUGODAWCOW } from "@/content/kategorie";
 import { OKAZJE } from "@/content/okazje";
 import { RODZAJE_LOKALI } from "@/content/rodzaje-lokali";
@@ -27,6 +28,15 @@ type Baza = ReturnType<typeof drizzle<typeof schema>>;
 
 /** Ile wierszy miast idzie w jednym zapytaniu. */
 const PARTIA_MIAST = 1000;
+
+/**
+ * Limit ofert w planie „start".
+ *
+ * Wyczerpanie go daje 429 i prowadzi do podniesienia planu, patrz CLAUDE.md.
+ * Wartość ta sama co w zasiewie, żeby lokalna baza i produkcja zachowywały
+ * się tak samo przy liczeniu limitu.
+ */
+const LIMIT_OFERT_START = 15;
 
 /**
  * Wiersz z content/miejscowosci.json.gz.
@@ -65,6 +75,56 @@ export async function wypelnijKategorie(db: Baza): Promise<void> {
     .insert(schema.categories)
     .values(wszystkie)
     .onConflictDoNothing({ target: schema.categories.slug });
+}
+
+/**
+ * Plany abonamentowe: po jednym „start" na każdą kategorię.
+ *
+ * PO CO TO TU JEST. Publikacja profilu zakłada abonament, a abonament wymaga
+ * planu dla kategorii firmy (`opublikujSzkic` w lib/db/queries/kreator.ts).
+ * Dopóki plany powstawały wyłącznie w zasiewie, czyli lokalnie i w testach,
+ * na produkcji nie było ich wcale — i ostatni krok kreatora kończył się
+ * pięćsetką z komunikatem „cennik jest niekompletny". Firma przechodziła
+ * cztery kroki i odbijała się na piątym, bez żadnej winy po swojej stronie.
+ *
+ * Plan to nie są niczyje dane, tylko cennik, więc miejsce jest tu, obok
+ * kategorii, a nie w zasiewie pokazowym.
+ *
+ * Ceny pochodzą z `content/cennik.ts`, z klasy cenowej kategorii, żeby firma
+ * widziała w kreatorze dokładnie tę kwotę, którą pokazuje strona cennika.
+ *
+ * Plan „pro" powstanie razem z włączeniem płatności: dziś nie ma go po co
+ * zakładać, bo nikt nie ma jak go kupić, a kody planów (`start`, `pro`)
+ * i poziomy cennika (`start`, `pelny`, `wyrozniony`) nie są tym samym
+ * podziałem i wymagają decyzji, a nie zgadywania.
+ */
+export async function wypelnijPlany(db: Baza): Promise<void> {
+  const kategorie = await db
+    .select({ id: schema.categories.id, slug: schema.categories.slug })
+    .from(schema.categories);
+
+  const plany = kategorie.flatMap((kategoria) => {
+    const klasa = klasaKategorii(kategoria.slug);
+    // Kategoria spoza słowników treści nie ma klasy cenowej, więc nie ma też
+    // ceny. Pomijamy ją zamiast zgadywać kwotę.
+    if (!klasa) return [];
+
+    return [
+      {
+        categoryId: kategoria.id,
+        code: "start" as const,
+        priceAnnual: cenaRocznaStartGrosze(klasa),
+        bidsLimit: LIMIT_OFERT_START,
+      },
+    ];
+  });
+
+  if (plany.length === 0) return;
+
+  await db
+    .insert(schema.plans)
+    .values(plany)
+    .onConflictDoNothing({ target: [schema.plans.categoryId, schema.plans.code] });
 }
 
 export async function wypelnijOkazje(db: Baza): Promise<void> {
@@ -135,6 +195,8 @@ export async function wypelnijMiasta(db: Baza): Promise<void> {
 
 export async function wypelnijSlowniki(db: Baza): Promise<void> {
   await wypelnijKategorie(db);
+  // Po kategoriach, bo plan wskazuje kategorię kluczem obcym.
+  await wypelnijPlany(db);
   await wypelnijOkazje(db);
   await wypelnijMiasta(db);
 }

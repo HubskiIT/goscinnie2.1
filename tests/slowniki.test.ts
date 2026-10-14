@@ -10,8 +10,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
-import { sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { cenaRocznaStartGrosze, klasaKategorii } from "@/content/cennik";
 import { KATEGORIE_USLUGODAWCOW } from "@/content/kategorie";
 import { OKAZJE } from "@/content/okazje";
 import { RODZAJE_LOKALI } from "@/content/rodzaje-lokali";
@@ -45,12 +46,14 @@ const liczbaUzytkownikow = () =>
   ile(db.select({ ile: sql<number>`count(*)::int` }).from(schema.users));
 const liczbaZlecen = () =>
   ile(db.select({ ile: sql<number>`count(*)::int` }).from(schema.requests));
+const liczbaPlanow = () => ile(db.select({ ile: sql<number>`count(*)::int` }).from(schema.plans));
 
 describe("słowniki", () => {
   let poPierwszym: {
     kategorie: number;
     okazje: number;
     miasta: number;
+    plany: number;
     firmy: number;
     uzytkownicy: number;
     zlecenia: number;
@@ -62,6 +65,7 @@ describe("słowniki", () => {
       kategorie: await liczbaKategorii(),
       okazje: await liczbaOkazji(),
       miasta: await liczbaMiast(),
+      plany: await liczbaPlanow(),
       firmy: await liczbaFirm(),
       uzytkownicy: await liczbaUzytkownikow(),
       zlecenia: await liczbaZlecen(),
@@ -129,12 +133,74 @@ describe("słowniki", () => {
     expect(wBazie.map((w) => w.simc).sort()).toEqual(bezWspolrzednych.sort());
   });
 
+  it("każda kategoria dostaje plan start, bo bez niego nie da się opublikować profilu", async () => {
+    /*
+     * REGUŁA, KTÓREJ BRAK KOSZTOWAŁ FIRMĘ PRZEJŚCIA CAŁEGO KREATORA.
+     *
+     * Publikacja profilu zakłada abonament, a abonament wymaga planu dla
+     * kategorii firmy. Plany powstawały wyłącznie w zasiewie, czyli lokalnie
+     * i w testach, więc na produkcji nie było ich wcale: cztery kroki
+     * kreatora przechodziły, a piąty kończył się pięćsetką.
+     *
+     * Test sprawdza wszystkie kategorie ze słownika, nie tylko te z zasiewu,
+     * bo właśnie ta różnica była przyczyną: zasiew zakłada kilka kategorii
+     * i plany do nich, a słowniki zakładają ich kilkadziesiąt.
+     */
+    const bezPlanu = await db
+      .select({ slug: schema.categories.slug })
+      .from(schema.categories)
+      .where(
+        sql`not exists (
+          select 1 from ${schema.plans}
+          where ${schema.plans.categoryId} = ${schema.categories.id}
+            and ${schema.plans.code} = 'start'
+        )`,
+      );
+
+    expect(bezPlanu.map((k) => k.slug)).toEqual([]);
+  });
+
+  it("cena planu bierze się z cennika, a nie z powietrza", async () => {
+    /*
+     * Kategoria celowo spoza zasiewu.
+     *
+     * Zasiew zakłada własne plany i `wypelnijPlany` ich nie nadpisuje, więc
+     * mierzenie ceny na kategorii zasiewowej sprawdzałoby zasiew, nie słowniki.
+     * Sprawdzone: przy takim teście wpisanie ceny na sztywno w słownikach
+     * nie wywalało niczego.
+     *
+     * „fotobudka" jest w klasie C, a zasiew używa klasy B dla swojej kategorii
+     * „sale", więc kwoty się różnią i podmiana jednej na drugą jest widoczna.
+     */
+    const SPOZA_ZASIEWU = "fotobudka";
+
+    const [wiersz] = await db
+      .select({ cena: schema.plans.priceAnnual })
+      .from(schema.plans)
+      .innerJoin(schema.categories, eq(schema.categories.id, schema.plans.categoryId))
+      .where(and(eq(schema.categories.slug, SPOZA_ZASIEWU), eq(schema.plans.code, "start")))
+      .limit(1);
+
+    const klasa = klasaKategorii(SPOZA_ZASIEWU);
+    expect(klasa).not.toBeNull();
+    if (!klasa) return;
+
+    expect(wiersz?.cena).toBe(cenaRocznaStartGrosze(klasa));
+  });
+
   it("drugie uruchomienie nie tworzy duplikatów", async () => {
     await wypelnijSlowniki(db);
 
     expect(await liczbaKategorii()).toBe(poPierwszym.kategorie);
     expect(await liczbaOkazji()).toBe(poPierwszym.okazje);
     expect(await liczbaMiast()).toBe(poPierwszym.miasta);
+    /*
+     * Plany mają własny wiersz tutaj, bo ich idempotencja stoi na ograniczeniu
+     * unikalności z migracji 0010, a nie na sprawdzeniu w kodzie. Drugi komplet
+     * planów dla tej samej kategorii znaczy publikację trafiającą raz w jeden
+     * cennik, raz w drugi.
+     */
+    expect(await liczbaPlanow()).toBe(poPierwszym.plany);
   }, 120_000);
 
   it("nie wstawia żadnej firmy, użytkownika ani zlecenia", async () => {

@@ -1,4 +1,5 @@
-import type { KlasaCenowa } from "@/content/kategorie";
+import { KATEGORIE_USLUGODAWCOW, type KlasaCenowa } from "@/content/kategorie";
+import { RODZAJE_LOKALI } from "@/content/rodzaje-lokali";
 
 /**
  * Cennik abonamentu, stan z 3 października 2026.
@@ -90,4 +91,31 @@ export function cena(klasa: KlasaCenowa, okres: Okres, plan: Plan): number {
 export function cenaZOkresem(klasa: KlasaCenowa, okres: Okres, plan: Plan): string {
   const skrot: Record<Okres, string> = { miesiac: "mies.", pol_roku: "pół roku", rok: "rok" };
   return `${zlotePelne(cena(klasa, okres, plan))} / ${skrot[okres]}`;
+}
+
+/**
+ * Klasa cenowa kategorii po jej slugu. `null`, gdy sluga nie ma w słownikach.
+ *
+ * Rodzaje lokali i kategorie usługodawców leżą w bazie w jednej tabeli, a plan
+ * wskazuje kategorię kluczem obcym — więc jedno pytanie o klasę musi umieć
+ * odpowiedzieć o obu listach naraz.
+ */
+export function klasaKategorii(slug: string): KlasaCenowa | null {
+  const uslugodawca = KATEGORIE_USLUGODAWCOW.find((k) => k.slug === slug);
+  if (uslugodawca) return uslugodawca.klasa;
+
+  const lokal = RODZAJE_LOKALI.find((r) => r.slug === slug);
+  return lokal ? lokal.klasa : null;
+}
+
+/**
+ * Roczna cena planu „start" w groszach.
+ *
+ * Jedno przeliczenie dla wszystkich: zasiew i słowniki wstawiają tę samą
+ * kwotę, co strona cennika. Wcześniej zasiew miał wpisane 99900 dla każdej
+ * kategorii, mimo komentarza mówiącego, że ceny zależą od kategorii — czyli
+ * lokalna baza pokazywała firmie inną cenę niż produkcja.
+ */
+export function cenaRocznaStartGrosze(klasa: KlasaCenowa): number {
+  return CENNIK[klasa].rok.start * 100;
 }
