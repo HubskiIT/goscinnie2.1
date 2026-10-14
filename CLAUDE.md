@@ -19,6 +19,7 @@ pnpm db:seed             # dane zasiewowe
 pnpm db:reset            # down z wolumenem, up, migrate, seed
 pnpm dane:pobierz        # TERYT (GUS) i PRNG (GUGiK) do scripts/dane/
 pnpm dane:miejscowosci   # buduje content/miejscowosci.json.gz z pobranych danych
+pnpm poczta:sprawdz      # czy Resend wyśle pocztę do obcego człowieka
 ```
 
 Przed każdym commitem uruchamiam `pnpm check`. Jeśli nie przechodzi, nie commituję.

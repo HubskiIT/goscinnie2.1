@@ -33,6 +33,28 @@ pocztę**. Strona z kontaktem, który nie odpowiada, jest gorsza niż strona bez
 kontaktu: pierwsza wygląda na firmę, która ignoruje, druga na firmę, która
 dopiero zaczyna.
 
+## 3. Domena musi być zweryfikowana w Resend
+
+Samo podpięcie domeny do Vercela nie wystarcza do wysyłania poczty. Dopóki
+`goscinnie.pl` nie jest zweryfikowana w Resend, konto wysyła **wyłącznie na
+adres właściciela konta Resend**, a każda inna rejestracja kończy się tym, że
+kod nie dociera. Serwis tego nie pokazuje, bo wysyłka kończy się po stronie
+Resend.
+
+Krok odbioru, zanim ogłosisz, że działa:
+
+```bash
+pnpm poczta:sprawdz
+```
+
+Polecenie odpowiada wprost: wysyłka na dowolny adres, tylko na własny, albo
+wcale. Kończy się kodem 1 w tym ostatnim przypadku, więc nadaje się do
+wpięcia w listę kontrolną wdrożenia.
+
+Dopiero gdy pokaże „wysyłka na dowolny adres DZIAŁA", sprawdź rejestracją na
+adres **spoza** swojego konta Resend. To jest jedyny dowód, że obcy człowiek
+założy konto.
+
 ## Czego przy tej okazji NIE zmieniać
 
 `INDEKSOWANIE` zostaje puste. Podpięcie domeny nie jest powodem do wpuszczenia

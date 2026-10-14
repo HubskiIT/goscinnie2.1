@@ -32,6 +32,7 @@ pnpm db:up        # Postgres z PostGIS w Dockerze
 pnpm db:migrate   # migracje w przód
 pnpm db:slowniki  # kategorie, okazje, plany, miejscowości
 pnpm db:seed      # dane pokazowe, tylko lokalnie i w testach
+pnpm poczta:sprawdz  # czy Resend wyśle pocztę do obcego człowieka
 pnpm test         # Vitest
 ```
 

@@ -177,7 +177,13 @@ Dotyczące logowania:
 19. Blokada po przekroczeniu limitu wygląda tak samo dla konta istniejącego
     i nieistniejącego.
 20. Reset hasła kończy się tą samą odpowiedzią niezależnie od tego, czy konto
-    o podanym adresie istnieje.
+    o podanym adresie istnieje — **także wtedy, gdy wysyłka maila padnie**.
+    Zdradza nie treść błędu, tylko samo jego pojawienie się: do próby wysyłki
+    dochodzi wyłącznie dla kont istniejących. Jedyny wyjątek to awaria wykryta
+    **przed** zajrzeniem do bazy, bo ta zdarza się tak samo dla każdego adresu.
+    Patrz docs/decyzje/011.
+21. Ponowne wysłanie kodu potwierdzającego podlega tej samej regule co reset:
+    adres bierze się tam z adresu strony, który każdy może podmienić.
 
 Każdy nowy endpoint dotykający `requests` albo `bids` dokłada tu przypadek.
 Pull request, który dodaje taki endpoint bez testu, nie wchodzi.
