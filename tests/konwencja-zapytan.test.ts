@@ -22,6 +22,7 @@ import * as zapytaniaKatalogu from "@/lib/db/queries/katalog";
 import * as zapytaniaKonta from "@/lib/db/queries/konto";
 import * as zapytaniaKreatora from "@/lib/db/queries/kreator";
 import * as zapytaniaZlecen from "@/lib/db/queries/requests";
+import * as zapytaniaZdjec from "@/lib/db/queries/zdjecia";
 import { NiezaimplementowanaGalazUprawnien, type Widz } from "@/lib/permissions";
 
 /**
@@ -69,6 +70,7 @@ const MODULY: Array<[string, Record<string, unknown>]> = [
   ["firmy", zapytaniaFirm],
   ["kreator", zapytaniaKreatora],
   ["katalog", zapytaniaKatalogu],
+  ["zdjecia", zapytaniaZdjec],
 ];
 
 function funkcyjneEksporty(): Array<[string, DowolneZapytanie]> {

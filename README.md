@@ -53,9 +53,16 @@ być te zmienne. Same nazwy, wartości wpisuje właściciel.
 | `APP_URL` | pełny adres aplikacji, używany przez `sitemap.xml` |
 | `RESEND_API_KEY` | wysyłka maili (kod potwierdzający adres, reset hasła). **Bez niej rejestracja na produkcji kończy się błędem** |
 | `POCZTA_NADAWCA` | nadawca maili, np. `Gościnnie <noreply@goscinnie.pl>`. Domena musi być zweryfikowana w Resend |
+| `SUPABASE_URL` | adres projektu Supabase, z niego składa się publiczny adres zdjęcia |
+| `SUPABASE_KLUCZ_SERWISOWY` | klucz `service_role` do wysyłania zdjęć. **Omija reguły dostępu, więc nigdy nie idzie do przeglądarki** |
 
 Dlaczego dwa adresy bazy: pula w trybie transakcyjnym nie gwarantuje, że cała
 migracja pójdzie jednym połączeniem. Szczegóły w `docs/decyzje/007`.
+
+Zdjęcia wymagają jeszcze jednej rzeczy poza zmiennymi: w Supabase Storage musi
+istnieć kosz o nazwie `zdjecia`, publiczny do odczytu. Karty w katalogu są
+publiczne, więc i adresy zdjęć muszą być. Zapis idzie wyłącznie z serwera,
+kluczem serwisowym.
 
 Zasiew pokazowy (`pnpm db:seed`) odmawia działania, gdy `NODE_ENV` to
 `production`. Na produkcji nie ma czego zasiewać: słowniki wchodzą osobnym

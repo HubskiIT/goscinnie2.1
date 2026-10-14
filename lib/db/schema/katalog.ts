@@ -71,6 +71,51 @@ export const companies = pgTable(
   ],
 );
 
+/**
+ * Zdjęcia firmy: jedno główne i do dziewięciu w galerii.
+ *
+ * `path` to ścieżka w Supabase Storage, bez domeny. Domena bywa inna lokalnie
+ * niż na produkcji, a wpisana do bazy zamarza na wartości z dnia wysyłki
+ * i przy przeprowadzce rozsypuje wszystkie adresy naraz.
+ *
+ * `position` zero znaczy zdjęcie główne, czyli to z karty w katalogu.
+ * Numeracja, nie flaga: flaga „główne” pozwala zaznaczyć dwa naraz albo żadne,
+ * a wtedy karta nie wie, co pokazać.
+ *
+ * Zdjęcie usuwa się przez `archived_at`, nie przez skasowanie wiersza —
+ * zasada 5. Plik zostaje wtedy w Storage i daje się przywrócić.
+ */
+export const companyPhotos = pgTable(
+  "company_photos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id),
+    path: text("path").notNull(),
+    position: integer("position").notNull(),
+    // Wymiary po obróbce. Bez nich przeglądarka nie zna proporcji przed
+    // pobraniem pliku i układ skacze w trakcie ładowania.
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    ...znacznikiCzasu,
+  },
+  (t) => [
+    index("company_photos_company_position_idx").on(t.companyId, t.position),
+    /*
+     * Jedno zdjęcie na pozycji, licząc tylko nieusunięte.
+     *
+     * Warunek `archived_at is null` jest tu konieczny: bez niego usunięte
+     * zdjęcie blokowałoby swoją pozycję na zawsze i firma nie mogłaby wstawić
+     * nowego zdjęcia głównego po skasowaniu poprzedniego.
+     */
+    uniqueIndex("company_photos_company_position_uniq")
+      .on(t.companyId, t.position)
+      .where(sql`${t.archivedAt} is null`),
+  ],
+);
+
 export const companyCategories = pgTable(
   "company_categories",
   {
