@@ -27,7 +27,8 @@
     "db:reset": "docker compose -f setup/docker-compose.yml down -v && pnpm db:up && pnpm db:migrate && pnpm db:seed",
     "import:firmy": "tsx scripts/import-firm.ts",
     "vercel-build": "tsx scripts/vercel-build.ts",
-    "db:slowniki": "tsx scripts/slowniki.ts"
+    "db:slowniki": "tsx scripts/slowniki.ts",
+    "poczta:sprawdz": "tsx scripts/poczta.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "2.2.1",
