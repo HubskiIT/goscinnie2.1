@@ -9,6 +9,7 @@ import { KomunikatFormularza } from "@/components/KomunikatFormularza";
 import { ListaWymaganHasla } from "@/components/ListaWymaganHasla";
 import { PoleMiejscowosci } from "@/components/PoleMiejscowosci";
 import { WysylkaZdjec } from "@/components/WysylkaZdjec";
+import { ZdjecieFirmy } from "@/components/ZdjecieFirmy";
 import { KATEGORIE_USLUGODAWCOW, pobierzKategorie } from "@/content/kategorie";
 import { pobierzRodzajeLokali, RODZAJE_LOKALI } from "@/content/rodzaje-lokali";
 import {
@@ -122,6 +123,12 @@ export function RejestracjaFirmyScreen({
     pojemnoscDoPola(szkic?.pojemnoscMin ?? null, szkic?.pojemnoscMax ?? null),
   );
   const [description, setDescription] = useState(szkic?.opis ?? "");
+  /*
+   * Zdjęcia w stanie kreatora, nie w komponencie wysyłki: podgląd karty
+   * w katalogu pokazuje zdjęcie główne i ma się zmieniać razem z galerią.
+   */
+  const [zdjeciaFirmy, setZdjeciaFirmy] = useState<readonly ZdjecieDoPokazania[]>(zdjecia);
+  const glowneZdjecie = zdjeciaFirmy[0]?.adres ?? null;
 
   // Step 4: Company verification
   const [nip, setNip] = useState("");
@@ -566,7 +573,7 @@ export function RejestracjaFirmyScreen({
                    * które przycisk zapisuje: żeby nie wyglądało, że jedno pole
                    * z tej samej sekcji działa inaczej niż pozostałe.
                    */}
-                  <WysylkaZdjec poczatkowe={zdjecia} />
+                  <WysylkaZdjec zdjecia={zdjeciaFirmy} onZmiana={setZdjeciaFirmy} />
                 </div>
 
                 <div className="pt-4">
@@ -746,9 +753,17 @@ export function RejestracjaFirmyScreen({
               </div>
 
               <div className="border border-[#E2D5CA] rounded-[16px] overflow-hidden bg-[#FAF6F2]">
-                <div className="h-32 bg-[#E4D9CF] flex items-end p-3">
-                  <span className="text-[11px] font-semibold bg-white/90 px-2 py-0.5 rounded">
-                    Zdjęcie główne
+                <div className="relative h-32">
+                  <ZdjecieFirmy
+                    adres={glowneZdjecie}
+                    nazwaFirmy={displayName || "Twój obiekt"}
+                    className="w-full h-32"
+                  />
+                  <span className="absolute bottom-3 left-3 text-[11px] font-semibold bg-white/90 px-2 py-0.5 rounded">
+                    {/* Bez zdjęcia podgląd mówi, czego brakuje, a nie „zdjęcie
+                        główne" nad pustym prostokątem. To był napis obiecujący
+                        coś, czego w karcie nie będzie. */}
+                    {glowneZdjecie ? "Zdjęcie główne" : "Tu stanie Twoje zdjęcie"}
                   </span>
                 </div>
                 <div className="p-4 bg-white">

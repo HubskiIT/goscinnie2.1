@@ -27,12 +27,18 @@ import { STAN_POCZATKOWY } from "@/lib/formularze";
 import { ACCEPT_ZDJEC, MAKS_MEGABAJTOW, MAKS_ZDJEC } from "@/lib/zdjecia/granice";
 
 interface WysylkaZdjecProps {
-  /** Zdjęcia odczytane na serwerze, żeby pierwsze wejście nie migało pustką. */
-  poczatkowe: readonly ZdjecieDoPokazania[];
+  zdjecia: readonly ZdjecieDoPokazania[];
+  /**
+   * Stan listy trzyma kreator, nie ten komponent.
+   *
+   * Podgląd karty w katalogu stoi obok, w tym samym ekranie, i pokazuje
+   * zdjęcie główne. Gdyby lista żyła tutaj, podgląd nie dowiedziałby się
+   * o nowym zdjęciu i obiecywałby coś innego, niż jest.
+   */
+  onZmiana: (zdjecia: readonly ZdjecieDoPokazania[]) => void;
 }
 
-export function WysylkaZdjec({ poczatkowe }: WysylkaZdjecProps) {
-  const [zdjecia, setZdjecia] = useState<readonly ZdjecieDoPokazania[]>(poczatkowe);
+export function WysylkaZdjec({ zdjecia, onZmiana }: WysylkaZdjecProps) {
   const [bledy, setBledy] = useState<readonly string[]>([]);
   const [postep, setPostep] = useState<string | null>(null);
   const [czeka, startTransition] = useTransition();
@@ -72,7 +78,7 @@ export function WysylkaZdjec({ poczatkowe }: WysylkaZdjecProps) {
 
       setPostep(null);
       setBledy(zebrane);
-      setZdjecia(await mojeZdjecia());
+      onZmiana(await mojeZdjecia());
       // Bez tego ponowny wybór tego samego pliku nie wywoła `onChange`.
       if (pole.current) pole.current.value = "";
     });
@@ -85,7 +91,7 @@ export function WysylkaZdjec({ poczatkowe }: WysylkaZdjecProps) {
       const wynik = await usunZdjecieFirmy(STAN_POCZATKOWY, dane);
 
       setBledy(wynik.status === "bledy" ? Object.values(wynik.bledy).flat() : []);
-      setZdjecia(await mojeZdjecia());
+      onZmiana(await mojeZdjecia());
     });
   };
 
