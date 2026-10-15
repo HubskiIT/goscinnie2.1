@@ -22,13 +22,23 @@ export const MAKS_KWOTA_ZLOTOWKI = 1_000_000;
  * pod polem budżetu wygląda na błąd ekranu, nie na podpowiedź.
  */
 export function kwotaZlotowkiOpcjonalna(nazwa: string) {
+  /*
+   * DLACZEGO `preprocess`, A NIE `union` Z PUSTYM NAPISEM. Przy unii Zod,
+   * gdy nie przechodzi **żadna** gałąź, oddaje własny komunikat `Invalid
+   * input` i zasłania nim nasz. Pod polem „Cena od" stało więc angielskie
+   * „Invalid input" za każdym razem, gdy ktoś wpisał cokolwiek poza liczbą.
+   * Tu pustka zamienia się w `undefined` **przed** walidacją, więc gałąź jest
+   * jedna i komunikaty są nasze: osobny dla „to nie liczba", osobny dla zera
+   * i osobny dla kwoty wyglądającej na pomyłkę.
+   */
   return z
-    .union([
-      z.literal(""),
+    .preprocess(
+      (wartosc) => (typeof wartosc === "string" && wartosc.trim() === "" ? undefined : wartosc),
       z.coerce
         .number({ message: `${nazwa} musi być liczbą.` })
         .positive(`${nazwa} musi być większa od zera.`)
-        .max(MAKS_KWOTA_ZLOTOWKI, `Ta kwota wygląda na pomyłkę.`),
-    ])
-    .transform((wartosc) => (wartosc === "" ? null : Math.round(wartosc * 100)));
+        .max(MAKS_KWOTA_ZLOTOWKI, `Ta kwota wygląda na pomyłkę.`)
+        .optional(),
+    )
+    .transform((wartosc) => (wartosc === undefined ? null : Math.round(wartosc * 100)));
 }

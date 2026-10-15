@@ -24,6 +24,20 @@ export function odczytajPojemnosc(tekst: string): Pojemnosc {
   return { min: null, max: null };
 }
 
+/**
+ * Czy w polu jest treść, z której nie wyszła żadna liczba.
+ *
+ * Tolerancyjne czytanie ma granicę: „sala na 40, 80 i 140 osób" daje trzy
+ * liczby, czyli nic, a „do ustalenia" nie daje żadnej. Jedno i drugie
+ * wyglądało w bazie jak pole puste, czyli jak brak informacji, i nikt się
+ * nie dowiadywał, że wpisana treść przepadła.
+ */
+export function pojemnoscNieczytelna(tekst: string): boolean {
+  if (tekst.trim() === "") return false;
+
+  return odczytajPojemnosc(tekst).max === null;
+}
+
 /** Odwrotność: jak pokazać zapisaną pojemność z powrotem w polu kreatora. */
 export function pojemnoscDoPola(min: number | null, max: number | null): string {
   if (min !== null && max !== null) return `${min}-${max}`;

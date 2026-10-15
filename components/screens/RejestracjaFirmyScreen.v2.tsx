@@ -21,11 +21,12 @@ import {
 } from "@/lib/akcje/profil";
 import { zarejestrujFirme } from "@/lib/akcje/rejestracja";
 import type { ZdjecieDoPokazania } from "@/lib/akcje/zdjecia";
+import { normalizujCene } from "@/lib/cena";
 import { STAN_POCZATKOWY, type StanFormularza } from "@/lib/formularze";
 import { MINIMALNA_DLUGOSC_HASLA } from "@/lib/haslo";
 import type { Krok, SzkicKreatora } from "@/lib/kreator-krok";
 import { krokPoczatkowy } from "@/lib/kreator-krok";
-import { odczytajPojemnosc, pojemnoscDoPola } from "@/lib/pojemnosc";
+import { odczytajPojemnosc, pojemnoscDoPola, pojemnoscNieczytelna } from "@/lib/pojemnosc";
 
 /** Nazwa ukrytego pola z identyfikatorem miejscowości. Musi zgadzać się z Zodem. */
 const POLE_CITY_ID = "cityId";
@@ -130,6 +131,19 @@ export function RejestracjaFirmyScreen({
   const [zdjeciaFirmy, setZdjeciaFirmy] = useState<readonly ZdjecieDoPokazania[]>(zdjecia);
   const glowneZdjecie = zdjeciaFirmy[0]?.adres ?? null;
 
+  /**
+   * Atrybuty wiążące pole z komunikatem pod nim.
+   *
+   * Czytnik ekranu bez `aria-describedby` ogłasza samą nazwę pola, więc
+   * człowiek słyszy „Cena od, nieprawidłowe" i nie dowiaduje się, co jest
+   * nie tak. Panel zbiorczy nad formularzem tego nie zastąpi: ogłasza się
+   * raz, przy wysłaniu, a do pola wraca się później.
+   */
+  const opisBledu = (pole: string) =>
+    maBlad(stanKroku, pole)
+      ? { "aria-invalid": true as const, "aria-describedby": idBledu(pole) }
+      : {};
+
   // Step 4: Company verification
   const [nip, setNip] = useState("");
   const [phone, setPhone] = useState("");
@@ -170,13 +184,36 @@ export function RejestracjaFirmyScreen({
     e.preventDefault();
     const dane = new FormData(e.currentTarget as HTMLFormElement);
 
+    /*
+     * Pojemność sprawdzamy tutaj, bo serwer nie ma jak tego zrobić: jedzie do
+     * niego wynik odczytania pola, czyli dwie liczby albo dwa `null`, a nie
+     * wpisany tekst. Pole z treścią, z której nie wyszła żadna liczba, dałoby
+     * na serwerze to samo co pole puste, czyli „nie podano pojemności".
+     *
+     * Cena odwrotnie: jedzie tam, co człowiek wpisał, więc rozstrzyga Zod.
+     */
+    if (pojemnoscNieczytelna(capacity)) {
+      setStanKroku({
+        status: "bledy",
+        bledy: {
+          pojemnoscMax: [
+            "Nie umiem odczytać pojemności. Wpisz jedną liczbę, na przykład 140, " +
+              "albo przedział, na przykład 40-140.",
+          ],
+        },
+        wartosci: {},
+      });
+      return;
+    }
+
     startTransition(async () => {
       const opisForm = new FormData();
       opisForm.append("nazwa", displayName);
       opisForm.append("opis", description);
-      // Pola są tekstowe („180 zł", „do 140 osób"), więc wyłuskujemy liczbę.
-      // Pusto zostaje pustym napisem: Zod czyta to jako „do uzupełnienia".
-      opisForm.append("cenaOd", priceFrom.replace(/[^\d.,]/g, "").replace(",", "."));
+      // Sam zapis uprzątnięty („180 zł" to „180"), treść nietknięta. Wycinanie
+      // wszystkiego poza cyframi zamieniało „sto osiemdziesiąt" w pusty napis,
+      // czyli w „nie podano ceny". Patrz lib/cena.ts.
+      opisForm.append("cenaOd", normalizujCene(priceFrom));
       // „40-140” to przedział, „140” to samo maksimum. Patrz lib/pojemnosc.ts.
       const pojemnosc = odczytajPojemnosc(capacity);
       opisForm.append("pojemnoscMin", pojemnosc.min === null ? "" : String(pojemnosc.min));
@@ -481,8 +518,10 @@ export function RejestracjaFirmyScreen({
                       minLength={2}
                       maxLength={120}
                       placeholder="Dwór Pod Lipami"
+                      {...opisBledu("nazwa")}
                       className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] outline-none focus:border-[#241C2B]"
                     />
+                    <BladPola stan={stanKroku} pole="nazwa" />
                   </div>
 
                   <div>
@@ -507,6 +546,9 @@ export function RejestracjaFirmyScreen({
                       Zacznij pisać i wybierz miejscowość z listy. Po niej klienci znajdą Cię w
                       wyszukiwaniu po okolicy.
                     </p>
+                    {/* Błąd lokalizacji wraca pod kluczem `cityId`: to pole
+                        z identyfikatorem, nie widoczne pole z nazwą. */}
+                    <BladPola stan={stanKroku} pole="cityId" />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -515,32 +557,52 @@ export function RejestracjaFirmyScreen({
                         htmlFor="priceFrom"
                         className="block text-[14px] font-medium text-[#241C2B] mb-1.5"
                       >
-                        Cena od
+                        Cena od (zł)
                       </label>
                       <input
                         id="priceFrom"
                         type="text"
+                        /*
+                         * `type="text"` z `inputMode`, nie `type="number"`:
+                         * pole liczbowe zmienia wartość przy kółku myszy nad
+                         * nim i w części przeglądarek milcząco odrzuca wpis
+                         * z przecinkiem, a ludzie piszą „180,50".
+                         */
+                        inputMode="decimal"
                         value={priceFrom}
                         onChange={(e) => setPriceFrom(e.target.value)}
-                        placeholder="180 zł"
+                        placeholder="180"
+                        {...opisBledu("cenaOd")}
                         className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] outline-none focus:border-[#241C2B]"
                       />
+                      <p className="mt-1 text-[12px] text-[#6A5C70]">Sama kwota, bez „zł”.</p>
+                      <BladPola stan={stanKroku} pole="cenaOd" />
                     </div>
                     <div>
                       <label
                         htmlFor="capacity"
                         className="block text-[14px] font-medium text-[#241C2B] mb-1.5"
                       >
-                        Pojemność
+                        Pojemność (osób)
                       </label>
                       <input
                         id="capacity"
                         type="text"
+                        inputMode="numeric"
                         value={capacity}
                         onChange={(e) => setCapacity(e.target.value)}
-                        placeholder="do 140 osób"
+                        placeholder="140 albo 40-140"
+                        {...opisBledu("pojemnoscMax")}
                         className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] outline-none focus:border-[#241C2B]"
                       />
+                      <p className="mt-1 text-[12px] text-[#6A5C70]">
+                        Jedna liczba to maksimum, przedział to „od-do”.
+                      </p>
+                      {/* Dwa pola serwera, jedno pole na ekranie: przedział
+                          wpisuje się jednym polem, więc komunikat o minimum
+                          też musi tu trafić. */}
+                      <BladPola stan={stanKroku} pole="pojemnoscMax" />
+                      <BladPola stan={stanKroku} pole="pojemnoscMin" />
                     </div>
                   </div>
 
@@ -560,11 +622,13 @@ export function RejestracjaFirmyScreen({
                       maxLength={2000}
                       rows={6}
                       placeholder="Opisz swoją ofertę, unikalne cechy obiektu, doświadczenie..."
+                      {...opisBledu("opis")}
                       className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] outline-none focus:border-[#241C2B]"
                     />
                     <p className="mt-1 text-[12px] text-[#6A5C70]">
-                      Co najmniej 20 znaków, maksymalnie 2000
+                      Co najmniej 20 znaków, maksymalnie 2000. Masz {description.trim().length}.
                     </p>
+                    <BladPola stan={stanKroku} pole="opis" />
                   </div>
 
                   {/*
@@ -622,10 +686,17 @@ export function RejestracjaFirmyScreen({
                       value={nip}
                       onChange={(e) => setNip(e.target.value)}
                       required
+                      inputMode="numeric"
+                      autoComplete="off"
                       pattern="[0-9\s\-]{10,14}"
                       placeholder="123-456-78-90"
+                      {...opisBledu("nip")}
                       className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] outline-none focus:border-[#241C2B]"
                     />
+                    <p className="mt-1 text-[12px] text-[#6A5C70]">
+                      Dziesięć cyfr. Kreski i odstępy możesz wpisać, usuniemy je sami.
+                    </p>
+                    <BladPola stan={stanKroku} pole="nip" />
                   </div>
 
                   <div>
@@ -641,10 +712,17 @@ export function RejestracjaFirmyScreen({
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       required
+                      inputMode="tel"
+                      autoComplete="tel"
                       pattern="[\+]?[0-9\s\-]{9,15}"
                       placeholder="+48 123 456 789"
+                      {...opisBledu("telefon")}
                       className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[#241C2B] outline-none focus:border-[#241C2B]"
                     />
+                    <p className="mt-1 text-[12px] text-[#6A5C70]">
+                      Dziewięć cyfr. Numer kierunkowy +48 jest niepotrzebny, ale nie przeszkadza.
+                    </p>
+                    <BladPola stan={stanKroku} pole="telefon" />
                   </div>
                 </div>
 

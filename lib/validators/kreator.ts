@@ -42,16 +42,22 @@ export type DaneKategorii = z.infer<typeof daneKategorii>;
  */
 const cenaZlotowki = kwotaZlotowkiOpcjonalna("Cena");
 
+/*
+ * `preprocess`, nie `union` z pustym napisem: przy unii Zod zasłania
+ * komunikaty gałęzi własnym `Invalid input`, gdy nie przechodzi żadna.
+ * Powód opisany szerzej w lib/validators/kwoty.ts.
+ */
 const pojemnosc = z
-  .union([
-    z.literal(""),
+  .preprocess(
+    (wartosc) => (typeof wartosc === "string" && wartosc.trim() === "" ? undefined : wartosc),
     z.coerce
       .number({ message: "Pojemność musi być liczbą." })
       .int("Pojemność musi być liczbą całkowitą.")
       .min(1, "Pojemność musi być większa od zera.")
-      .max(MAKS_POJEMNOSC, "Ta pojemność wygląda na pomyłkę."),
-  ])
-  .transform((wartosc) => (wartosc === "" ? null : wartosc));
+      .max(MAKS_POJEMNOSC, "Ta pojemność wygląda na pomyłkę.")
+      .optional(),
+  )
+  .transform((wartosc) => (wartosc === undefined ? null : wartosc));
 
 /** Krok 2: nazwa, opis, cena i pojemność. */
 export const daneOpisu = z
