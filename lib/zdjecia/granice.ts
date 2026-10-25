@@ -18,8 +18,26 @@ export const MAKS_ZDJEC = 10;
 /** Dłuższy bok po skalowaniu. Powyżej tego katalog nic nie zyskuje. */
 export const MAKS_BOK = 1600;
 
-/** Ile plik może ważyć **przed** obróbką. Zdjęcie z telefonu regularnie tyle waży. */
-export const MAKS_BAJTOW = 8 * 1024 * 1024;
+/**
+ * Ile plik może ważyć **przed** obróbką.
+ *
+ * Było tu 8 MB i to była obietnica niemożliwa do spełnienia. Zdjęcie jedzie
+ * do akcji serwerowej, a Vercel ucina ciało żądania na 4,5 MB na poziomie
+ * infrastruktury, czego nie podnosi żadna opcja. Plik 8 MB nie miał jak
+ * dojść: dostawał 413, zanim akcja się zaczęła, więc żadna z odmów
+ * w `KOMUNIKAT_ODRZUCENIA` nigdy się dla niego nie pokazywała.
+ *
+ * 4 MB, a nie 4,5 MB, bo razem z bajtami zdjęcia jadą nagłówki części
+ * multipart i nazwa pliku. Pół megabajta zapasu zostaje na ten narzut, patrz
+ * `bodySizeLimit` w next.config.ts.
+ *
+ * Zdjęcie z telefonu regularnie waży więcej niż 4 MB, więc ta granica część
+ * plików odrzuci. Właściwym wyjściem jest zmniejszanie zdjęcia w przeglądarce
+ * przed wysłaniem, bo wtedy do akcji dociera kilkaset kilobajtów i limit
+ * przestaje mieć znaczenie. Do tego czasu lepiej odmówić zrozumiale niż
+ * obiecać 8 MB i zamilknąć.
+ */
+export const MAKS_BAJTOW = 4 * 1024 * 1024;
 
 /** `MAKS_BAJTOW` w megabajtach, do pokazania człowiekowi. */
 export const MAKS_MEGABAJTOW = Math.round(MAKS_BAJTOW / (1024 * 1024));

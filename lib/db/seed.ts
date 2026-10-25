@@ -530,6 +530,60 @@ export async function zasiej(): Promise<void> {
     { companyId: firmaTylkoBez.id, userId: pracownikE.id, role: "owner" as const },
   ]);
 
+  /*
+   * Zdjęcia firmy.
+   *
+   * Dotąd zasiew nie tworzył żadnego, więc każdy test zdjęć budował stan
+   * własną ścieżką i był ślepy na to, co widać przy pracy ręcznej.
+   *
+   * Scenariusz jest ustawiony pod kolumnę `upload_key` i pod indeks, który
+   * liczy tylko nieusunięte:
+   *
+   *   pozycja 0  żywe, z kluczem próby — tak wygląda zdjęcie wysłane z kreatora
+   *   pozycja 1  żywe, bez klucza — tak wyglądają wiersze sprzed migracji 0012
+   *   (archiwum)  zarchiwizowane, z kluczem TYM SAMYM co pozycja 0
+   *
+   * Trzeci wiersz jest tu celowo: gdyby indeks przestał zawężać się do
+   * `archived_at is null`, zasiew przestałby wchodzić, bo klucz powtarza się
+   * między wierszem żywym i zarchiwizowanym. Zasiew jest więc sam w sobie
+   * sprawdzeniem tego warunku i wywali się głośno, przy pierwszym `db:seed`.
+   *
+   * Adresy składa `adresZdjecia` ze zmiennej SUPABASE_URL, której lokalnie
+   * nie ma, więc tych zdjęć nie widać w przeglądarce. W bazie są prawdziwe
+   * i to one są tu potrzebne.
+   */
+  const kluczZasiewowy = "3f6b1c84-0f1a-4f2e-9c7d-55a0b2e41d08";
+  const zdjecieZastapione = new Date();
+  zdjecieZastapione.setDate(zdjecieZastapione.getDate() - 2);
+
+  await db.insert(schema.companyPhotos).values([
+    {
+      companyId: firmaAktywna.id,
+      path: `${firmaAktywna.id}/0-zasiew-glowne.webp`,
+      position: 0,
+      width: 1600,
+      height: 1200,
+      uploadKey: kluczZasiewowy,
+    },
+    {
+      companyId: firmaAktywna.id,
+      path: `${firmaAktywna.id}/1-zasiew-galeria.webp`,
+      position: 1,
+      width: 1600,
+      height: 1067,
+      uploadKey: null,
+    },
+    {
+      companyId: firmaAktywna.id,
+      path: `${firmaAktywna.id}/0-zasiew-zastapione.webp`,
+      position: 0,
+      width: 1600,
+      height: 1200,
+      uploadKey: kluczZasiewowy,
+      archivedAt: zdjecieZastapione,
+    },
+  ]);
+
   /** Plan Start z kategorii tej firmy. Cennik zależy od kategorii. */
   function planStartDlaFirmy(indeksFirmy: number): string {
     // Plan musi pochodzić z kategorii, którą firma naprawdę ma, bo cennik
@@ -826,6 +880,10 @@ export async function zasiej(): Promise<void> {
   console.log(
     "Profile publiczne: /f/firma-1 kompletny, /f/firma-8 importowany (pusty), " +
       "/f/firma-9 zawieszony (404), /f/firma-10 wizytówka.",
+  );
+  console.log(
+    "Zdjęcia: firma-1 ma dwa żywe (pozycja 0 z kluczem próby, pozycja 1 bez) " +
+      "i jedno zarchiwizowane z tym samym kluczem co pozycja 0.",
   );
   console.log(
     `Logowanie lokalne: dowolny adres uzytkownikN@przyklad.pl, hasło ${HASLO_ZASIEWOWE}. ` +
