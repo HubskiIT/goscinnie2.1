@@ -23,6 +23,67 @@ import { daneRejestracjiFirmy, daneRejestracjiKlienta } from "@/lib/validators/k
 /** Widz na czas rejestracji: sesji jeszcze nie ma, bo konto dopiero powstaje. */
 const WIDZ_ANONIMOWY: Widz = { rodzaj: "anonim" };
 
+/**
+ * Kształt identyfikatora prawdziwego konta.
+ *
+ * Identyfikatory generuje Postgres przez `gen_random_uuid()`, bo
+ * `advanced.database.generateId` jest ustawione na `false` w lib/auth. Każdy
+ * identyfikator pochodzący z bazy przechodzi ten wzorzec.
+ */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Czy better-auth oddał atrapę konta zamiast konta.
+ *
+ * Przy zajętym adresie i `requireEmailVerification: true` biblioteka **nie
+ * rzuca**: zwraca udaną odpowiedź z użytkownikiem zmyślonym na miejscu, żeby
+ * odpowiedź dla zajętego adresu nie różniła się od odpowiedzi dla wolnego
+ * (api/routes/sign-up.mjs:200-210, `buildGenericDuplicateResponse`).
+ *
+ * Ten zmyślony identyfikator powstaje przez `generateId()` z rdzenia
+ * biblioteki, czyli jest ciągiem 32 znaków alfanumerycznych, a nie uuid-em.
+ * Stąd to sprawdzenie i stąd jego miejsce: **przed** dotknięciem bazy.
+ * Zapytanie `where id = $1` o kolumnę uuid kończy się na takim ciągu błędem
+ * Postgresa 22P02, a ten wpada do `catch` i zamienia zajęty adres w ogólnik
+ * „nie udało się założyć konta”. Dokładnie to zgłaszały firmy.
+ *
+ * Rozpoznajemy po kształcie, nie po `token: null`: przy włączonym
+ * potwierdzaniu adresu token jest pusty także dla prawdziwego, świeżego konta.
+ */
+function adresBylZajety(userId: string): boolean {
+  return !UUID.test(userId);
+}
+
+/**
+ * Odmowa, bo konto na ten adres już istnieje.
+ *
+ * Błąd pod kluczem `email`, nie `_`: formularz rysuje błędy pól obok pól,
+ * a `_` jako ogólną czerwoną ramkę bez wskazania, co poprawić.
+ *
+ * ŚWIADOMIE MÓWIMY WPROST, ŻE ADRES JEST ZAJĘTY. Wcześniej stała tu odmowa
+ * milcząca, żeby formularz nie służył do sprawdzania, kto ma u nas konto.
+ * Powód zmiany: cisza i tak nie była ciszą. Ścieżka firmy wywalała się na
+ * 22P02 i pokazywała ogólnik, a ścieżka klienta odsyłała na ekran wpisywania
+ * kodu, którego `wyslijKodPotwierdzeniaAdresu` nie wysyła dla potwierdzonego
+ * konta. Człowiek czekał na maila, którego nikt nie nadał.
+ *
+ * Czego nie wolno przy tym zgubić: ten formularz musi mieć limit prób, tak
+ * jak go ma logowanie w `lib/auth/limity.ts`. Bez limitu jawny komunikat
+ * zamienia rejestrację w narzędzie do przemiatania listy adresów.
+ */
+function adresZajety(email: string): StanFormularza {
+  return {
+    status: "bledy",
+    bledy: {
+      email: [
+        "Konto z tym adresem już istnieje. Zaloguj się albo odzyskaj hasło, " +
+          "jeśli go nie pamiętasz.",
+      ],
+    },
+    wartosci: { email },
+  };
+}
+
 export async function zarejestrujFirme(
   _poprzedni: StanFormularza,
   dane: FormData,
@@ -52,6 +113,9 @@ export async function zarejestrujFirme(
       headers: await headers(),
       asResponse: false,
     });
+
+    // Przed bazą, bo atrapa niesie identyfikator, który nie jest uuid-em.
+    if (adresBylZajety(odpowiedz.user.id)) return adresZajety(email);
 
     /*
      * Zapamiętanie, po co ktoś przyszedł, żeby po wpisaniu kodu z maila
@@ -92,7 +156,7 @@ export async function zarejestrujKlienta(
   const { email, haslo } = wynik.data;
 
   try {
-    await auth.api.signUpEmail({
+    const odpowiedz = await auth.api.signUpEmail({
       body: {
         email,
         password: haslo,
@@ -103,6 +167,14 @@ export async function zarejestrujKlienta(
       headers: await headers(),
       asResponse: false,
     });
+
+    /*
+     * Tu nie ma zapisu do bazy, więc nic się nie wywala, ale bez tego
+     * sprawdzenia akcja przekierowywała na /weryfikacja, a kod nie wychodził:
+     * `czyKontoCzekaNaPotwierdzenie` słusznie odmawia wysyłki dla konta już
+     * potwierdzonego. Ekran prosił o kod, którego nikt nie nadał.
+     */
+    if (adresBylZajety(odpowiedz.user.id)) return adresZajety(email);
   } catch (blad) {
     return bladRejestracji(blad, email);
   }
@@ -144,22 +216,20 @@ function kodNieWyszedl(email: string): StanFormularza {
 }
 
 /**
- * Odmowa zakładania konta.
+ * Odmowa zakładania konta, czyli awaria: baza nie odpowiada, poczta nie działa.
  *
- * ZAJĘTY ADRES NIE TRAFIA TUTAJ i to jest zamierzone zachowanie better-auth,
- * sprawdzone na działającej bazie: ponowne zakładanie konta na istniejący
- * adres **nie rzuca błędem**, nie tworzy drugiego konta i nie nadpisuje hasła.
- * Kończy się po cichu, tak jakby się udało.
+ * ZAJĘTY ADRES NIE TRAFIA TUTAJ, ale nie dlatego, że better-auth go przepuszcza.
+ * Biblioteka faktycznie **nie rzuca** przy duplikacie, nie tworzy drugiego
+ * konta i nie nadpisuje hasła, co sprawdza `tests/konto.test.ts`. Rzecz w tym,
+ * że oddaje wtedy atrapę użytkownika, a jej identyfikator nie jest uuid-em.
+ * Wcześniej ten ciąg leciał prosto do `oznaczKontoJakoFirmowe`, Postgres
+ * odrzucał go błędem 22P02 i zajęty adres kończył **właśnie tutaj**, jako
+ * ogólnik „nie udało się założyć konta”.
  *
- * Powód jest ten sam, dla którego logowanie odmawia jednakowo przy złym
- * adresie i złym haśle: formularz rejestracji, który mówi „ten adres jest
- * zajęty", jest sprawdzarką, czy ktoś ma u nas konto. Wystarczy wpisywać
- * adresy i czytać odpowiedzi.
- *
- * Dla człowieka, który ma już konto i próbuje założyć drugie, wyjściem jest
- * odnośnik „mam już konto" na ekranie z kodem, a nie komunikat tutaj.
- *
- * Zostaje więc wyłącznie awaria: baza nie odpowiada, poczta nie działa.
+ * Teraz zajęty adres rozpoznaje `adresBylZajety` przed dotknięciem bazy
+ * i odpowiada `adresZajety`. Jeśli ten ogólnik znów zacznie się pokazywać przy
+ * zakładaniu konta, sprawdź najpierw log niżej: to znaczy, że rzuciło coś
+ * innego, a nie duplikat.
  */
 function bladRejestracji(blad: unknown, email: string): StanFormularza {
   console.error(`Zakładanie konta dla ${email}:`, blad);

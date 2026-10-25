@@ -60,14 +60,57 @@ function maWskaznikGps(exif: Buffer | undefined): boolean {
   return false;
 }
 
-/** Dwie firmy z zasiewu wraz z ich członkami. Na nich stoi cały plik. */
+/**
+ * Dwie firmy z zasiewu wraz z ich członkami. Na nich stoi cały plik.
+ *
+ * `pominCompanyId` odrzuca nie tylko tę firmę, ale **wszystkie firmy jej
+ * członków**, i to jest sedno tego pomocnika.
+ *
+ * Zasiew ma ludzi należących do dwóch firm naraz, celowo, bo bez nich cała
+ * klasa błędów w rozpoznawaniu widza jest niewidoczna. Przy samym porównaniu
+ * `companyId !== pominCompanyId` zdarzało się, że „obca” firma była drugą
+ * firmą tego samego człowieka. Wtedy dostęp był słusznie przyznany, a test
+ * „członek jednej firmy nie dodaje zdjęcia innej” padał bez winy kodu.
+ *
+ * Padał w losowych przebiegach, bo identyfikatory firm są losowe przy każdym
+ * zasiewie, więc `order by company_id` daje za każdym razem inną kolejność.
+ * To nie jest usterka tej zmiany: tak samo zachowywał się ten plik wcześniej,
+ * tylko rzadziej trafiał na pechową kolejność.
+ *
+ * ODDAJE WYŁĄCZNIE FIRMĘ BEZ ZDJĘĆ Z ZASIEWU. Testy korzystające z tego
+ * pomocnika archiwizują zdjęcia przez `wyczysc` i dopisują swoje, więc muszą
+ * dostać firmę, którą wolno dowolnie zmieniać. Bez tego warunku wylosowanie
+ * firmy ze zdjęciami zasiewu kasowało stan, na którym stoi blok „zdjęcia
+ * z zasiewu”, i trzy testy padały w co drugim przebiegu. Warunek siedzi tutaj,
+ * a nie w kolejności testów w pliku, bo kolejność rozjedzie się przy pierwszym
+ * dopisanym bloku i nikt tego nie zauważy.
+ */
 async function firmaZCzlonkiem(pominCompanyId?: string) {
   const wiersze = await db
     .select({ companyId: companyMembers.companyId, userId: companyMembers.userId })
     .from(companyMembers)
     .orderBy(companyMembers.companyId);
 
-  const wiersz = wiersze.find((w) => w.companyId !== pominCompanyId);
+  // Ludzie, którzy mają cokolwiek do powiedzenia w pomijanej firmie.
+  const zPominanej = new Set(
+    wiersze.filter((w) => w.companyId === pominCompanyId).map((w) => w.userId),
+  );
+
+  const zeZdjeciamiZasiewu = new Set(
+    (
+      await db
+        .selectDistinct({ companyId: companyPhotos.companyId })
+        .from(companyPhotos)
+        .where(sql`${companyPhotos.path} like '%zasiew-%'`)
+    ).map((w) => w.companyId),
+  );
+
+  const wiersz = wiersze.find(
+    (w) =>
+      w.companyId !== pominCompanyId &&
+      !zPominanej.has(w.userId) &&
+      !zeZdjeciamiZasiewu.has(w.companyId),
+  );
   if (!wiersz) throw new Error("Zasiew nie ma dość firm z członkami, a na nich stoi ten plik.");
 
   const widz: Widz = {
@@ -206,6 +249,7 @@ describe("kto może zmieniać zdjęcia", () => {
       sciezka: "x/0.webp",
       szerokosc: 10,
       wysokosc: 10,
+      kluczWysylki: crypto.randomUUID(),
     });
 
     expect(wynik).toEqual({ ok: false, powod: "brak-dostepu" });
@@ -215,7 +259,12 @@ describe("kto może zmieniać zdjęcia", () => {
     const { companyId } = await firmaZCzlonkiem();
 
     await expect(
-      dodajZdjecie(MODERATOR, companyId, { sciezka: "x/0.webp", szerokosc: 10, wysokosc: 10 }),
+      dodajZdjecie(MODERATOR, companyId, {
+        sciezka: "x/0.webp",
+        szerokosc: 10,
+        wysokosc: 10,
+        kluczWysylki: crypto.randomUUID(),
+      }),
     ).rejects.toBeInstanceOf(NiezaimplementowanaGalazUprawnien);
   });
 
@@ -227,6 +276,7 @@ describe("kto może zmieniać zdjęcia", () => {
       sciezka: "obca/0.webp",
       szerokosc: 10,
       wysokosc: 10,
+      kluczWysylki: crypto.randomUUID(),
     });
 
     expect(wynik).toEqual({ ok: false, powod: "brak-dostepu" });
@@ -240,6 +290,7 @@ describe("kto może zmieniać zdjęcia", () => {
       sciezka: "obca/do-podebrania.webp",
       szerokosc: 10,
       wysokosc: 10,
+      kluczWysylki: crypto.randomUUID(),
     });
     expect(dodane.ok).toBe(true);
     if (!dodane.ok) return;
@@ -263,6 +314,7 @@ describe("pozycje i limit", () => {
       sciezka: "a/pierwsze.webp",
       szerokosc: 800,
       wysokosc: 600,
+      kluczWysylki: crypto.randomUUID(),
     });
 
     expect(wynik.ok).toBe(true);
@@ -280,6 +332,7 @@ describe("pozycje i limit", () => {
         sciezka: `a/${i}.webp`,
         szerokosc: 800,
         wysokosc: 600,
+        kluczWysylki: crypto.randomUUID(),
       });
       expect(wynik.ok, `zdjęcie numer ${i} miało się zmieścić`).toBe(true);
       if (wynik.ok) await zapamietaj(wynik.dane.id);
@@ -289,6 +342,7 @@ describe("pozycje i limit", () => {
       sciezka: "a/ponad.webp",
       szerokosc: 800,
       wysokosc: 600,
+      kluczWysylki: crypto.randomUUID(),
     });
 
     expect(ponad).toEqual({ ok: false, powod: "limit-zdjec" });
@@ -302,6 +356,7 @@ describe("pozycje i limit", () => {
       sciezka: "a/glowne.webp",
       szerokosc: 800,
       wysokosc: 600,
+      kluczWysylki: crypto.randomUUID(),
     });
     expect(pierwsze.ok).toBe(true);
     if (!pierwsze.ok) return;
@@ -326,6 +381,7 @@ describe("pozycje i limit", () => {
       sciezka: "a/nowe-glowne.webp",
       szerokosc: 800,
       wysokosc: 600,
+      kluczWysylki: crypto.randomUUID(),
     });
     expect(kolejne.ok).toBe(true);
     if (!kolejne.ok) return;
@@ -342,6 +398,7 @@ describe("pozycje i limit", () => {
         sciezka: `a/${nazwa}.webp`,
         szerokosc: 800,
         wysokosc: 600,
+        kluczWysylki: crypto.randomUUID(),
       });
       if (wynik.ok) await zapamietaj(wynik.dane.id);
     }
@@ -356,6 +413,266 @@ describe("pozycje i limit", () => {
 
     const po = await pobierzZdjeciaFirmy(ANONIM, companyId);
     expect(po.map((z) => z.pozycja)).toEqual([0, 2]);
+  });
+});
+
+/**
+ * Jedna próba wysyłki, jedno zdjęcie.
+ *
+ * REGUŁA: ponowione żądanie nie tworzy drugiego zdjęcia. Tak dublowały się
+ * zdjęcia w kreatorze: zapis przechodził, interfejs milczał, a ponowna próba
+ * wstawiała kopię, bo `path` niesie losowy człon i za każdym razem jest inny.
+ *
+ * Reguły pilnują DWIE NIEZALEŻNE BARIERY i każda ma tu własny przypadek,
+ * padający po zdjęciu wyłącznie jej:
+ *
+ *   1. indeks `company_photos_company_upload_key_uniq` w bazie,
+ *   2. `on conflict do nothing` wraz z doczytaniem wiersza w `dodajZdjecie`.
+ *
+ * Przypadek na barierę 1 wstawia wiersz **surowym SQL-em**, obchodząc
+ * `dodajZdjecie`, bo inaczej o wyniku rozstrzygałaby bariera 2 i test nie
+ * dowodziłby niczego o indeksie.
+ *
+ * ZASIEW JEST USTAWIONY POD BARIERĘ. Każdy z tych testów zaczyna od
+ * `wyczysc`, więc firma ma wolne wszystkie dziesięć pozycji. Bez tego o
+ * odmowie mógłby rozstrzygnąć limit zdjęć, a nie klucz próby, i jeden wynik
+ * dałby się wytłumaczyć dwiema przyczynami.
+ *
+ * Bariery nie są w pełni rozłączne i trzeba o tym wiedzieć przy czytaniu
+ * wyników: `on conflict` celuje w konkretny indeks, więc po jego usunięciu
+ * z migracji wywala się każdy zapis, nie tylko powtórka. Zdjęcie indeksu
+ * izoluje wyłącznie przypadek na surowym SQL-u, a przypadki na `dodajZdjecie`
+ * izoluje zdjęcie samego `on conflict` przy zostawionym indeksie.
+ */
+
+/**
+ * Zdjęcia z zasiewu, a nie utworzone przez ten test.
+ *
+ * Reszta pliku buduje stan własną ścieżką, więc jest ślepa na błędy samego
+ * zasiewu, a z zasiewu korzysta każda praca ręczna. Ten blok czyta to, co
+ * `lib/db/seed.ts` wstawił firmie z aktywnym abonamentem.
+ *
+ * KAŻDE SPRAWDZENIE JEST ZAWĘŻONE DO ŚCIEŻEK Z `zasiew-`. Wcześniejsze bloki
+ * w tym pliku dopisują zdjęcia tej samej firmie, bo `firmaZCzlonkiem` wybiera
+ * firmę z zasiewu. Liczenie wszystkich wierszy firmy dawało tu wynik zależny
+ * od tego, co zrobiły testy wyżej, czyli dokładnie taki, jakiego ten plik
+ * ma nie mieć.
+ */
+describe("zdjęcia z zasiewu", () => {
+  /** Firma z aktywnym abonamentem, czyli ta, której zasiew daje zdjęcia. */
+  async function firmaZZasiewu(): Promise<string> {
+    const [wiersz] = await db
+      .select({ companyId: companyPhotos.companyId })
+      .from(companyPhotos)
+      .where(sql`${companyPhotos.path} like '%zasiew-glowne.webp'`)
+      .limit(1);
+
+    if (!wiersz) throw new Error("Zasiew nie ma zdjęć firmy, a na nich stoi ten blok.");
+    return wiersz.companyId;
+  }
+
+  /** Wiersze zasiewu tej firmy, bez tego, co dopisały testy wyżej. */
+  async function wierszeZasiewu(companyId: string) {
+    return db
+      .select({
+        sciezka: companyPhotos.path,
+        pozycja: companyPhotos.position,
+        klucz: companyPhotos.uploadKey,
+        archiwum: companyPhotos.archivedAt,
+      })
+      .from(companyPhotos)
+      .where(
+        and(eq(companyPhotos.companyId, companyId), sql`${companyPhotos.path} like '%zasiew-%'`),
+      )
+      .orderBy(companyPhotos.path);
+  }
+
+  it("widoczne zdjęcie z zasiewu stoi na pozycji zero, czyli na karcie", async () => {
+    const companyId = await firmaZZasiewu();
+
+    // Przez zapytanie produkcyjne, bo to ono rozstrzyga, co widać.
+    const widoczne = await pobierzZdjeciaFirmy(ANONIM, companyId);
+    const glowne = widoczne.find((z) => z.sciezka.includes("zasiew-glowne"));
+    const zastapione = widoczne.find((z) => z.sciezka.includes("zasiew-zastapione"));
+
+    expect(glowne?.pozycja).toBe(0);
+    // Trzeci wiersz zasiewu jest zarchiwizowany, więc tu go nie ma.
+    expect(zastapione).toBeUndefined();
+  });
+
+  it("zarchiwizowane zdjęcie z zasiewu dalej leży w bazie, bo nic nie kasujemy", async () => {
+    const wiersze = await wierszeZasiewu(await firmaZZasiewu());
+
+    // Zasada 5: usunięcie zdjęcia to archiwizacja, nie zniknięcie wiersza.
+    expect(wiersze).toHaveLength(3);
+    expect(wiersze.filter((w) => w.archiwum !== null)).toHaveLength(1);
+  });
+
+  it("żywe i zarchiwizowane zdjęcie dzielą klucz próby, bo indeks liczy tylko żywe", async () => {
+    const wiersze = await wierszeZasiewu(await firmaZZasiewu());
+    const zKluczem = wiersze.filter((w) => w.klucz !== null);
+
+    /*
+     * Sedno: dwa wiersze z tym samym kluczem współistnieją, bo jeden jest
+     * zarchiwizowany. Gdyby indeks przestał zawężać się do `archived_at is
+     * null`, zasiew w ogóle by nie wszedł, więc ten przypadek jest tu
+     * podwójnie: sprawdza warunek i tłumaczy, czemu zasiew tak wygląda.
+     */
+    expect(zKluczem).toHaveLength(2);
+    expect(new Set(zKluczem.map((w) => w.klucz)).size).toBe(1);
+    expect(zKluczem.filter((w) => w.archiwum === null)).toHaveLength(1);
+
+    // Instancja rozróżniająca: wiersz sprzed migracji 0012 klucza nie ma,
+    // więc „wszystkie mają klucz" i „te dwa mają" nie dają tu tego samego.
+    expect(wiersze.filter((w) => w.klucz === null)).toHaveLength(1);
+  });
+});
+
+describe("ponowiona wysyłka nie dubluje zdjęcia", () => {
+  it("indeks w bazie odrzuca drugi wiersz z tym samym kluczem próby", async () => {
+    const { companyId } = await firmaZCzlonkiem();
+    await wyczysc(companyId);
+
+    const klucz = crypto.randomUUID();
+
+    // Surowy SQL, bez `on conflict`: sprawdzamy sam indeks, nie zapytanie.
+    const wstaw = (pozycja: number, sciezka: string) =>
+      db.execute(sql`
+        insert into company_photos (company_id, path, position, width, height, upload_key)
+        values (${companyId}, ${sciezka}, ${pozycja}, 800, 600, ${klucz})
+        returning id
+      `);
+
+    const pierwszy = await wstaw(0, "a/surowe-pierwsze.webp");
+    const idPierwszego = (pierwszy[0] as { id: string } | undefined)?.id;
+    expect(idPierwszego).toBeDefined();
+    if (idPierwszego) await zapamietaj(idPierwszego);
+
+    /*
+     * Pozycja jest inna, więc drugi wiersz nie odbija się od indeksu pozycji.
+     * Odrzucić go ma wyłącznie indeks klucza próby.
+     */
+    await expect(wstaw(1, "a/surowe-drugie.webp")).rejects.toThrow();
+  });
+
+  it("drugie wywołanie z tym samym kluczem oddaje to samo zdjęcie, nie nowe", async () => {
+    const { widz, companyId } = await firmaZCzlonkiem();
+    await wyczysc(companyId);
+
+    const klucz = crypto.randomUUID();
+    const zdjecie = { szerokosc: 800, wysokosc: 600, kluczWysylki: klucz };
+
+    const pierwsze = await dodajZdjecie(widz, companyId, {
+      ...zdjecie,
+      sciezka: "a/powtorka-pierwsza.webp",
+    });
+    expect(pierwsze.ok).toBe(true);
+    if (!pierwsze.ok) return;
+    await zapamietaj(pierwsze.dane.id);
+
+    /*
+     * Ścieżka jest inna, dokładnie jak przy prawdziwym ponowieniu: akcja
+     * składa ją od nowa z losowym członem przed każdym zapisem. Rozstrzygać
+     * ma klucz próby, nie ścieżka.
+     */
+    const drugie = await dodajZdjecie(widz, companyId, {
+      ...zdjecie,
+      sciezka: "a/powtorka-druga.webp",
+    });
+
+    // Sedno: wynik udany, ten sam wiersz, bez wyjątku i bez drugiego zdjęcia.
+    expect(drugie.ok).toBe(true);
+    if (!drugie.ok) return;
+    expect(drugie.dane.id).toBe(pierwsze.dane.id);
+
+    expect(await pobierzZdjeciaFirmy(ANONIM, companyId)).toHaveLength(1);
+  });
+
+  it("powtórka nie udaje limitu zdjęć, choć obie drogi oddają brak wiersza", async () => {
+    const { widz, companyId } = await firmaZCzlonkiem();
+    await wyczysc(companyId);
+
+    const klucz = crypto.randomUUID();
+    const pierwsze = await dodajZdjecie(widz, companyId, {
+      sciezka: "a/nie-limit.webp",
+      szerokosc: 800,
+      wysokosc: 600,
+      kluczWysylki: klucz,
+    });
+    if (pierwsze.ok) await zapamietaj(pierwsze.dane.id);
+
+    const powtorka = await dodajZdjecie(widz, companyId, {
+      sciezka: "a/nie-limit-druga.webp",
+      szerokosc: 800,
+      wysokosc: 600,
+      kluczWysylki: klucz,
+    });
+
+    /*
+     * `insert` nie oddaje wiersza w dwóch różnych sytuacjach: przy powtórce
+     * i przy zajętych wszystkich pozycjach. Bez rozdzielenia tych przyczyn
+     * firma z jednym zdjęciem widziałaby „masz już 10 zdjęć”.
+     */
+    expect(powtorka).not.toEqual({ ok: false, powod: "limit-zdjec" });
+    expect(powtorka.ok).toBe(true);
+  });
+
+  it("inny klucz wstawia drugie zdjęcie, więc odmowa dotyczy powtórki, nie zapisu", async () => {
+    /*
+     * Instancja pozytywna obok negatywnej. Bez niej testy wyżej przechodziłyby
+     * także wtedy, gdyby `dodajZdjecie` przestało wstawiać cokolwiek: „nic się
+     * nie zapisuje” i „powtórka się nie zapisuje” dają ten sam wynik.
+     */
+    const { widz, companyId } = await firmaZCzlonkiem();
+    await wyczysc(companyId);
+
+    for (const nazwa of ["rozne-a", "rozne-b"]) {
+      const wynik = await dodajZdjecie(widz, companyId, {
+        sciezka: `a/${nazwa}.webp`,
+        szerokosc: 800,
+        wysokosc: 600,
+        kluczWysylki: crypto.randomUUID(),
+      });
+      expect(wynik.ok, `zdjęcie ${nazwa} miało się zapisać`).toBe(true);
+      if (wynik.ok) await zapamietaj(wynik.dane.id);
+    }
+
+    expect(await pobierzZdjeciaFirmy(ANONIM, companyId)).toHaveLength(2);
+  });
+
+  it("usunięte zdjęcie zwalnia klucz, bo indeks liczy tylko nieusunięte", async () => {
+    const { widz, companyId } = await firmaZCzlonkiem();
+    await wyczysc(companyId);
+
+    const klucz = crypto.randomUUID();
+    const pierwsze = await dodajZdjecie(widz, companyId, {
+      sciezka: "a/zwolnienie-klucza.webp",
+      szerokosc: 800,
+      wysokosc: 600,
+      kluczWysylki: klucz,
+    });
+    expect(pierwsze.ok).toBe(true);
+    if (!pierwsze.ok) return;
+    await zapamietaj(pierwsze.dane.id);
+
+    await usunZdjecie(widz, companyId, pierwsze.dane.id);
+
+    /*
+     * Ten sam klucz po archiwizacji przechodzi. Inaczej firma, która usunęła
+     * zdjęcie i wysyła je ponownie z tej samej karty w przeglądarce,
+     * dostawałaby w odpowiedzi zarchiwizowany wiersz i nie widziała zdjęcia.
+     */
+    const ponownie = await dodajZdjecie(widz, companyId, {
+      sciezka: "a/zwolnienie-klucza-druga.webp",
+      szerokosc: 800,
+      wysokosc: 600,
+      kluczWysylki: klucz,
+    });
+
+    expect(ponownie.ok).toBe(true);
+    if (!ponownie.ok) return;
+    expect(ponownie.dane.id).not.toBe(pierwsze.dane.id);
+    await zapamietaj(ponownie.dane.id);
   });
 });
 

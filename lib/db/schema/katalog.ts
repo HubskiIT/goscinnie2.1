@@ -94,6 +94,26 @@ export const companyPhotos = pgTable(
       .references(() => companies.id),
     path: text("path").notNull(),
     position: integer("position").notNull(),
+    /**
+     * Klucz jednej próby wysyłki, nadawany w przeglądarce przy wyborze pliku.
+     *
+     * Po co: `path` zawiera losowy człon dokładany przy każdej próbie, więc
+     * dwa wysłania tego samego zdjęcia dawały dwa różne `path` i dwa wiersze.
+     * Dokładnie tak zdjęcia dublowały się po odmowie, o której interfejs nie
+     * zdążył powiedzieć: zapis przechodził, człowiek tego nie widział
+     * i wybierał plik ponownie.
+     *
+     * Klucz żyje tyle, co wybór pliku w przeglądarce. Ponowienie tej samej
+     * próby niesie ten sam klucz i odbija się od indeksu niżej, a nowy wybór
+     * tego samego pliku niesie nowy klucz i jest nowym zdjęciem. To jest
+     * zamierzone: firma ma prawo wstawić to samo zdjęcie dwa razy, jeśli
+     * naprawdę tego chce.
+     *
+     * Dopuszcza `null`, bo wiersze sprzed tej migracji klucza nie mają,
+     * a Postgres traktuje każdy `null` w indeksie unikalnym jako osobną
+     * wartość, więc stare zdjęcia niczego sobie nie blokują.
+     */
+    uploadKey: text("upload_key"),
     // Wymiary po obróbce. Bez nich przeglądarka nie zna proporcji przed
     // pobraniem pliku i układ skacze w trakcie ładowania.
     width: integer("width").notNull(),
@@ -112,6 +132,20 @@ export const companyPhotos = pgTable(
      */
     uniqueIndex("company_photos_company_position_uniq")
       .on(t.companyId, t.position)
+      .where(sql`${t.archivedAt} is null`),
+    /*
+     * Jedna próba wysyłki, jedno zdjęcie.
+     *
+     * To jest bariera po stronie bazy, niezależna od `on conflict` w zapytaniu
+     * i od blokady przycisku w przeglądarce. Każda z tych trzech rzeczy ma
+     * własny test, bo zdjęcia dublowały się właśnie wtedy, gdy wszystkie
+     * wyglądały na obecne.
+     *
+     * Warunek `archived_at is null` tak samo jak przy pozycji: usunięte
+     * zdjęcie nie ma prawa blokować niczego na zawsze.
+     */
+    uniqueIndex("company_photos_company_upload_key_uniq")
+      .on(t.companyId, t.uploadKey)
       .where(sql`${t.archivedAt} is null`),
   ],
 );

@@ -24,6 +24,7 @@ import { pobierzSzkicFirmy } from "@/lib/db/queries/kreator";
 import { dodajZdjecie, pobierzZdjeciaFirmy, usunZdjecie } from "@/lib/db/queries/zdjecia";
 import type { StanFormularza } from "@/lib/formularze";
 import { KONTAKT_EMAIL } from "@/lib/serwis";
+import { daneUsunieciaZdjecia, kluczWysylki } from "@/lib/validators/zdjecia";
 import { MAKS_MEGABAJTOW, MAKS_ZDJEC } from "@/lib/zdjecia/granice";
 import { type PowodOdrzucenia, przygotujZdjecie } from "@/lib/zdjecia/obrobka";
 import { adresZdjecia, sciezkaZdjecia, wyslijZdjecie } from "@/lib/zdjecia/skladowanie";
@@ -56,6 +57,19 @@ export async function dodajZdjecieFirmy(
     return blad("Wybierz plik ze zdjęciem.");
   }
 
+  /*
+   * Klucz próby wysyłki, bez którego zapis nie byłby idempotentny.
+   *
+   * Walidacja Zodem, bo to pole z formularza (zasada 4). Brak klucza jest
+   * odmową, nie wyjątkiem: stary kod w przeglądarce po wdrożeniu nowego
+   * serwera nie ma prawa wywalić akcji, ma dostać komunikat i odświeżyć
+   * stronę.
+   */
+  const klucz = kluczWysylki.safeParse(dane.get("kluczWysylki"));
+  if (!klucz.success) {
+    return blad("Odśwież stronę i spróbuj jeszcze raz, ta wysyłka się przedawniła.");
+  }
+
   const widz = await widzZZadania(await headers());
   if (widz.rodzaj === "anonim") redirect("/logowanie");
 
@@ -83,6 +97,7 @@ export async function dodajZdjecieFirmy(
     sciezka,
     szerokosc: obrobione.zdjecie.szerokosc,
     wysokosc: obrobione.zdjecie.wysokosc,
+    kluczWysylki: klucz.data,
   });
 
   if (!zapis.ok) {
@@ -99,10 +114,11 @@ export async function usunZdjecieFirmy(
   _poprzedni: StanFormularza,
   dane: FormData,
 ): Promise<StanFormularza> {
-  const zdjecieId = dane.get("zdjecieId");
-  if (typeof zdjecieId !== "string" || zdjecieId === "") {
-    return blad("Nie wiadomo, które zdjęcie usunąć.");
-  }
+  // Zod, nie sprawdzenie z ręki: `zdjecieId` idzie wprost do `where`, więc
+  // musi być uuid-em, zanim dotknie bazy. Dowolny napis kończył się tam
+  // błędem 22P02 i ogólnikiem na ekranie.
+  const wejscie = daneUsunieciaZdjecia.safeParse({ zdjecieId: dane.get("zdjecieId") });
+  if (!wejscie.success) return blad("Nie wiadomo, które zdjęcie usunąć.");
 
   const widz = await widzZZadania(await headers());
   if (widz.rodzaj === "anonim") redirect("/logowanie");
@@ -110,7 +126,7 @@ export async function usunZdjecieFirmy(
   const szkic = await pobierzSzkicFirmy(widz);
   if (!szkic) return blad("Nie znaleziono Twojej firmy.");
 
-  const wynik = await usunZdjecie(widz, szkic.id, zdjecieId);
+  const wynik = await usunZdjecie(widz, szkic.id, wejscie.data.zdjecieId);
   if (!wynik.ok) return blad("Nie udało się usunąć tego zdjęcia.");
 
   return { status: "zapisano" };

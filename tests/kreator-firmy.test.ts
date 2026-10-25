@@ -890,6 +890,7 @@ describe("zdjęcia w katalogu", () => {
         sciezka: `${firma.companyId}/${nazwa}`,
         szerokosc: 1600,
         wysokosc: 1200,
+        kluczWysylki: crypto.randomUUID(),
       });
       expect(wynik.ok).toBe(true);
     }
@@ -910,6 +911,7 @@ describe("zdjęcia w katalogu", () => {
       sciezka: `${zeZdjeciem.companyId}/jest.webp`,
       szerokosc: 1600,
       wysokosc: 1200,
+      kluczWysylki: crypto.randomUUID(),
     });
 
     const bezZdjecia = await firmaWKatalogu();
@@ -929,6 +931,7 @@ describe("zdjęcia w katalogu", () => {
       sciezka: `${pierwsza.companyId}/pierwsza.webp`,
       szerokosc: 1600,
       wysokosc: 1200,
+      kluczWysylki: crypto.randomUUID(),
     });
 
     const druga = await firmaWKatalogu();
@@ -936,6 +939,7 @@ describe("zdjęcia w katalogu", () => {
       sciezka: `${druga.companyId}/druga.webp`,
       szerokosc: 1600,
       wysokosc: 1200,
+      kluczWysylki: crypto.randomUUID(),
     });
 
     const lista = await pobierzFirmyKatalogu(ANONIM, [KATEGORIA_LOKALU]);
@@ -952,11 +956,13 @@ describe("zdjęcia w katalogu", () => {
       sciezka: `${firma.companyId}/do-usuniecia.webp`,
       szerokosc: 1600,
       wysokosc: 1200,
+      kluczWysylki: crypto.randomUUID(),
     });
     await dodajZdjecie(firma.widz, firma.companyId, {
       sciezka: `${firma.companyId}/zostaje.webp`,
       szerokosc: 1600,
       wysokosc: 1200,
+      kluczWysylki: crypto.randomUUID(),
     });
 
     expect(pierwsze.ok).toBe(true);

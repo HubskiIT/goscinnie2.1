@@ -9,6 +9,22 @@
  * powiedzieć, które zdjęcie jej nie przeszło. Wysyłamy po kolei i meldujemy
  * po każdym.
  *
+ * DLACZEGO KAŻDY PLIK MA WŁASNY `try`. Akcja serwerowa potrafi **rzucić**,
+ * a nie zwrócić stan: Next odrzuca za duże ciało żądania wyjątkiem 413,
+ * zanim akcja się wykona, a zerwane połączenie wygląda tak samo. Wcześniej
+ * cała pętla stała w jednym `startTransition` bez `try`, więc pierwszy rzut
+ * wyrzucał sterowanie przed `setPostep(null)`, `setBledy` i `onZmiana`.
+ * Skutek był najgorszy z możliwych: napis „Wysyłam…” zostawał na ekranie,
+ * błędu nie było, galeria się nie odświeżała, a zdjęcie bywało już zapisane.
+ * Człowiek wybierał plik ponownie i dostawał drugi egzemplarz.
+ *
+ * DLACZEGO BLOKADA NA `ref`, A NIE NA `czeka`. `czeka` z `useTransition`
+ * zmienia się dopiero po powrocie do Reacta, więc dwa zdarzenia `change`
+ * w jednym obrocie pętli zdarzeń zobaczyłyby jeszcze `false`. `ref` jest
+ * ustawiany w tej samej instrukcji, w której sprawdzamy, więc drugie wejście
+ * odbija się od niego natychmiast. `disabled={czeka}` zostaje, bo robi co
+ * innego: wygasza pole na oczach człowieka.
+ *
  * DLACZEGO `<img>`, A NIE `next/image`. Adres zdjęcia składa się ze zmiennej
  * `SUPABASE_URL`, więc `next/image` wymagałby wpisania tej samej domeny
  * drugi raz do `next.config.ts` jako wzorca zdalnego. Dwa miejsca na jedną
@@ -24,7 +40,7 @@ import {
   type ZdjecieDoPokazania,
 } from "@/lib/akcje/zdjecia";
 import { STAN_POCZATKOWY } from "@/lib/formularze";
-import { ACCEPT_ZDJEC, MAKS_MEGABAJTOW, MAKS_ZDJEC } from "@/lib/zdjecia/granice";
+import { ACCEPT_ZDJEC, MAKS_BAJTOW, MAKS_MEGABAJTOW, MAKS_ZDJEC } from "@/lib/zdjecia/granice";
 
 interface WysylkaZdjecProps {
   zdjecia: readonly ZdjecieDoPokazania[];
@@ -38,14 +54,40 @@ interface WysylkaZdjecProps {
   onZmiana: (zdjecia: readonly ZdjecieDoPokazania[]) => void;
 }
 
+/** Co się stało z jednym plikiem z tej wysyłki. */
+type StanPliku = {
+  nazwa: string;
+  stan: "czeka" | "wysylam" | "gotowe" | "blad";
+  komunikat?: string;
+};
+
+/** Komunikat o odmowie niezależny od serwera, bo rozstrzyga się w przeglądarce. */
+function zaDuzy(plik: File): string {
+  const megabajty = (plik.size / (1024 * 1024)).toFixed(1);
+  return `waży ${megabajty} MB, a przyjmujemy pliki do ${MAKS_MEGABAJTOW} MB.`;
+}
+
 export function WysylkaZdjec({ zdjecia, onZmiana }: WysylkaZdjecProps) {
-  const [bledy, setBledy] = useState<readonly string[]>([]);
-  const [postep, setPostep] = useState<string | null>(null);
+  const [stanyPlikow, setStanyPlikow] = useState<readonly StanPliku[]>([]);
+  const [uwaga, setUwaga] = useState<string | null>(null);
   const [czeka, startTransition] = useTransition();
   const pole = useRef<HTMLInputElement>(null);
   const idPola = useId();
 
+  /*
+   * Zapora przed drugim wejściem w trwającą wysyłkę. Patrz nagłówek pliku:
+   * `czeka` ustawia się za późno, żeby się na nim opierać.
+   */
+  const trwa = useRef(false);
+
   const wolnychMiejsc = MAKS_ZDJEC - zdjecia.length;
+
+  /** Podmienia stan jednego pliku, nie ruszając pozostałych. */
+  const oznacz = (numer: number, zmiana: Omit<StanPliku, "nazwa">) => {
+    setStanyPlikow((biezace) =>
+      biezace.map((wpis, i) => (i === numer ? { ...wpis, ...zmiana } : wpis)),
+    );
+  };
 
   /**
    * Wysyła wybrane pliki po kolei, nie równolegle.
@@ -54,46 +96,110 @@ export function WysylkaZdjec({ zdjecia, onZmiana }: WysylkaZdjecProps) {
    * o ten sam numer i jedno dostałoby odmowę bez winy człowieka.
    */
   const wyslij = (pliki: readonly File[]) => {
-    const zebrane: string[] = [];
+    if (trwa.current) return;
+    trwa.current = true;
+
+    setStanyPlikow(pliki.map((plik) => ({ nazwa: plik.name, stan: "czeka" as const })));
 
     startTransition(async () => {
-      for (const [numer, plik] of pliki.entries()) {
-        setPostep(
-          pliki.length > 1
-            ? `Wysyłam ${numer + 1} z ${pliki.length}: ${plik.name}`
-            : `Wysyłam ${plik.name}`,
-        );
+      try {
+        for (const [numer, plik] of pliki.entries()) {
+          /*
+           * Za duży plik odrzucamy tutaj, nie na serwerze. Serwer też by go
+           * odrzucił, ale wcześniej odrzuciłby go Next, wyjątkiem 413 bez
+           * czytelnej treści, po tym jak człowiek przeczekał całą wysyłkę.
+           */
+          if (plik.size > MAKS_BAJTOW) {
+            oznacz(numer, { stan: "blad", komunikat: zaDuzy(plik) });
+            continue;
+          }
 
-        const dane = new FormData();
-        dane.set("zdjecie", plik);
-        const wynik = await dodajZdjecieFirmy(STAN_POCZATKOWY, dane);
+          oznacz(numer, { stan: "wysylam" });
 
-        if (wynik.status === "bledy") {
-          // Nazwa pliku przy komunikacie: przy pięciu zdjęciach naraz samo
-          // „zdjęcie waży za dużo" nie mówi, które wyrzucić.
-          const tresc = Object.values(wynik.bledy).flat().join(" ");
-          zebrane.push(`${plik.name}: ${tresc}`);
+          const dane = new FormData();
+          dane.set("zdjecie", plik);
+          /*
+           * Klucz tej jednej próby. Serwer odrzuca drugi zapis tego samego
+           * klucza, więc ponowione żądanie nie tworzy drugiego zdjęcia.
+           *
+           * Klucz powstaje na próbę, a nie na zawartość pliku: ponowny wybór
+           * tego samego zdjęcia ma je wstawić drugi raz, jeśli firma tego
+           * chce. Przed dublowaniem po cichej awarii broni feedback niżej,
+           * a ten klucz broni przed dwukrotnym wysłaniem jednego żądania.
+           */
+          dane.set("kluczWysylki", crypto.randomUUID());
+
+          try {
+            const wynik = await dodajZdjecieFirmy(STAN_POCZATKOWY, dane);
+            const komunikat =
+              wynik.status === "bledy" ? Object.values(wynik.bledy).flat().join(" ") : undefined;
+
+            oznacz(numer, komunikat ? { stan: "blad", komunikat } : { stan: "gotowe" });
+          } catch (blad) {
+            /*
+             * Rzut, nie zwrócony stan: 413 od Nexta, zerwane połączenie,
+             * akcja zniknięta po wdrożeniu nowej wersji. Pełna treść do
+             * konsoli, na ekran zdanie, z którym człowiek coś zrobi.
+             */
+            console.error(`Wysyłka zdjęcia ${plik.name}:`, blad);
+            oznacz(numer, {
+              stan: "blad",
+              komunikat: "nie udało się wysłać. Sprawdź połączenie i spróbuj jeszcze raz.",
+            });
+          }
+        }
+      } finally {
+        /*
+         * `finally`, bo galeria musi się odświeżyć także wtedy, gdy coś
+         * poszło nie tak. Zdjęcie zapisane na serwerze, a niewidoczne na
+         * ekranie, to dokładnie ten stan, w którym człowiek wysyła je drugi
+         * raz. Odczyt też jest w `try`: gdyby padł, blokada musi puścić.
+         */
+        try {
+          onZmiana(await mojeZdjecia());
+        } catch (blad) {
+          console.error("Odczyt zdjęć po wysyłce:", blad);
+          setUwaga("Zdjęcia mogły się zapisać, ale nie udało się odświeżyć listy. Odśwież stronę.");
+        } finally {
+          trwa.current = false;
+          // Bez tego ponowny wybór tego samego pliku nie wywoła `onChange`.
+          if (pole.current) pole.current.value = "";
         }
       }
-
-      setPostep(null);
-      setBledy(zebrane);
-      onZmiana(await mojeZdjecia());
-      // Bez tego ponowny wybór tego samego pliku nie wywoła `onChange`.
-      if (pole.current) pole.current.value = "";
     });
   };
 
   const usun = (id: string) => {
-    startTransition(async () => {
-      const dane = new FormData();
-      dane.set("zdjecieId", id);
-      const wynik = await usunZdjecieFirmy(STAN_POCZATKOWY, dane);
+    if (trwa.current) return;
+    trwa.current = true;
 
-      setBledy(wynik.status === "bledy" ? Object.values(wynik.bledy).flat() : []);
-      onZmiana(await mojeZdjecia());
+    startTransition(async () => {
+      try {
+        const dane = new FormData();
+        dane.set("zdjecieId", id);
+        const wynik = await usunZdjecieFirmy(STAN_POCZATKOWY, dane);
+
+        setUwaga(wynik.status === "bledy" ? Object.values(wynik.bledy).flat().join(" ") : null);
+        setStanyPlikow([]);
+      } catch (blad) {
+        console.error(`Usuwanie zdjęcia ${id}:`, blad);
+        setUwaga("Nie udało się usunąć zdjęcia. Sprawdź połączenie i spróbuj jeszcze raz.");
+      } finally {
+        try {
+          onZmiana(await mojeZdjecia());
+        } catch (blad) {
+          console.error("Odczyt zdjęć po usunięciu:", blad);
+          setUwaga("Odśwież stronę, żeby zobaczyć aktualną listę zdjęć.");
+        } finally {
+          trwa.current = false;
+        }
+      }
     });
   };
+
+  const udane = stanyPlikow.filter((wpis) => wpis.stan === "gotowe").length;
+  const nieudane = stanyPlikow.filter((wpis) => wpis.stan === "blad");
+  const wTrakcie = stanyPlikow.some((wpis) => wpis.stan === "czeka" || wpis.stan === "wysylam");
 
   return (
     <div>
@@ -162,11 +268,11 @@ export function WysylkaZdjec({ zdjecia, onZmiana }: WysylkaZdjecProps) {
                * odmowę. Serwer i tak odmówi, ale człowiek czekałby na wysyłkę
                * plików, o których z góry wiadomo, że się nie zmieszczą.
                */
-              if (wybrane.length > wolnychMiejsc) {
-                setBledy([
-                  `Wybrałeś ${wybrane.length} zdjęć, a zostało ${wolnychMiejsc} miejsc. Wysyłam pierwsze ${wolnychMiejsc}.`,
-                ]);
-              }
+              setUwaga(
+                wybrane.length > wolnychMiejsc
+                  ? `Wybrałeś ${wybrane.length} zdjęć, a zostało ${wolnychMiejsc} miejsc. Wysyłam pierwsze ${wolnychMiejsc}.`
+                  : null,
+              );
               wyslij(wybrane.slice(0, wolnychMiejsc));
             }}
             className="w-full border border-[#D9CCC2] rounded-[10px] p-3 text-[14px] text-[#241C2B] outline-none focus:border-[#241C2B] disabled:opacity-50"
@@ -183,19 +289,43 @@ export function WysylkaZdjec({ zdjecia, onZmiana }: WysylkaZdjecProps) {
         </p>
       )}
 
-      {postep ? (
-        <p role="status" className="m-0 mt-2 text-[13px] leading-[1.5] text-[#6A5C70]">
-          {postep}
+      {/*
+       * Postęp i potwierdzenie w jednym miejscu, z `aria-live` na stałe
+       * obecnym elemencie. Komunikat wstawiony razem z nowym elementem
+       * `role="status"` bywa pomijany przez czytniki ekranu, bo region
+       * powstaje w tej samej chwili, w której dostaje treść.
+       */}
+      <p role="status" aria-live="polite" className="m-0 mt-2 text-[13px] leading-[1.5]">
+        {wTrakcie ? (
+          <span className="text-[#6A5C70]">
+            {stanyPlikow.length > 1
+              ? `Wysyłam zdjęcia: ${udane + nieudane.length} z ${stanyPlikow.length} gotowych.`
+              : `Wysyłam ${stanyPlikow[0]?.nazwa ?? "zdjęcie"}…`}
+          </span>
+        ) : udane > 0 ? (
+          <span className="font-medium text-[#2F6B3A]">
+            {udane === 1 ? "Zdjęcie dodane." : `Dodane zdjęcia: ${udane}.`}
+          </span>
+        ) : null}
+      </p>
+
+      {uwaga ? (
+        <p role="alert" className="m-0 mt-2 text-[13px] leading-[1.5] text-[#A33B12]">
+          {uwaga}
         </p>
       ) : null}
 
-      {bledy.length > 0 ? (
+      {nieudane.length > 0 ? (
         <ul
           role="alert"
           className="m-0 mt-2 list-none p-0 text-[13px] leading-[1.5] text-[#A33B12]"
         >
-          {bledy.map((tresc) => (
-            <li key={tresc}>{tresc}</li>
+          {nieudane.map((wpis) => (
+            // Nazwa pliku przy komunikacie: przy pięciu zdjęciach naraz samo
+            // „zdjęcie waży za dużo" nie mówi, które wyrzucić.
+            <li key={wpis.nazwa}>
+              {wpis.nazwa}: {wpis.komunikat}
+            </li>
           ))}
         </ul>
       ) : null}
