@@ -50,19 +50,38 @@ export const plans = pgTable(
   ],
 );
 
-export const subscriptions = pgTable("subscriptions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  companyId: uuid("company_id")
-    .notNull()
-    .references(() => companies.id),
-  planId: uuid("plan_id")
-    .notNull()
-    .references(() => plans.id),
-  status: subscriptionStatus("status").notNull().default("active"),
-  startsAt: timestamp("starts_at", { withTimezone: true }).notNull().defaultNow(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  ...znacznikiCzasu,
-});
+export const subscriptions = pgTable(
+  "subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id),
+    planId: uuid("plan_id")
+      .notNull()
+      .references(() => plans.id),
+    status: subscriptionStatus("status").notNull().default("active"),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ...znacznikiCzasu,
+  },
+  (t) => [
+    /*
+     * Po tej kolumnie jedzie najgorętsze zapytanie w systemie.
+     *
+     * `maAktywnyAbonament` z lib/auth/firma.ts pyta o abonament przy każdym
+     * ustaleniu widza, raz na każde członkostwo, a `jestWKatalogu()`
+     * z lib/db/queries/katalog.ts raz na każdy wiersz firmy w wynikach
+     * katalogu. Bez indeksu każde z tych pytań to przegląd całej tabeli.
+     *
+     * Filtr jest po trzech kolumnach, indeks stoi na jednej: `company_id`
+     * sam rozstrzyga prawie wszystko, bo jedna firma ma garść abonamentów
+     * przez całe życie konta, więc status i datę baza sprawdza już na kilku
+     * wierszach.
+     */
+    index("subscriptions_company_id_idx").on(t.companyId),
+  ],
+);
 
 /**
  * Idempotencja webhooków płatności. Operator wyśle to samo zdarzenie kilka razy.

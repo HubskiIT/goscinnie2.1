@@ -66,6 +66,10 @@ export const requests = pgTable(
   (t) => [
     index("requests_point_idx").using("gist", t.point),
     index("requests_status_event_date_idx").on(t.status, t.eventDate),
+    // Pod `pobierzMojeZlecenia`: filtruje wyłącznie po autorze, a dwa indeksy
+    // wyżej pokrywają szukanie po okolicy i po stanie z datą imprezy. Żaden
+    // z nich nie pomaga pytaniu „czyje to”.
+    index("requests_author_user_id_idx").on(t.authorUserId),
   ],
 );
 
