@@ -11,6 +11,14 @@
  * `bids(request_id, company_id)`. Ktoś go kiedyś zdejmie i obie liczby rozjadą
  * się po cichu. Sposobu liczenia nie da się dziś odizolować testem, indeksu
  * owszem, więc to on jest tu barierą.
+ *
+ * Druga grupa niżej to indeksy, bez których **komentarz w kodzie kłamie
+ * o koszcie**. Zapytanie wykonywane raz na wiersz wyników albo raz na każde
+ * wejście jest opisane jako tanie i taki ma być, a tanie jest wyłącznie dopóki
+ * stoi pod nim indeks. Zdjęcie takiego indeksu nie psuje żadnego wyniku, więc
+ * nie wywali żadnego innego testu w tym repozytorium: tabela ma dziś
+ * kilkanaście wierszy i przegląd całości daje to samo, co odczyt z indeksu,
+ * tylko wolniej. Dlatego to one są tu barierą, a nie pomiar czasu.
  */
 import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
@@ -22,6 +30,15 @@ async function indeksy(tabela: string): Promise<Indeks[]> {
   return db.execute<Indeks>(
     sql`select indexname, indexdef from pg_indexes where schemaname = 'public' and tablename = ${tabela}`,
   );
+}
+
+/** Czy tabela ma jakikolwiek indeks obejmujący wszystkie podane kolumny. */
+async function czyIndeksPo(tabela: string, kolumny: string[]): Promise<boolean> {
+  const wszystkie = await indeksy(tabela);
+  return wszystkie.some((indeks) => {
+    const def = indeks.indexdef.toLowerCase();
+    return kolumny.every((kolumna) => def.includes(kolumna));
+  });
 }
 
 async function czyUnikalnyPo(tabela: string, kolumny: string[]): Promise<boolean> {
@@ -64,6 +81,34 @@ describe("indeksy, bez których reguły przestają działać", () => {
     const wszystkie = await indeksy("bids");
     const def = wszystkie.map((i) => i.indexdef.toLowerCase());
     expect(def.some((d) => d.includes("company_id") && d.includes("created_at"))).toBe(true);
+  });
+
+  it("subscriptions ma indeks po company_id", async () => {
+    /*
+     * Najgorętsze zapytanie w systemie. `maAktywnyAbonament` z lib/auth/firma.ts
+     * pyta o abonament przy każdym ustaleniu widza, raz na każde członkostwo,
+     * a `jestWKatalogu()` z lib/db/queries/katalog.ts raz na każdy wiersz firmy
+     * w wynikach katalogu. Komentarz przy tym drugim mówi wprost, że
+     * podzapytanie jest tańsze niż zapytanie na firmę; bez tego indeksu
+     * jedno i drugie to przegląd całej tabeli abonamentów.
+     */
+    expect(await czyIndeksPo("subscriptions", ["company_id"])).toBe(true);
+  });
+
+  it("requests ma indeks po author_user_id", async () => {
+    /*
+     * `pobierzMojeZlecenia` filtruje wyłącznie po autorze. Pozostałe indeksy
+     * tej tabeli pokrywają szukanie po okolicy (gist na punkcie) i po stanie
+     * z datą imprezy, więc pytaniu „czyje to” nie pomaga żaden z nich.
+     */
+    expect(await czyIndeksPo("requests", ["author_user_id"])).toBe(true);
+  });
+
+  it("sprawdzenie zwykłych indeksów działa: nieistniejącej kolumny nie znajduje", async () => {
+    // Instancja negatywna osobno dla `czyIndeksPo`, bo bez warunku „unique”
+    // ta funkcja dopasowuje szerzej niż `czyUnikalnyPo` i łatwiej jej
+    // przypadkiem zwrócić prawdę na wszystko.
+    expect(await czyIndeksPo("requests", ["kolumna_ktorej_nie_ma"])).toBe(false);
   });
 
   it("sprawdzenie samo w sobie działa: nieistniejący indeks nie jest znajdowany", async () => {

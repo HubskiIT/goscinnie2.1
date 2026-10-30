@@ -8,6 +8,7 @@
  *   widzZZadania         kim jest ten człowiek w ogóle
  *   widzWKontekscieZlecenia   kim jest przy tym jednym zleceniu
  */
+import { cache } from "react";
 import { auth } from "@/lib/auth";
 import type { Widz } from "@/lib/permissions";
 import { czlonkostwoUzytkownika } from "./firma";
@@ -16,8 +17,27 @@ import { czlonkostwoUzytkownika } from "./firma";
  * Widz na podstawie ciasteczka sesji. Brak sesji, sesja wygasła albo
  * uszkodzona: anonim. To jest bezpieczny kierunek pomyłki, bo anonim
  * widzi najmniej.
+ *
+ * ZAKRES `cache()` TO JEDNO ŻĄDANIE I TYLKO JEDNO ŻĄDANIE
+ *
+ * Layout panelu ustala widza, a strona pod nim ustala go drugi raz. Bez
+ * deduplikacji jedno wejście na `/panel` to jedenaście zapytań tożsamościowych
+ * zamiast sześciu: sesja, użytkownik, członkostwo i abonament policzone dwa
+ * razy, bo nikt nikomu nie przekazuje wyniku.
+ *
+ * `cache()` z Reacta nie jest pamięcią między żądaniami. Zasięg kończy się
+ * wraz z żądaniem, więc reguła z `maAktywnyAbonament` zostaje nietknięta:
+ * abonament nadal rozstrzyga porównanie daty wykonane **przy tym** żądaniu,
+ * a ten, który wygasł minutę temu, jest wygasły od następnego wejścia.
+ * Zapisanie wyniku gdziekolwiek dalej niż do końca żądania złamałoby tę regułę
+ * i jest tu zakazane.
+ *
+ * Kluczem jest obiekt nagłówków. Trasy i akcje dostają z `headers()` ten sam
+ * obiekt przez całe żądanie (Next trzyma go w `WeakMap`), a trasy API podają
+ * nagłówki własnego `Request`, też jeden na żądanie. Dwa różne żądania nigdy
+ * nie trafią w ten sam wpis, bo nigdy nie mają wspólnego obiektu nagłówków.
  */
-export async function widzZZadania(naglowki: Headers): Promise<Widz> {
+export const widzZZadania = cache(async (naglowki: Headers): Promise<Widz> => {
   const sesja = await auth.api.getSession({ headers: naglowki });
   if (!sesja?.user?.id) {
     return { rodzaj: "anonim" };
@@ -33,15 +53,16 @@ export async function widzZZadania(naglowki: Headers): Promise<Widz> {
       rodzaj: "firma",
       userId: sesja.user.id,
       companyId: czlonkostwo.companyId,
-      // Stan liczony datą przy tym żądaniu. Nie ma tu żadnej pamięci ani cache:
-      // abonament, który wygasł minutę temu, jest wygasły od następnego żądania.
+      // Stan liczony datą przy tym żądaniu. Deduplikacja wyżej sięga końca
+      // tego żądania i ani sekundy dalej: abonament, który wygasł minutę temu,
+      // jest wygasły od następnego żądania.
       abonament: czlonkostwo.abonament,
     };
   }
 
   // Moderator wejdzie razem z panelem moderacji.
   return { rodzaj: "klient", userId: sesja.user.id };
-}
+});
 
 /**
  * Podnosi klienta do autora, gdy pyta o własne zlecenie.
