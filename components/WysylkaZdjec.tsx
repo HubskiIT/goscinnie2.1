@@ -223,7 +223,13 @@ export function WysylkaZdjec({ zdjecia, onZmiana }: WysylkaZdjecProps) {
               <img
                 src={zdjecie.adres}
                 alt={numer === 0 ? "Zdjęcie główne firmy" : `Zdjęcie firmy numer ${numer + 1}`}
-                className="w-full h-[120px] object-cover rounded-[10px] border border-[#E2D5CA] bg-[#F2E9E2]"
+                /*
+                 * `object-contain`, a nie `cover`: to jest podgląd dla firmy,
+                 * która właśnie wgrała plik. Kadrowana miniatura pokazywała
+                 * środek zdjęcia, więc człowiek nie widział, co naprawdę
+                 * wysłał, i dowiadywał się o tym dopiero z profilu.
+                 */
+                className="w-full h-[120px] object-contain rounded-[10px] border border-[#E2D5CA] bg-[#F2E9E2]"
               />
               {numer === 0 ? (
                 <span className="absolute top-2 left-2 rounded-[6px] bg-[#241C2B] px-2 py-0.5 text-[11px] font-semibold text-white">
