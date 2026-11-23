@@ -10,7 +10,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { hash } from "@node-rs/argon2";
+import { eq } from "drizzle-orm";
 import { cenaRocznaStartGrosze, klasaKategorii } from "@/content/cennik";
+import { czyRodzajLokalu } from "@/content/rodzaje-lokali";
 import { db, schema } from "./index";
 
 /**
@@ -88,6 +90,12 @@ const MIASTA = [
 ];
 
 const KATEGORIE = [
+  /*
+   * `sale` zostaje w słowniku, choć żadna firma z zasiewu już jej nie używa.
+   * Korzysta z niej tests/przejecie.test.ts jako kategorii istniejącej
+   * w bazie, a nieprzypisanej żadnej firmie, więc jej usunięcie wywaliłoby
+   * tamten test z powodu niemającego z nim nic wspólnego.
+   */
   { slug: "sale", name: "Sale i lokale" },
   { slug: "catering", name: "Catering" },
   { slug: "fotograf", name: "Fotograf" },
@@ -130,12 +138,23 @@ const OKAZJE = [
  * Złośliwość zostaje tam, gdzie coś sprawdza: apostrof w nazwie, pusty opis,
  * brak ceny, firma należąca do dwóch kategorii.
  */
+/*
+ * KATEGORIA LOKALU TO RODZAJ LOKALU, NIE „sale”.
+ *
+ * Cztery pierwsze firmy miały wcześniej kategorię `sale`, czyli slug, który
+ * nie występuje ani w content/rodzaje-lokali.ts, ani w content/kategorie.ts.
+ * Skutek był taki, że żadna firma z zasiewu nie pojawiała się na stronie
+ * „Lokale i sale”: ta strona pyta o slugi rodzajów lokali, a w bazie
+ * leżało coś, czego nie ma w żadnym słowniku. Wyszło dopiero przy
+ * wprowadzaniu rodzaju firmy do bazy, bo rodzaj wyprowadza się z tej samej
+ * kategorii i wszystkie 300 firm wyszło usługodawcami.
+ */
 const NAZWY_FIRM: ReadonlyArray<{ nazwa: string; kategoria: string }> = [
-  { nazwa: "Dworek pod Dębem", kategoria: "sale" },
+  { nazwa: "Dworek pod Dębem", kategoria: "sala-weselna" },
   // Apostrof w nazwie: wariant złośliwy dla slugów i dla cytowania w SQL.
-  { nazwa: "Zajazd u Grzegorza'a", kategoria: "sale" },
-  { nazwa: "Willa Źródło", kategoria: "sale" },
-  { nazwa: "Sala Bankietowa Łąka", kategoria: "sale" },
+  { nazwa: "Zajazd u Grzegorza'a", kategoria: "sala-weselna" },
+  { nazwa: "Willa Źródło", kategoria: "sala-weselna" },
+  { nazwa: "Sala Bankietowa Łąka", kategoria: "sala-weselna" },
   { nazwa: "Kuchnia Ćwierć Miary", kategoria: "catering" },
   { nazwa: "Stół Świętokrzyski", kategoria: "catering" },
   { nazwa: "Fotografia Ćmielów", kategoria: "fotograf" },
@@ -437,6 +456,28 @@ export async function zasiej(): Promise<void> {
   await db
     .insert(schema.companyCategories)
     .values(firmy.map((f, i) => ({ companyId: f.id, categoryId: kategoriaFirmy(i).id })));
+
+  /*
+   * Rodzaj firmy: lokal czy usługodawca.
+   *
+   * Ustawiany tu, a nie przy wstawianiu firm, bo wynika z kategorii,
+   * a tę przypisujemy dopiero teraz. Wyprowadzony ze slugu przez
+   * `czyRodzajLokalu`, czyli tą samą funkcją, której używa kreator:
+   * drugi sposób liczenia tego samego rozjechałby się przy pierwszym
+   * dopisaniu rodzaju lokalu do słownika.
+   *
+   * KONIECZNE, nie ozdobne. Migracja 0016 uzupełnia rodzaj z kategorii,
+   * ale migracje idą przed zasiewem, więc firmy zakładane tutaj nie mają
+   * jak się na to uzupełnienie załapać. Bez tej pętli każda firma
+   * z zasiewu ma pusty rodzaj i nie jest ani lokalem, ani usługodawcą:
+   * nie da się do niej dodać imprezy ani pokazać jej pytań szczegółowych.
+   */
+  for (const [i, firma] of firmy.entries()) {
+    await db
+      .update(schema.companies)
+      .set({ kind: czyRodzajLokalu(kategoriaFirmy(i).slug) ? "venue" : "service" })
+      .where(eq(schema.companies.id, firma.id));
+  }
 
   // Członkostwa i abonamenty. Cztery warianty firm, bo na nich stoi cała
   // reguła „co kto widzi” po stronie firmowej:

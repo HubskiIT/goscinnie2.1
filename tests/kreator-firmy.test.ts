@@ -33,6 +33,7 @@ import {
   zapiszOpisSzkicu,
   zapiszWeryfikacjeSzkicu,
 } from "@/lib/db/queries/kreator";
+import { zapiszSzczegolyLokalu } from "@/lib/db/queries/szczegoly";
 import { dodajZdjecie, usunZdjecie } from "@/lib/db/queries/zdjecia";
 import { subscriptions } from "@/lib/db/schema/abonament";
 import { cities } from "@/lib/db/schema/geografia";
@@ -44,6 +45,8 @@ import {
   companyPhotos,
   companyVerification,
 } from "@/lib/db/schema/katalog";
+import { moderationSubmissions } from "@/lib/db/schema/moderacja";
+import { venueDetails } from "@/lib/db/schema/szczegoly";
 import { users } from "@/lib/db/schema/tozsamosc";
 import { NiezaimplementowanaGalazUprawnien, type Widz } from "@/lib/permissions";
 
@@ -64,11 +67,20 @@ const KATEGORIA_LOKALU = "sala-weselna";
  */
 const MIEJSCOWOSC_BEZ_PUNKTU = "test-bez-wspolrzednych";
 
-/** Gałąź uprawnień, której nie ma. Każde zapytanie ma się o nią wyłożyć. */
-const MODERATOR: Widz = {
-  rodzaj: "moderator",
-  userId: "11111111-1111-4111-8111-111111111111",
-};
+/**
+ * Widz spoza typu `Widz`, czyli taki, którego gałęzi uprawnień nie ma.
+ * Każde zapytanie ma się o niego wyłożyć, zanim dotknie bazy.
+ *
+ * Rolę tę pełnił tu moderator, dopóki jego gałąź nie istniała. Powstała
+ * razem z kolejką moderacji i jest świadomą odmową, nie luką, więc
+ * wartownik musiał się zmienić. Zbudowany rzutowaniem nie wygaśnie przy
+ * kolejnej dopisanej gałęzi: tak właśnie wygląda wariant dodany do typu
+ * przez kogoś, kto zapomniał o nim w zapytaniu.
+ */
+const WIDZ_BEZ_GALEZI = {
+  rodzaj: "ksiegowy",
+  userId: "99999999-9999-4999-8999-999999999999",
+} as unknown as Widz;
 
 /**
  * Klient z zasiewu, który nie należy do żadnej firmy.
@@ -179,7 +191,65 @@ async function przejdzKreator(): Promise<{ widz: Widz; companyId: string }> {
   });
   if (!weryfikacja.ok) throw new Error("Krok weryfikacji odmówił, a nie powinien.");
 
+  /*
+   * Krok piąty: odpowiedzi o lokal. Komplet obowiązkowych, bo bez nich
+   * publikacja odmawia, a ten pomocnik ma oddawać szkic gotowy do
+   * opublikowania. Pozostałe pytania zostają puste i tak ma być: kreator
+   * pozwala je dokończyć później i ten pomocnik tego nie przesądza.
+   */
+  const szczegoly = await zapiszSzczegolyLokalu(widz, companyId, {
+    miejscPrzyStolach: 140,
+    miejscNaStojaco: null,
+    minimumGosci: null,
+    minimumKwota: null,
+    wylacznosc: true,
+    kuchnia: "wlasna",
+    alkohol: "tak-bez-oplaty",
+    korkowe: null,
+    parking: "bezplatny",
+    miejscParkingowych: null,
+    nocleg: "brak",
+    pokoi: null,
+    muzykaDo: "23:00",
+    teren: null,
+    dlaDzieci: null,
+    wejscieBezSchodow: null,
+    toaletaPrzystosowana: null,
+    winda: null,
+    klimatyzacja: null,
+  });
+  if (!szczegoly.ok) throw new Error("Krok szczegółów odmówił, a nie powinien.");
+
   return { widz, companyId };
+}
+
+/**
+ * Publikacja razem z przyjęciem przez moderację.
+ *
+ * Od kolejki moderacji sama publikacja nie wpuszcza firmy do katalogu:
+ * wstawia zgłoszenie i czeka na decyzję. Testy katalogu, zdjęć
+ * i abonamentów badają co innego, więc zamiast powtarzać w każdym z nich
+ * ten sam krok, pomocnik robi obie rzeczy naraz.
+ *
+ * Zgodę zapisujemy wprost do tabeli, a nie przez `rozstrzygnij`, bo tamta
+ * funkcja wymaga widza z rolą moderatora i jej własne reguły są sprawdzane
+ * w tests/moderacja.test.ts. Tutaj byłaby obejściem tematu testu.
+ */
+async function opublikujIPrzyjmij(widz: Widz, companyId: string, wygasa: Date) {
+  const wynik = await opublikujSzkic(widz, companyId, wygasa);
+
+  await db
+    .update(moderationSubmissions)
+    .set({ status: "approved", decidedAt: new Date() })
+    .where(
+      and(
+        eq(moderationSubmissions.subjectKind, "company"),
+        eq(moderationSubmissions.subjectId, companyId),
+        eq(moderationSubmissions.status, "pending"),
+      ),
+    );
+
+  return wynik;
 }
 
 /** Data za rok, czyli abonament, który na pewno jeszcze trwa. */
@@ -579,7 +649,7 @@ describe("wznowienie po odświeżeniu strony", () => {
 
   it("po publikacji oddaje firmę do poprawek, ze stanem active", async () => {
     const { widz, companyId } = await przejdzKreator();
-    await opublikujSzkic(widz, companyId, zaRok());
+    await opublikujIPrzyjmij(widz, companyId, zaRok());
 
     // Ten sam kreator służy do poprawek opublikowanego profilu.
     const szkic = await pobierzSzkicFirmy(widz);
@@ -603,13 +673,13 @@ describe("domyślna odmowa", () => {
    * tutaj nazywamy wprost te, na których stoi zapis.
    */
   it("każdy krok rzuca na widzu bez zaimplementowanej gałęzi", async () => {
-    await expect(zapiszKategorieSzkicu(MODERATOR, KATEGORIA_LOKALU)).rejects.toBeInstanceOf(
+    await expect(zapiszKategorieSzkicu(WIDZ_BEZ_GALEZI, KATEGORIA_LOKALU)).rejects.toBeInstanceOf(
       NiezaimplementowanaGalazUprawnien,
     );
-    await expect(pobierzSzkicFirmy(MODERATOR)).rejects.toBeInstanceOf(
+    await expect(pobierzSzkicFirmy(WIDZ_BEZ_GALEZI)).rejects.toBeInstanceOf(
       NiezaimplementowanaGalazUprawnien,
     );
-    await expect(sprawdzGotowoscSzkicu(MODERATOR)).rejects.toBeInstanceOf(
+    await expect(sprawdzGotowoscSzkicu(WIDZ_BEZ_GALEZI)).rejects.toBeInstanceOf(
       NiezaimplementowanaGalazUprawnien,
     );
   });
@@ -702,6 +772,16 @@ async function posprzatajPoSobie(): Promise<void> {
     // Zdjęcia przed firmą: klucz obcy ma `on delete no action`, więc firma ze
     // zdjęciem nie da się usunąć i wysypałby się `beforeEach` całego pliku.
     await db.delete(companyPhotos).where(eq(companyPhotos.companyId, firma.id));
+    /*
+     * Szczegóły lokalu i zgłoszenia moderacyjne doszły razem z krokiem
+     * piątym i kolejką. Pierwsze mają klucz obcy do firmy, więc bez tego
+     * wiersza firma nie daje się usunąć i wysypuje się `beforeEach` całego
+     * pliku. Drugie klucza nie mają i zostałyby jako sieroty, co niczego
+     * nie psuje w aplikacji, ale zaśmiecałoby kolejkę moderacji przy
+     * każdym uruchomieniu zestawu.
+     */
+    await db.delete(venueDetails).where(eq(venueDetails.companyId, firma.id));
+    await db.delete(moderationSubmissions).where(eq(moderationSubmissions.subjectId, firma.id));
     await db.delete(subscriptions).where(eq(subscriptions.companyId, firma.id));
     await db.delete(companyVerification).where(eq(companyVerification.companyId, firma.id));
     await db.delete(companyCategories).where(eq(companyCategories.companyId, firma.id));
@@ -716,15 +796,15 @@ beforeEach(posprzatajPoSobie);
 describe("poprawki opublikowanego profilu", () => {
   it("ponowna publikacja nie dokłada drugiego abonamentu", async () => {
     const { widz, companyId } = await przejdzKreator();
-    await opublikujSzkic(widz, companyId, zaRok());
-    await opublikujSzkic(widz, companyId, zaRok());
+    await opublikujIPrzyjmij(widz, companyId, zaRok());
+    await opublikujIPrzyjmij(widz, companyId, zaRok());
 
     expect(await ileAbonamentow(companyId)).toBe(1);
   });
 
   it("zmiana nazwy opublikowanej firmy nie zmienia adresu profilu", async () => {
     const { widz, companyId } = await przejdzKreator();
-    await opublikujSzkic(widz, companyId, zaRok());
+    await opublikujIPrzyjmij(widz, companyId, zaRok());
     const przed = await slugFirmy(companyId);
 
     const wynik = await zapiszOpisSzkicu(widz, companyId, {
@@ -757,7 +837,7 @@ describe("katalog", () => {
 
     expect(await pobierzFirmeKatalogu(ANONIM, slugSzkicu)).toBeNull();
 
-    await opublikujSzkic(szkic.widz, szkic.companyId, zaRok());
+    await opublikujIPrzyjmij(szkic.widz, szkic.companyId, zaRok());
     const opublikowana = await pobierzFirmeKatalogu(ANONIM, slugSzkicu);
 
     expect(opublikowana?.nazwa).toBe("Dwór Pod Lipami");
@@ -769,10 +849,10 @@ describe("katalog", () => {
 
   it("firma po wygaśnięciu abonamentu znika z katalogu, a druga z ważnym zostaje", async () => {
     const pierwsza = await przejdzKreator();
-    await opublikujSzkic(pierwsza.widz, pierwsza.companyId, zaRok());
+    await opublikujIPrzyjmij(pierwsza.widz, pierwsza.companyId, zaRok());
 
     const druga = await przejdzKreator();
-    await opublikujSzkic(druga.widz, druga.companyId, zaRok());
+    await opublikujIPrzyjmij(druga.widz, druga.companyId, zaRok());
 
     await db
       .update(subscriptions)
@@ -788,9 +868,9 @@ describe("katalog", () => {
 
   it("firma zawieszona znika z katalogu mimo ważnego abonamentu", async () => {
     const zawieszona = await przejdzKreator();
-    await opublikujSzkic(zawieszona.widz, zawieszona.companyId, zaRok());
+    await opublikujIPrzyjmij(zawieszona.widz, zawieszona.companyId, zaRok());
     const widoczna = await przejdzKreator();
-    await opublikujSzkic(widoczna.widz, widoczna.companyId, zaRok());
+    await opublikujIPrzyjmij(widoczna.widz, widoczna.companyId, zaRok());
 
     await db
       .update(companies)
@@ -804,7 +884,7 @@ describe("katalog", () => {
 
   it("lista lokali nie podaje firmy z kategorią usługodawcy i odwrotnie", async () => {
     const { widz, companyId } = await przejdzKreator();
-    await opublikujSzkic(widz, companyId, zaRok());
+    await opublikujIPrzyjmij(widz, companyId, zaRok());
     const slug = await slugFirmy(companyId);
 
     const lokale = await pobierzFirmyKatalogu(ANONIM, [KATEGORIA_LOKALU]);
@@ -824,7 +904,7 @@ describe("katalog", () => {
       wKatalogu: false,
     });
 
-    await opublikujSzkic(wlasciciel.widz, wlasciciel.companyId, zaRok());
+    await opublikujIPrzyjmij(wlasciciel.widz, wlasciciel.companyId, zaRok());
     const mojePo = await pobierzMojeFirmy(wlasciciel.widz);
     expect(mojePo.find((f) => f.slug === slug)).toMatchObject({
       status: "active",
@@ -878,7 +958,7 @@ describe("zdjęcia w katalogu", () => {
 
   async function firmaWKatalogu(): Promise<{ widz: Widz; companyId: string; slug: string }> {
     const { widz, companyId } = await przejdzKreator();
-    await opublikujSzkic(widz, companyId, zaRok());
+    await opublikujIPrzyjmij(widz, companyId, zaRok());
     return { widz, companyId, slug: await slugFirmy(companyId) };
   }
 

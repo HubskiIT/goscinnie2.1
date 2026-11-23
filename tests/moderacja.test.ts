@@ -384,11 +384,18 @@ describe("zlecenie przed akceptacją nie trafia na giełdę", () => {
   });
 
   it("pod własnym adresem też go nie ma", async () => {
-    // Druga droga do tego samego zlecenia. Bez tego przypadku warunek
-    // dopisany tylko do listy przeszedłby niezauważony, a firma
-    // z identyfikatorem w ręku obeszłaby moderację.
-    const widz = await abonentZZasiewu();
-    expect(await pobierzZlecenie(widz, await oczekujace())).toBeNull();
+    /*
+     * Druga droga do tego samego zlecenia. Bez tego przypadku warunek
+     * dopisany tylko do listy przeszedłby niezauważony, a ktoś
+     * z identyfikatorem w ręku obszedłby moderację.
+     *
+     * Pytamy jako anonim, nie jako abonent: `pobierzZlecenie` odmawia
+     * obsługi widza, któremu przysługuje opis albo budżet, i odsyła go
+     * do zapytania przeznaczonego dla niego. To celowa bariera przeciwko
+     * rozszerzaniu tego zapytania o pola, których nie pobiera, więc test
+     * ma ją uszanować, a nie obejść.
+     */
+    expect(await pobierzZlecenie(ANONIM, await oczekujace())).toBeNull();
   });
 
   it("zaakceptowane zlecenia są na giełdzie", async () => {

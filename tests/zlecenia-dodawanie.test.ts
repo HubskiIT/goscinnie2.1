@@ -12,8 +12,9 @@
  *
  * Wymaga działającej bazy z zasiewem.
  */
-import { and, eq, isNotNull, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, ne, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { OKAZJA_INNA } from "@/content/okazje";
 import { db } from "@/lib/db";
 import {
   type DaneNowegoZlecenia,
@@ -24,7 +25,7 @@ import { cities } from "@/lib/db/schema/geografia";
 import { requests } from "@/lib/db/schema/gielda";
 import { companyMembers, eventTypes } from "@/lib/db/schema/katalog";
 import { users } from "@/lib/db/schema/tozsamosc";
-import { NiezaimplementowanaGalazUprawnien, type Widz } from "@/lib/permissions";
+import type { Widz } from "@/lib/permissions";
 
 const ANONIM: Widz = { rodzaj: "anonim" };
 const MODERATOR: Widz = { rodzaj: "moderator", userId: "11111111-1111-4111-8111-111111111111" };
@@ -80,9 +81,28 @@ async function miejscowoscZPunktem(): Promise<{ id: string; punkt: string }> {
   return wiersz;
 }
 
+/**
+ * Zwykła okazja ze słownika, czyli taka, która nie wymaga nazwy własnej.
+ *
+ * Dwie rzeczy, których tu wcześniej nie było, i obie okazały się konieczne:
+ *
+ *   - wykluczenie „innej okazji”. Migracja 0014 wstawia ten wiersz przed
+ *     zasiewem, więc bez warunku pomocnik oddawał właśnie ją i każde
+ *     zlecenie zbudowane tym pomocnikiem odbijało się o regułę „własna
+ *     nazwa wymagana przy innej okazji”. Objaw wyglądał na awarię zapisu
+ *     w jedenastu miejscach naraz, a był błędem w jednym pomocniku.
+ *   - sortowanie. `limit(1)` bez `order by` oddaje wiersz, który baza akurat
+ *     zwróci pierwszy, a to zależy od kolejności wstawiania i od tego,
+ *     czy ktoś coś w międzyczasie zmienił. Test ma być powtarzalny.
+ */
 async function slugOkazji(): Promise<string> {
-  const [wiersz] = await db.select({ slug: eventTypes.slug }).from(eventTypes).limit(1);
-  if (!wiersz) throw new Error("Zasiew nie ma okazji.");
+  const [wiersz] = await db
+    .select({ slug: eventTypes.slug })
+    .from(eventTypes)
+    .where(ne(eventTypes.slug, OKAZJA_INNA.slug))
+    .orderBy(asc(eventTypes.slug))
+    .limit(1);
+  if (!wiersz) throw new Error("Zasiew nie ma zwykłej okazji.");
   return wiersz.slug;
 }
 
@@ -173,10 +193,18 @@ describe("kto może wystawić zlecenie", () => {
     expect(await liczbaZlecen()).toBe(przed);
   });
 
-  it("moderator rzuca, bo jego gałęzi uprawnień nie napisano", async () => {
-    await expect(utworzZlecenie(MODERATOR, await wejscie())).rejects.toBeInstanceOf(
-      NiezaimplementowanaGalazUprawnien,
-    );
+  it("moderator dostaje odmowę, bo oceniałby własną treść", async () => {
+    /*
+     * Do czasu kolejki moderacji ten przypadek sprawdzał rzut: moderator
+     * był ostatnim widzem bez gałęzi uprawnień. Gałąź powstała i jest
+     * świadomą odmową, nie luką. To nie jest zakaz dla człowieka, tylko
+     * dla roli: od wystawiania zleceń jest zwykłe konto klienta.
+     */
+    const wynik = await utworzZlecenie(MODERATOR, await wejscie());
+
+    expect(wynik.ok).toBe(false);
+    if (wynik.ok) return;
+    expect(wynik.powod).toBe("brak-dostepu");
   });
 
   it("klient z zasiewu zapisuje zlecenie", async () => {
