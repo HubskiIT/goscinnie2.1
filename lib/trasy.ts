@@ -51,14 +51,3 @@ export const okazja = (nazwa: string) => `/okazje/${nazwa}`;
 export const lokaleWg = (rodzaj: string, miejscowosc: string) => `/lokale/${rodzaj}/${miejscowosc}`;
 export const uslugodawcyWg = (kategoria: string, miejscowosc: string) =>
   `/uslugodawcy/${kategoria}/${miejscowosc}`;
-
-/**
- * Przykładowe ogłoszenia z punktu 6 planu. Do Etapu 2, gdy wejdzie
- * content/ogloszenia.ts, trzymamy je tutaj, żeby linki nie zgadywały slugów.
- */
-export const PRZYKLADY = {
-  lokal: "dwor-pod-lipami",
-  wpisBezProfilu: "stary-spichlerz",
-  impreza: "andrzejki-pod-lipami",
-  zlecenie: "k7m2x9",
-} as const;

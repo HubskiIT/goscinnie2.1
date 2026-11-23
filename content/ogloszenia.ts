@@ -1,16 +1,22 @@
 /**
- * Jedyne miejsce z treścią ogłoszeń.
+ * Typy ogłoszeń i puste tablice atrap.
  *
- * Typy są zgodne z przyszłym schematem bazy (docs/schemat.md, obszar katalog),
- * żeby po wejściu Drizzle zmieniło się wyłącznie wnętrze funkcji dostępu,
- * a nie ekrany.
+ * Nazwa pliku jest starsza od jego roli. Kiedyś leżała tu treść całego
+ * serwisu, bo baza jeszcze nie istniała. Dziś treść pochodzi z bazy, przez
+ * `lib/katalog.ts` i `lib/db/queries/`, a tutaj zostały dwie rzeczy: typy,
+ * z których korzystają ekrany, i puste tablice po atrapach. Powód ich
+ * opróżnienia stoi niżej, przy samych tablicach.
+ *
+ * Typy są zgodne ze schematem bazy (docs/schemat.md, obszar katalog), więc
+ * ekranom jest wszystko jedno, skąd przyszedł wpis.
  *
  * Zasady, których tu pilnujemy:
- * - Po jednym ogłoszeniu w każdej sekcji (punkt 6 planu).
  * - Żadnych ocen, liczby opinii ani liczników. Opinie wracają dopiero
  *   z tokenem po zrealizowanej imprezie.
- * - Każde ogłoszenie jest przykładowe, dopóki nie zastąpi go prawdziwa firma.
- *   Stąd `przykladowe: true` i etykieta na kartach oraz `noindex` w robots.
+ * - Wpis z tego pliku jest atrapą, nie firmą. Stąd `przykladowe: true`,
+ *   etykieta na kartach i `noindex` w robots. Tablice są puste, więc dziś
+ *   nie dotyczy to żadnego wpisu, ale reguła obowiązuje każdy, który by tu
+ *   wrócił.
  */
 
 export type StatusFirmy = "draft" | "active" | "visitcard" | "suspended";
@@ -102,118 +108,34 @@ export interface Impreza {
   dlaDoroslych: boolean;
 }
 
-const KOBIERZYCE: Miejscowosc = {
-  slug: "kobierzyce",
-  nazwa: "Kobierzyce",
-  gmina: "Kobierzyce",
-  powiat: "wrocławski",
-  wojewodztwo: "dolnośląskie",
-  odlegloscOdCentrumKm: 18,
-};
+/*
+ * TABLICE SĄ PUSTE I TO JEST STAN DOCELOWY.
+ *
+ * Do listopada 2026 leżało tu sześć atrap: dwa lokale, usługodawca, zlecenie
+ * i impreza, każde z `przykladowe: true` i plakietką na karcie. Miały pokazywać
+ * działanie serwisu, zanim pojawią się prawdziwe wpisy. Przestały być potrzebne
+ * z chwilą, gdy katalog ruszył na prawdziwych firmach: atrapa na liście obok
+ * czyjejś firmy wygląda jak konkurencja, której nie ma, a odwiedzający nie ma
+ * jak odróżnić oferty od dekoracji.
+ *
+ * MECHANIZM ZOSTAJE, I TO CELOWO. Pole `przykladowe`, `EtykietaPrzykladu`
+ * i `noindex` dla takich wpisów nie znikają razem z danymi. Wpisanie atrapy
+ * z powrotem to dopisanie jednego obiektu do właściwej tablicy, a nie
+ * odtwarzanie wyciętej warstwy. Gdyby mechanizm poszedł razem z treścią,
+ * pierwsza prośba o podgląd oznaczałaby pisanie go od nowa.
+ *
+ * Wszystko, co widać teraz na ekranach, pochodzi z bazy przez `lib/katalog.ts`
+ * i `lib/db/queries/`. Pusta tablica znaczy pusty katalog i każdy ekran musi
+ * to znieść: stany puste są wymagane przez CLAUDE.md i mają na to testy.
+ */
 
-const TRZEBNICA: Miejscowosc = {
-  slug: "trzebnica",
-  nazwa: "Trzebnica",
-  gmina: "Trzebnica",
-  powiat: "trzebnicki",
-  wojewodztwo: "dolnośląskie",
-  odlegloscOdCentrumKm: 24,
-};
+const LOKALE: readonly Lokal[] = [];
 
-const WROCLAW: Miejscowosc = {
-  slug: "wroclaw",
-  nazwa: "Wrocław",
-  gmina: "Wrocław",
-  powiat: "Wrocław",
-  wojewodztwo: "dolnośląskie",
-  odlegloscOdCentrumKm: 0,
-};
+const USLUGODAWCY: readonly Uslugodawca[] = [];
 
-const LOKALE: readonly Lokal[] = [
-  {
-    slug: "dwor-pod-lipami",
-    nazwa: "Dwór pod Lipami",
-    rodzaj: "dwor-palac",
-    status: "active",
-    przykladowe: true,
-    miejscowosc: KOBIERZYCE,
-    cenaOdGrosze: 18000,
-    jednostkaCeny: "za osobę",
-    pojemnoscMin: 40,
-    pojemnoscMax: 140,
-    opis:
-      "Dwór z 1902 roku z salą balową na 140 osób i ogrodem na 40 gości. " +
-      "Prowadzimy obiekt rodzinnie od czternastu lat.",
-    udogodnienia: ["ogród", "nocleg dla 40 osób", "sala na wyłączność", "parking"],
-    okazje: ["wesele", "komunia", "chrzciny", "urodziny", "stypa", "event-firmowy"],
-  },
-  {
-    slug: "stary-spichlerz",
-    nazwa: "Stary Spichlerz",
-    rodzaj: "sala-weselna",
-    // Wpis z rejestru, którego firma jeszcze nie przejęła. Zgodnie z punktem 9.8
-    // planu pokazujemy tylko nazwę, kategorię i miejscowość: bez adresu i telefonu.
-    status: "visitcard",
-    przykladowe: true,
-    miejscowosc: TRZEBNICA,
-    cenaOdGrosze: null,
-    jednostkaCeny: "",
-    pojemnoscMin: null,
-    pojemnoscMax: null,
-    opis: "",
-    udogodnienia: [],
-    okazje: [],
-  },
-];
+const ZLECENIA: readonly Zlecenie[] = [];
 
-const USLUGODAWCY: readonly Uslugodawca[] = [
-  {
-    slug: "studio-lipowa",
-    nazwa: "Studio Lipowa",
-    status: "active",
-    przykladowe: true,
-    kategoriaGlowna: "fotograf",
-    miejscowosc: WROCLAW,
-    zasiegDojazduKm: 120,
-    cenaOdGrosze: 420000,
-    jednostkaCeny: "za dzień zdjęciowy",
-    opis:
-      "Reportaż z całego dnia, bez pozowanych scen. Zdjęcia oddajemy " +
-      "w ciągu czterech tygodni.",
-    udogodnienia: ["reportaż", "sesja plenerowa", "dwie osoby na planie"],
-  },
-];
-
-const ZLECENIA: readonly Zlecenie[] = [
-  {
-    id: "k7m2x9",
-    przykladowe: true,
-    okazja: "komunia",
-    data: "2027-05-16",
-    liczbaGosci: 45,
-    powiat: "wrocławski",
-    opis:
-      "Szukam sali na komunię córki. Potrzebny osobny kąt dla dzieci " +
-      "i możliwość wjazdu wózkiem.",
-    budzetGrosze: null,
-  },
-];
-
-const IMPREZY: readonly Impreza[] = [
-  {
-    slug: "andrzejki-pod-lipami",
-    przykladowe: true,
-    nazwa: "Andrzejki pod Lipami",
-    okazja: "andrzejki",
-    data: "2026-11-28",
-    godzinaOd: "19:00",
-    godzinaDo: "03:00",
-    lokalSlug: "dwor-pod-lipami",
-    cenaBiletuGrosze: 18000,
-    opis: "Wieczór andrzejkowy z kolacją, wróżbami i lanym woskiem. " + "Impreza dla dorosłych.",
-    dlaDoroslych: true,
-  },
-];
+const IMPREZY: readonly Impreza[] = [];
 
 export function pobierzLokale(): readonly Lokal[] {
   return LOKALE;

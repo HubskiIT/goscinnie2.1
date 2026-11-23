@@ -195,6 +195,14 @@ export function UslugodawcyScreen({
           ) : null}
         </div>
 
+        {filteredProviders.length === 0 ? (
+          <p className="m-0 rounded-[18px] border border-dashed border-[#D9CCC2] bg-[#FBF7F4] p-8 text-center text-[15px] leading-[1.7] text-[#6A5C70]">
+            {searchInput.trim() === ""
+              ? "Nie ma jeszcze ani jednego usługodawcy w tej kategorii."
+              : "Żaden usługodawca nie pasuje do tego wyszukiwania."}
+          </p>
+        ) : null}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProviders.map((p) => (
             <article

@@ -64,6 +64,30 @@ export function odczytajKryteria(parametry: Wejscie): KryteriaLokali {
   };
 }
 
+/**
+ * Czy człowiek cokolwiek zawęził.
+ *
+ * Rozstrzyga o treści stanu pustego: „nic nie pasuje do tych filtrów" i „nie
+ * ma jeszcze ani jednego wpisu" to dwie różne wiadomości i tylko jedna z nich
+ * jest w danej chwili prawdziwa. Pokazanie niewłaściwej albo każe szukającemu
+ * czyścić filtry, których nie ustawił, albo wmawia mu pusty katalog, gdy wpisy
+ * są, tylko odfiltrowane.
+ *
+ * `promienKm` celowo się tu nie liczy: ma wartość domyślną, więc jest ustawiony
+ * zawsze, także wtedy, gdy nikt go nie dotknął. Gdyby wchodził do tej sumy,
+ * funkcja zwracałaby prawdę przy każdym wejściu na listę i drugi komunikat
+ * nie pokazałby się nigdy.
+ */
+export function czySaFiltry(kryteria: KryteriaLokali): boolean {
+  return (
+    kryteria.rodzaj !== null ||
+    kryteria.miejscowosc !== null ||
+    kryteria.goscie !== null ||
+    kryteria.termin !== null ||
+    kryteria.udogodnienia.length > 0
+  );
+}
+
 /** Buduje adres listy z przełączonym jednym udogodnieniem. Filtr to link, nie przycisk. */
 export function adresZPrzelaczonym(kryteria: KryteriaLokali, udogodnienie: string): string {
   const parametry = new URLSearchParams();
