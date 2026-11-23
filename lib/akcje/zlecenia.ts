@@ -28,6 +28,14 @@ const KOMUNIKAT_ODMOWY: Record<OdmowaZlecenia, string> = {
   "limit-planu-wyczerpany": "Wyczerpałeś limit w swoim planie.",
   "zlecenie-nie-przyjmuje-ofert": "To zlecenie nie przyjmuje już zgłoszeń.",
   "nieznana-okazja": "Wybierz okazję z listy.",
+  /*
+   * Ten komunikat nie powinien się nigdy pokazać człowiekowi: formularz
+   * nie potrafi wysłać takiej pary, bo Zod odrzuca ją wcześniej. Zostaje
+   * dla wywołań spoza formularza i dlatego mówi, co jest nie tak, a nie
+   * "spróbuj ponownie".
+   */
+  "niezgodna-wlasna-okazja":
+    "Własną nazwę okazji podaje się tylko przy wyborze „Inna okazja”, i wtedy jest wymagana.",
   "miejscowosc-bez-wspolrzednych":
     "Tej miejscowości nie mamy na mapie, więc firmy nie znalazłyby Twojego zlecenia. " +
     "Wybierz najbliższą większą miejscowość.",

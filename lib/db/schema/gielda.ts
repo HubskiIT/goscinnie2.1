@@ -56,6 +56,18 @@ export const requests = pgTable(
       .references(() => cities.id),
     point: geographyPoint("point").notNull(),
     description: text("description").notNull(),
+    /*
+     * Okazja wpisana przez klienta własnymi słowami. Wypełniona dokładnie
+     * wtedy, gdy `event_type_id` wskazuje wiersz `inna`; pilnuje tego
+     * `utworzZlecenie`, bo warunek sięgający do drugiej tabeli wymagałby
+     * wyzwalacza. Uzasadnienie w drizzle/0014_inna_okazja.sql.
+     *
+     * Widoczna dla każdego, kto widzi rodzaj okazji, czyli dla wszystkich
+     * kolumn tabeli z docs/uprawnienia.md. To nie jest opis wydarzenia,
+     * tylko jego nazwa, i stoi w tym samym wierszu widoczności co okazja
+     * ze słownika.
+     */
+    customEventName: text("custom_event_name"),
     // W groszach. Widoczne wyłącznie dla abonenta i autora.
     budgetMin: integer("budget_min"),
     budgetMax: integer("budget_max"),

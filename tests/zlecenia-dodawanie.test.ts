@@ -105,6 +105,7 @@ async function wejscie(nadpisania: Partial<DaneNowegoZlecenia> = {}): Promise<Da
 
   return {
     okazja: await slugOkazji(),
+    innaOkazja: null,
     dataWydarzenia: dataZaRok(),
     liczbaOsob: 80,
     cityId: miejscowosc.id,
@@ -368,5 +369,140 @@ describe("budżet i okazja", () => {
     if (wynik.ok) return;
     expect(wynik.powod).toBe("nieznana-okazja");
     expect(await liczbaZlecen()).toBe(przed);
+  });
+});
+
+/**
+ * Druga bariera pod regułą „własna nazwa okazji dokładnie przy »inna«”.
+ *
+ * Pierwsza stoi w Zodzie i ma własny plik, lib/validators/zlecenia.test.ts.
+ * Ta jest sprawdzana osobno, bo `utworzZlecenie` jest wywoływane także
+ * poza formularzem i sama walidacja wejścia by tu nie wystarczyła.
+ * Przypadki niżej omijają Zoda w ogóle: wołają zapytanie wprost, czyli
+ * dokładnie tak, jak zrobiłby to przyszły import albo akcja z panelu.
+ *
+ * Warunku nie da się zapisać jako CHECK w bazie, bo sięga przez klucz
+ * obcy do `event_types`. Ta funkcja jest jedynym miejscem, w którym żyje.
+ */
+describe("okazja wpisana własnymi słowami", () => {
+  it("zapisuje nazwę i odczyt pokazuje ją zamiast nazwy ze słownika", async () => {
+    const widz = await klientZZasiewu();
+
+    const wynik = await utworzZlecenie(
+      widz,
+      await wejscie({ okazja: "inna", innaOkazja: "zjazd rocznika" }),
+    );
+
+    expect(wynik.ok).toBe(true);
+    if (!wynik.ok) return;
+    UTWORZONE.push(wynik.dane.id);
+
+    const [zapisane] = await db
+      .select({
+        wlasna: requests.customEventName,
+        /*
+         * Ten sam `coalesce`, którym jadą wszystkie odczyty zleceń.
+         * Sprawdzamy go tutaj, bo bez niego giełda pokazałaby „Inna
+         * okazja” przy każdym takim zleceniu i cała kolumna byłaby
+         * zapisana, a niewidoczna.
+         */
+        pokazywana: sql<string>`coalesce(${requests.customEventName}, ${eventTypes.name})`,
+      })
+      .from(requests)
+      .innerJoin(eventTypes, eq(requests.eventTypeId, eventTypes.id))
+      .where(eq(requests.id, wynik.dane.id))
+      .limit(1);
+
+    expect(zapisane?.wlasna).toBe("zjazd rocznika");
+    expect(zapisane?.pokazywana).toBe("zjazd rocznika");
+  });
+
+  it("okazja ze słownika zostawia kolumnę pustą, a odczyt bierze nazwę słownikową", async () => {
+    /*
+     * Instancja pozytywna obok testów negatywnych niżej. Bez niej „nigdzie
+     * nie ma własnej nazwy” i „tu jej nie ma” dawałyby ten sam wynik,
+     * a zapytanie zwracające zawsze `null` przechodziłoby komplet.
+     */
+    const widz = await klientZZasiewu();
+    const slug = await slugOkazji();
+
+    const wynik = await utworzZlecenie(widz, await wejscie({ okazja: slug, innaOkazja: null }));
+
+    expect(wynik.ok).toBe(true);
+    if (!wynik.ok) return;
+    UTWORZONE.push(wynik.dane.id);
+
+    const [zapisane] = await db
+      .select({
+        wlasna: requests.customEventName,
+        pokazywana: sql<string>`coalesce(${requests.customEventName}, ${eventTypes.name})`,
+        slownikowa: eventTypes.name,
+      })
+      .from(requests)
+      .innerJoin(eventTypes, eq(requests.eventTypeId, eventTypes.id))
+      .where(eq(requests.id, wynik.dane.id))
+      .limit(1);
+
+    expect(zapisane?.wlasna).toBeNull();
+    expect(zapisane?.pokazywana).toBe(zapisane?.slownikowa);
+  });
+
+  it("inna okazja bez nazwy to odmowa i zero wierszy", async () => {
+    const widz = await klientZZasiewu();
+    const przed = await liczbaZlecen();
+
+    const wynik = await utworzZlecenie(widz, await wejscie({ okazja: "inna", innaOkazja: null }));
+
+    expect(wynik.ok).toBe(false);
+    if (wynik.ok) return;
+    expect(wynik.powod).toBe("niezgodna-wlasna-okazja");
+    expect(await liczbaZlecen()).toBe(przed);
+  });
+
+  it("inna okazja z nazwą z samych spacji to odmowa", async () => {
+    // Zapytanie przycina samo, bo nie wolno mu zakładać, że ktokolwiek
+    // zrobił to przed nim. Napis spacji jest pusty, więc para jest
+    // niezgodna tak samo jak brak nazwy.
+    const widz = await klientZZasiewu();
+    const przed = await liczbaZlecen();
+
+    const wynik = await utworzZlecenie(widz, await wejscie({ okazja: "inna", innaOkazja: "   " }));
+
+    expect(wynik.ok).toBe(false);
+    if (wynik.ok) return;
+    expect(wynik.powod).toBe("niezgodna-wlasna-okazja");
+    expect(await liczbaZlecen()).toBe(przed);
+  });
+
+  it("własna nazwa przy okazji ze słownika to odmowa i zero wierszy", async () => {
+    const widz = await klientZZasiewu();
+    const slug = await slugOkazji();
+    const przed = await liczbaZlecen();
+
+    const wynik = await utworzZlecenie(
+      widz,
+      await wejscie({ okazja: slug, innaOkazja: "zjazd rocznika" }),
+    );
+
+    expect(wynik.ok).toBe(false);
+    if (wynik.ok) return;
+    expect(wynik.powod).toBe("niezgodna-wlasna-okazja");
+    expect(await liczbaZlecen()).toBe(przed);
+  });
+
+  it("wiersz słownika „inna” istnieje, bo wstawia go migracja 0014", async () => {
+    /*
+     * Zasiew go nie wstawia i nie powinien: wstawiłby duplikat slugu.
+     * Ten test pilnuje, żeby nikt nie wyrzucił wstawki z migracji
+     * w przekonaniu, że dubluje zasiew. Bez tego wiersza cała funkcja
+     * odmawia z powodem „nieznana-okazja”.
+     */
+    const [wiersz] = await db
+      .select({ nazwa: eventTypes.name })
+      .from(eventTypes)
+      .where(eq(eventTypes.slug, "inna"))
+      .limit(1);
+
+    expect(wiersz?.nazwa).toBe("Inna okazja");
   });
 });
