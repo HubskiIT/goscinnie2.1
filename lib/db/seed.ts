@@ -923,6 +923,37 @@ export async function zasiej(): Promise<void> {
     .returning();
 
   /*
+   * Zgody moderacji dla zleceń z zasiewu.
+   *
+   * Konieczne z tego samego powodu co przy firmach: od chwili, w której
+   * widoczność na giełdzie zależy od przyjętego zgłoszenia, zlecenie bez
+   * wiersza w tej tabeli jest niewidoczne. Bez tej wstawki `pnpm db:reset`
+   * daje pustą giełdę i sypie się komplet testów uprawnień, w miejscach
+   * niemających nic wspólnego z moderacją.
+   *
+   * Jedno zlecenie zostaje oczekujące, żeby reguła „niezaakceptowane nie
+   * trafia na giełdę” miała na czym się pokazać. Bierzemy ostatnie z listy,
+   * a nie pierwsze z brzegu: zlecenia o niskich numerach mają przypisane
+   * scenariusze ofert i limitu planu, więc zabranie któregoś z nich
+   * z giełdy wywróciłoby tamte testy z powodu niemającego z nimi związku.
+   */
+  const zlecenieOczekujace = zlecenia[zlecenia.length - 1];
+  if (!zlecenieOczekujace) throw new Error("Zasiew: brak zleceń do moderacji.");
+
+  await db.insert(schema.moderationSubmissions).values(
+    zlecenia.map((zlecenie) =>
+      zlecenie.id === zlecenieOczekujace.id
+        ? { subjectKind: "request" as const, subjectId: zlecenie.id, status: "pending" as const }
+        : {
+            subjectKind: "request" as const,
+            subjectId: zlecenie.id,
+            status: "approved" as const,
+            decidedAt: new Date(),
+          },
+    ),
+  );
+
+  /*
    * Oferty. Cztery scenariusze, każdy pod inną regułę:
    *
    *   zlecenie 0   bez żadnej oferty

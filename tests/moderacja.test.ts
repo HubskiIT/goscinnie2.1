@@ -12,7 +12,7 @@
  *
  * Wymaga działającej bazy z zasiewem: pnpm db:up && pnpm db:reset.
  */
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 import { pobierzFirmeKatalogu, pobierzFirmyKatalogu } from "@/lib/db/queries/katalog";
@@ -22,7 +22,9 @@ import {
   rozstrzygnij,
   zglosDoModeracji,
 } from "@/lib/db/queries/moderacja";
-import { companies } from "@/lib/db/schema/katalog";
+import { pobierzListeDlaWidza, pobierzZlecenie } from "@/lib/db/queries/requests";
+import { requests } from "@/lib/db/schema/gielda";
+import { companies, companyMembers } from "@/lib/db/schema/katalog";
 import { moderationSubmissions } from "@/lib/db/schema/moderacja";
 import { users } from "@/lib/db/schema/tozsamosc";
 import type { Widz } from "@/lib/permissions";
@@ -330,5 +332,100 @@ describe("rozstrzygnięcie zapada raz", () => {
     // Pierwsza decyzja stoi, razem ze swoim komentarzem.
     expect(po?.status).toBe("rejected");
     expect(po?.powod).toContain("zdjęć");
+  });
+});
+
+/**
+ * Moderacja zleceń: czwarty i ostatni rodzaj wpisu w kolejce.
+ *
+ * Reguła: zlecenie trafia na giełdę dopiero po akceptacji. Bariera stoi
+ * w `warunkiWidocznosciZlecenia` w lib/db/queries/requests.ts, w jednym
+ * miejscu dla listy i dla pojedynczego zlecenia.
+ */
+describe("zlecenie przed akceptacją nie trafia na giełdę", () => {
+  async function abonentZZasiewu(): Promise<Widz> {
+    const [wiersz] = await db
+      .select({ userId: companyMembers.userId, companyId: companies.id })
+      .from(companies)
+      .innerJoin(companyMembers, eq(companyMembers.companyId, companies.id))
+      .where(eq(companies.status, "active"))
+      .limit(1);
+    if (!wiersz) throw new Error("Zasiew nie ma aktywnej firmy z członkiem.");
+    return {
+      rodzaj: "firma",
+      userId: wiersz.userId,
+      companyId: wiersz.companyId,
+      abonament: true,
+    };
+  }
+
+  /** Zlecenie z zasiewu, które zostało bez akceptacji. */
+  async function oczekujace(): Promise<string> {
+    const [wiersz] = await db
+      .select({ id: moderationSubmissions.subjectId })
+      .from(moderationSubmissions)
+      .where(
+        and(
+          eq(moderationSubmissions.subjectKind, "request"),
+          eq(moderationSubmissions.status, "pending"),
+        ),
+      )
+      .limit(1);
+    if (!wiersz) throw new Error("Zasiew nie ma oczekującego zlecenia.");
+    return wiersz.id;
+  }
+
+  it("lista giełdy go nie pokazuje", async () => {
+    const widz = await abonentZZasiewu();
+    const id = await oczekujace();
+
+    const lista = await pobierzListeDlaWidza(widz, { limit: 300, offset: 0 });
+    expect(lista.zlecenia.map((zlecenie) => zlecenie.id)).not.toContain(id);
+  });
+
+  it("pod własnym adresem też go nie ma", async () => {
+    // Druga droga do tego samego zlecenia. Bez tego przypadku warunek
+    // dopisany tylko do listy przeszedłby niezauważony, a firma
+    // z identyfikatorem w ręku obeszłaby moderację.
+    const widz = await abonentZZasiewu();
+    expect(await pobierzZlecenie(widz, await oczekujace())).toBeNull();
+  });
+
+  it("zaakceptowane zlecenia są na giełdzie", async () => {
+    /*
+     * Instancja pozytywna. Bez niej zapytanie zwracające zawsze pustkę
+     * przeszłoby oba przypadki wyżej, a giełda byłaby martwa.
+     */
+    const widz = await abonentZZasiewu();
+    const lista = await pobierzListeDlaWidza(widz, { limit: 10, offset: 0 });
+
+    expect(lista.zlecenia.length).toBeGreaterThan(0);
+  });
+
+  it("nowe zlecenie od razu czeka w kolejce, a nie wisi bez zgłoszenia", async () => {
+    /*
+     * Zgłoszenie powstaje w tej samej transakcji co zlecenie. Gdyby szło
+     * osobno i nie doszło, klient czekałby na oferty, które nigdy nie
+     * przyjdą, bez ekranu, z którego dałoby się zgłosić ponownie.
+     */
+    const [najnowsze] = await db
+      .select({ id: requests.id })
+      .from(requests)
+      .orderBy(desc(requests.createdAt))
+      .limit(1);
+    if (!najnowsze) throw new Error("Zasiew nie ma zleceń.");
+
+    const [zgloszenie] = await db
+      .select({ id: moderationSubmissions.id })
+      .from(moderationSubmissions)
+      .where(
+        and(
+          eq(moderationSubmissions.subjectKind, "request"),
+          eq(moderationSubmissions.subjectId, najnowsze.id),
+        ),
+      )
+      .limit(1);
+
+    expect(zgloszenie).toBeDefined();
   });
 });

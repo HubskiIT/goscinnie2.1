@@ -10,12 +10,13 @@
  * argument i odmawia, zanim dotknie pozostałych. Pilnuje tego
  * tests/konwencja-zapytan.test.ts, wyliczając eksporty tego pliku.
  */
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, exists, sql } from "drizzle-orm";
 import { OKAZJA_INNA } from "@/content/okazje";
 import { db } from "@/lib/db";
 import { cities } from "@/lib/db/schema/geografia";
 import { bids, requests } from "@/lib/db/schema/gielda";
 import { eventTypes } from "@/lib/db/schema/katalog";
+import { moderationSubmissions } from "@/lib/db/schema/moderacja";
 import { users } from "@/lib/db/schema/tozsamosc";
 import {
   mozeDodacZlecenie,
@@ -133,17 +134,49 @@ export async function pobierzListeZlecen(
       .from(requests)
       .innerJoin(eventTypes, eq(requests.eventTypeId, eventTypes.id))
       .innerJoin(cities, eq(requests.cityId, cities.id))
-      // Publiczna lista pokazuje wyłącznie zlecenia otwarte i jeszcze nieprzeterminowane.
-      .where(and(eq(requests.status, "open"), sql`${requests.expiresAt} > now()`))
+      // Publiczna lista pokazuje wyłącznie zlecenia otwarte, nieprzeterminowane
+      // i przyjęte przez moderację. Warunki w jednym miejscu, patrz niżej.
+      .where(warunkiWidocznosciZlecenia())
       .orderBy(desc(requests.createdAt))
       .limit(parametry.limit)
       .offset(parametry.offset)
   );
 }
 
-/** Wspólne warunki listy publicznej: otwarte i jeszcze nieprzeterminowane. */
-function warunkiListyPublicznej() {
-  return and(eq(requests.status, "open"), sql`${requests.expiresAt} > now()`);
+/**
+ * Wspólne warunki widoczności zlecenia: otwarte, nieprzeterminowane
+ * i przyjęte przez moderację.
+ *
+ * Jedna funkcja na wszystkie trzy, bo warunek dopisany z ręki w czterech
+ * zapytaniach zostanie pominięty w piątym. Tak było z dwoma pierwszymi:
+ * `pobierzListeZlecen` i `pobierzZlecenie` powtarzały je własnymi słowami
+ * obok tej funkcji, więc dołożenie trzeciego wymagało pamiętania o trzech
+ * miejscach, a pamięć człowieka nie jest mechanizmem kontroli.
+ *
+ * MODERACJA ZLECEŃ KOSZTUJE CZAS I TRZEBA O TYM WIEDZIEĆ. Giełda żyje
+ * tempem: klient wystawia zlecenie wieczorem i liczy na oferty nazajutrz.
+ * Zlecenie czekające na akceptację nie dociera do żadnej firmy, więc każda
+ * godzina zwłoki to realna strata dla klienta i dla serwisu. Decyzja
+ * o takim progu jest świadoma i jej cena jest po stronie moderatora:
+ * kolejka musi być sprawdzana codziennie.
+ */
+function warunkiWidocznosciZlecenia() {
+  return and(
+    eq(requests.status, "open"),
+    sql`${requests.expiresAt} > now()`,
+    exists(
+      db
+        .select({ jeden: sql`1` })
+        .from(moderationSubmissions)
+        .where(
+          and(
+            eq(moderationSubmissions.subjectKind, "request"),
+            eq(moderationSubmissions.subjectId, requests.id),
+            eq(moderationSubmissions.status, "approved"),
+          ),
+        ),
+    ),
+  );
 }
 
 /**
@@ -169,7 +202,7 @@ async function listaZZajawka(znakow: number, parametry: ParametryListy) {
     .from(requests)
     .innerJoin(eventTypes, eq(requests.eventTypeId, eventTypes.id))
     .innerJoin(cities, eq(requests.cityId, cities.id))
-    .where(warunkiListyPublicznej())
+    .where(warunkiWidocznosciZlecenia())
     .orderBy(desc(requests.createdAt))
     .limit(parametry.limit)
     .offset(parametry.offset);
@@ -193,7 +226,7 @@ async function listaPelna(parametry: ParametryListy) {
     .from(requests)
     .innerJoin(eventTypes, eq(requests.eventTypeId, eventTypes.id))
     .innerJoin(cities, eq(requests.cityId, cities.id))
-    .where(warunkiListyPublicznej())
+    .where(warunkiWidocznosciZlecenia())
     .orderBy(desc(requests.createdAt))
     .limit(parametry.limit)
     .offset(parametry.offset);
@@ -258,9 +291,7 @@ export async function pobierzZlecenie(widz: Widz, id: string): Promise<ZlecenieJ
     .from(requests)
     .innerJoin(eventTypes, eq(requests.eventTypeId, eventTypes.id))
     .innerJoin(cities, eq(requests.cityId, cities.id))
-    .where(
-      and(eq(requests.id, id), eq(requests.status, "open"), sql`${requests.expiresAt} > now()`),
-    )
+    .where(and(eq(requests.id, id), warunkiWidocznosciZlecenia()))
     .limit(1);
 
   return wiersze[0] ?? null;
@@ -484,29 +515,51 @@ export async function utworzZlecenie(
    */
   if (!miejscowosc.maPunkt) return { ok: false, powod: "miejscowosc-bez-wspolrzednych" };
 
-  const [wstawione] = await db
-    .insert(requests)
-    .values({
-      authorUserId: widz.userId,
-      eventTypeId: okazja.id,
-      customEventName: wlasnaNazwa,
-      eventDate: dane.dataWydarzenia,
-      guests: dane.liczbaOsob,
-      cityId: miejscowosc.id,
-      point: sql`(select ${cities.point} from ${cities} where ${cities.id} = ${dane.cityId})`,
-      description: dane.opis,
-      budgetMin: dane.budzetMin,
-      budgetMax: dane.budzetMax,
-      /*
-       * Dwa warunki naraz: zlecenie nie wisi dłużej niż miesiąc i nie wisi
-       * po dacie wydarzenia. `least` bierze wcześniejszy z nich.
-       */
-      expiresAt: sql`least(
-        (${dane.dataWydarzenia}::date + interval '1 day')::timestamptz,
-        now() + make_interval(days => ${WAZNOSC_ZLECENIA_DNI})
-      )`,
-    })
-    .returning({ id: requests.id });
+  const [wstawione] = await db.transaction(async (tx) => {
+    const wiersze = await tx
+      .insert(requests)
+      .values({
+        authorUserId: widz.userId,
+        eventTypeId: okazja.id,
+        customEventName: wlasnaNazwa,
+        eventDate: dane.dataWydarzenia,
+        guests: dane.liczbaOsob,
+        cityId: miejscowosc.id,
+        point: sql`(select ${cities.point} from ${cities} where ${cities.id} = ${dane.cityId})`,
+        description: dane.opis,
+        budgetMin: dane.budzetMin,
+        budgetMax: dane.budzetMax,
+        /*
+         * Dwa warunki naraz: zlecenie nie wisi dłużej niż miesiąc i nie wisi
+         * po dacie wydarzenia. `least` bierze wcześniejszy z nich.
+         */
+        expiresAt: sql`least(
+          (${dane.dataWydarzenia}::date + interval '1 day')::timestamptz,
+          now() + make_interval(days => ${WAZNOSC_ZLECENIA_DNI})
+        )`,
+      })
+      .returning({ id: requests.id });
+
+    const nowe = wiersze[0];
+    if (!nowe) throw new Error("utworzZlecenie: zapis nie zwrócił wiersza.");
+
+    /*
+     * ZGŁOSZENIE DO MODERACJI W TEJ SAMEJ TRANSAKCJI CO ZAPIS.
+     *
+     * Przy imprezie zgłoszenie idzie osobno, bo impreza bez zgłoszenia
+     * jest po prostu niewidoczna i lokal ma ją u siebie. Tu jest inaczej:
+     * zlecenie bez zgłoszenia nie trafi do żadnej firmy i nie ma ekranu,
+     * z którego dałoby się je zgłosić ponownie, więc klient czekałby
+     * na oferty, które nigdy nie przyjdą, nie wiedząc dlaczego.
+     * Albo powstaje jedno i drugie, albo nic.
+     */
+    await tx
+      .insert(moderationSubmissions)
+      .values({ subjectKind: "request", subjectId: nowe.id })
+      .onConflictDoNothing();
+
+    return [nowe];
+  });
 
   if (!wstawione) return { ok: false, powod: "brak-dostepu" };
 

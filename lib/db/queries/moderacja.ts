@@ -8,10 +8,12 @@
  * KAŻDA FUNKCJA PRZYJMUJE WIDZA JAKO PIERWSZY ARGUMENT i odmawia, zanim
  * dotknie pozostałych. Konwencji pilnuje tests/konwencja-zapytan.test.ts.
  */
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { cities } from "@/lib/db/schema/geografia";
+import { requests } from "@/lib/db/schema/gielda";
 import { events } from "@/lib/db/schema/imprezy";
-import { companies } from "@/lib/db/schema/katalog";
+import { companies, eventTypes } from "@/lib/db/schema/katalog";
 import { type ModerationSubmission, moderationSubmissions } from "@/lib/db/schema/moderacja";
 import { users } from "@/lib/db/schema/tozsamosc";
 import {
@@ -153,9 +155,9 @@ export async function pobierzKolejke(widz: Widz): Promise<WynikModeracji<Pozycja
    * czterech lewych złączeń i tyluż kolumn z nazwą, z których trzy byłyby
    * puste w każdym wierszu.
    *
-   * Rozpoznajemy firmy i imprezy. Zlecenia dojdą ze swoim plastrem;
-   * do tego czasu pokazują się bez nazwy, a nie znikają z kolejki,
-   * bo wpis bez nazwy ma dać się rozstrzygnąć.
+   * Rozpoznajemy wszystkie cztery rodzaje. Wiersz, którego przedmiotu
+   * nie da się odnaleźć, zostaje w kolejce bez nazwy, a nie znika:
+   * zgłoszenie ma dać się rozstrzygnąć nawet wtedy, gdy coś poszło nie tak.
    */
   const idFirm = zgloszenia
     .filter((z) => z.rodzaj === "company" || z.rodzaj === "company_change")
@@ -169,6 +171,30 @@ export async function pobierzKolejke(widz: Widz): Promise<WynikModeracji<Pozycja
       .where(inArray(companies.id, idFirm));
     for (const wiersz of wiersze) {
       firmy.set(wiersz.id, { nazwa: wiersz.nazwa, slug: wiersz.slug });
+    }
+  }
+
+  const idZlecen = zgloszenia.filter((z) => z.rodzaj === "request").map((z) => z.przedmiotId);
+
+  const zlecenia = new Map<string, { okazja: string; goscie: number; powiat: string }>();
+  if (idZlecen.length > 0) {
+    const wiersze = await db
+      .select({
+        id: requests.id,
+        okazja: sql<string>`coalesce(${requests.customEventName}, ${eventTypes.name})`,
+        goscie: requests.guests,
+        powiat: cities.powiat,
+      })
+      .from(requests)
+      .innerJoin(eventTypes, eq(eventTypes.id, requests.eventTypeId))
+      .innerJoin(cities, eq(cities.id, requests.cityId))
+      .where(inArray(requests.id, idZlecen));
+    for (const wiersz of wiersze) {
+      zlecenia.set(wiersz.id, {
+        okazja: wiersz.okazja,
+        goscie: wiersz.goscie,
+        powiat: wiersz.powiat,
+      });
     }
   }
 
@@ -203,6 +229,21 @@ export async function pobierzKolejke(widz: Widz): Promise<WynikModeracji<Pozycja
          * a adres dopiero wtedy, gdy impreza jest już widoczna.
          */
         return { ...z, nazwa: impreza.nazwa, adresPodgladu: null };
+      }
+
+      const zlecenie = zlecenia.get(z.przedmiotId);
+      if (zlecenie) {
+        /*
+         * Zlecenie opisujemy okazją, liczbą gości i powiatem, a nie
+         * opisem klienta. Moderator i tak zobaczy całość po wejściu
+         * w zlecenie, a kolejka ma dać się przejrzeć wzrokiem: dwadzieścia
+         * akapitów pod sobą czyta się gorzej niż dwadzieścia jednolinijkowców.
+         */
+        return {
+          ...z,
+          nazwa: `${zlecenie.okazja}, ${zlecenie.goscie} osób, powiat ${zlecenie.powiat}`,
+          adresPodgladu: `/zlecenia/${z.przedmiotId}`,
+        };
       }
 
       return { ...z, nazwa: null, adresPodgladu: null };
@@ -318,6 +359,30 @@ export async function pobierzAdresataDecyzji(
       .innerJoin(companies, eq(companies.id, events.companyId))
       .innerJoin(users, eq(users.id, companies.ownerUserId))
       .where(eq(events.id, przedmiotId))
+      .limit(1);
+
+    return { ok: true, dane: wiersz ?? null };
+  }
+
+  if (rodzaj === "request") {
+    /*
+     * Przy zleceniu piszemy do jego autora, czyli do klienta. Zamiast
+     * nazwy firmy, której klient nie ma, w to miejsce idzie opis zlecenia
+     * jednym zdaniem: „Komunia, 80 osób”. List o „wpisie »undefined«”
+     * byłby gorszy niż brak listu.
+     */
+    const [wiersz] = await db
+      .select({
+        email: users.email,
+        nazwaFirmy: sql<string>`
+          coalesce(${requests.customEventName}, ${eventTypes.name})
+          || ', ' || ${requests.guests} || ' osób'
+        `,
+      })
+      .from(requests)
+      .innerJoin(users, eq(users.id, requests.authorUserId))
+      .innerJoin(eventTypes, eq(eventTypes.id, requests.eventTypeId))
+      .where(eq(requests.id, przedmiotId))
       .limit(1);
 
     return { ok: true, dane: wiersz ?? null };
