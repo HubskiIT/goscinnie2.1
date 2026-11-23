@@ -16,22 +16,25 @@ import { describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 import { pobierzProfilFirmy } from "@/lib/db/queries/firmy";
 import { companies, companyMembers } from "@/lib/db/schema/katalog";
-import {
-  NiezaimplementowanaGalazUprawnien,
-  type StatusProfilu,
-  type Widz,
-  widocznoscProfilu,
-} from "@/lib/permissions";
+import { type StatusProfilu, type Widz, widocznoscProfilu } from "@/lib/permissions";
 
 const ANONIM: Widz = { rodzaj: "anonim" };
+const MODERATOR: Widz = { rodzaj: "moderator", userId: "11111111-1111-4111-8111-111111111111" };
 
 const KOMPLETNY = "firma-1";
 const IMPORTOWANY = "firma-8";
 const ZAWIESZONY = "firma-9";
 const WIZYTOWKA = "firma-10";
 
-function kontekst(status: StatusProfilu, czlonek = false) {
-  return { status, czlonekTejFirmy: czlonek };
+/**
+ * Domyślnie wpis **zaakceptowany**, bo ten plik bada zachowanie statusów,
+ * a nie moderacji. Gdyby domyślną wartością było `false`, każdy przypadek
+ * niżej kończyłby się niewidocznym profilem i testy statusów przestałyby
+ * cokolwiek sprawdzać, przechodząc z właściwego wyniku z niewłaściwego
+ * powodu. Moderacja ma własny blok na końcu pliku i tam ustawia to jawnie.
+ */
+function kontekst(status: StatusProfilu, czlonek = false, zaakceptowany = true) {
+  return { status, czlonekTejFirmy: czlonek, zaakceptowany };
 }
 
 describe("cztery statusy, trzy zachowania", () => {
@@ -71,11 +74,52 @@ describe("cztery statusy, trzy zachowania", () => {
     expect(widocznoscProfilu(ANONIM, kontekst("draft", true)).wezwanieDoPrzejecia).toBe(false);
   });
 
-  it("gałąź bez implementacji rzuca także tutaj", () => {
-    const moderator: Widz = { rodzaj: "moderator", userId: "u5" };
-    expect(() => widocznoscProfilu(moderator, kontekst("active"))).toThrow(
-      NiezaimplementowanaGalazUprawnien,
-    );
+  it("moderator widzi profil tak jak każdy inny widz", () => {
+    // Gałąź moderatora weszła razem z kolejką moderacji. Profil jest
+    // publiczny, więc rola nie zmienia zakresu treści; zmienia tylko to,
+    // czy widać wpis przed akceptacją, co bada blok niżej.
+    const widocznosc = widocznoscProfilu(MODERATOR, kontekst("active"));
+    expect(widocznosc.widoczny).toBe(true);
+    expect(widocznosc.kalendarz).toBe(true);
+  });
+});
+
+describe("wpis przed akceptacją", () => {
+  /*
+   * Bariera jest sprawdzalna tylko przy zasiewie ustawionym pod nią, więc
+   * status jest wszędzie `active`: gdyby był `suspended`, o niewidoczności
+   * rozstrzygałby warunek wyżej i te testy nie mówiłyby nic o moderacji.
+   */
+  it("jest niewidoczny dla obcego, mimo aktywnego statusu", () => {
+    const widocznosc = widocznoscProfilu(ANONIM, kontekst("active", false, false));
+    expect(widocznosc.widoczny).toBe(false);
+  });
+
+  it("jest widoczny dla moderatora, bo musi go obejrzeć", () => {
+    const widocznosc = widocznoscProfilu(MODERATOR, kontekst("active", false, false));
+    expect(widocznosc.widoczny).toBe(true);
+  });
+
+  it("jest widoczny dla członka tej firmy, bo to jego wpis", () => {
+    // Inaczej kreator kończyłby się ekranem 404 na własnym profilu,
+    // co każdy przeczyta jako awarię, a nie jako oczekiwanie na decyzję.
+    const widocznosc = widocznoscProfilu(ANONIM, kontekst("active", true, false));
+    expect(widocznosc.widoczny).toBe(true);
+  });
+
+  it("zaakceptowany jest widoczny dla obcego", () => {
+    /*
+     * Instancja pozytywna obok przypadków negatywnych. Bez niej funkcja
+     * zwracająca zawsze „niewidoczny” przechodziłaby dwa testy wyżej
+     * i nikt by nie zauważył, że akceptacja niczego nie zmienia.
+     */
+    expect(widocznoscProfilu(ANONIM, kontekst("active", false, true)).widoczny).toBe(true);
+  });
+
+  it("akceptacja nie wskrzesza profilu zawieszonego", () => {
+    // Kolejność warunków: zawieszenie rozstrzyga pierwsze i nic go nie cofa
+    // poza zdjęciem zawieszenia.
+    expect(widocznoscProfilu(ANONIM, kontekst("suspended", false, true)).widoczny).toBe(false);
   });
 });
 
