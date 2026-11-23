@@ -91,10 +91,24 @@ export function ProfilFirmyScreen({ firma, szczegoly = [] }: ProfilFirmyScreenPr
           ) : null}
 
           {firma.glowneZdjecie ? (
+            /*
+             * Zdjęcie główne pokazujemy w całości, a nie w kadrze.
+             *
+             * Sztywna wysokość przy `object-cover` ucinała każde zdjęcie
+             * pionowe: sala sfotografowana z ręki traciła sufit i podłogę,
+             * a zdjęcie człowieka głowę. Firma dodaje jedno zdjęcie główne
+             * i to ono ma sprzedawać, więc nie wolno go przycinać za nią.
+             *
+             * `max-h` zostaje, żeby bardzo wysokie zdjęcie nie zepchnęło
+             * opisu poza pierwszy ekran. Górna granica ucina miejsce, a nie
+             * samo zdjęcie: przy `object-contain` obraz mieści się w całości,
+             * tylko mniejszy.
+             */
             <ZdjecieFirmy
               adres={firma.glowneZdjecie}
               nazwaFirmy={firma.nazwa}
-              className="w-full h-[280px] sm:h-[380px] rounded-[16px] mb-8"
+              dopasowanie="cale"
+              className="w-full h-auto max-h-[560px] rounded-[16px] mb-8"
             />
           ) : null}
 
