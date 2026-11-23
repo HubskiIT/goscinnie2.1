@@ -21,24 +21,36 @@ import * as zapytaniaFirm from "@/lib/db/queries/firmy";
 import * as zapytaniaKatalogu from "@/lib/db/queries/katalog";
 import * as zapytaniaKonta from "@/lib/db/queries/konto";
 import * as zapytaniaKreatora from "@/lib/db/queries/kreator";
+import * as zapytaniaModeracji from "@/lib/db/queries/moderacja";
 import * as zapytaniaZlecen from "@/lib/db/queries/requests";
 import * as zapytaniaZdjec from "@/lib/db/queries/zdjecia";
 import { NiezaimplementowanaGalazUprawnien, type Widz } from "@/lib/permissions";
 
 /**
- * Widz, którego gałąź uprawnień nie jest jeszcze zaimplementowana.
- * Każde zapytanie musi się o niego wyłożyć.
+ * Widz, którego gałąź uprawnień nie istnieje. Każde zapytanie musi się
+ * o niego wyłożyć.
  *
- * Do czasu plastra firmowego rolę tę pełniła firma bez abonamentu. Gdy firma
- * doczekała się implementacji, wartownikiem został moderator. Przy dopisywaniu
- * gałęzi moderatora trzeba będzie wybrać kolejnego, a gdy skończą się
- * niezaimplementowane gałęzie, ten test wymaga innego pomysłu: wtedy nie da się
- * już sprawdzić odmowy przez widza, którego nie ma.
+ * HISTORIA TEGO WARTOWNIKA, bo tłumaczy, czemu wygląda tak dziwnie. Rolę tę
+ * pełniła kolejno firma bez abonamentu, a potem moderator — zawsze wariant
+ * z typu `Widz`, który czekał na swoją gałąź. Moderator dostał ją razem
+ * z kolejką moderacji i wtedy skończyły się niezaimplementowane warianty,
+ * czyli dokładnie to, co zapowiadał poprzedni komentarz w tym miejscu.
+ *
+ * Dlatego wartownikiem jest teraz widz **spoza typu**, zbudowany rzutowaniem
+ * przez `unknown`. To nie jest obejście kompilatora dla wygody: tak właśnie
+ * wygląda wariant dopisany do typu `Widz` przez kogoś, kto zapomniał
+ * o gałęzi w zapytaniu. TypeScript złapie brak gałęzi na przypisaniu do
+ * `never`, ale dopiero przy kompilacji; ten test sprawdza, co robi działający
+ * program, i odpowiedź ma brzmieć: rzuca, zanim dotknie bazy.
+ *
+ * Zaleta wobec poprzedniego pomysłu jest taka, że wartownik nie wygasa.
+ * Nie trzeba go wymieniać przy każdej dopisanej gałęzi i nie grozi mu to,
+ * że pewnego dnia zacznie przechodzić po cichu.
  */
-const WIDZ_BEZ_GALEZI: Widz = {
-  rodzaj: "moderator",
+const WIDZ_BEZ_GALEZI = {
+  rodzaj: "ksiegowy",
   userId: "11111111-1111-4111-8111-111111111111",
-};
+} as unknown as Widz;
 
 /**
  * Argumenty dodatkowe, z zapasem, żeby trafić w sygnatury o różnej liczbie
@@ -71,6 +83,7 @@ const MODULY: Array<[string, Record<string, unknown>]> = [
   ["kreator", zapytaniaKreatora],
   ["katalog", zapytaniaKatalogu],
   ["zdjecia", zapytaniaZdjec],
+  ["moderacja", zapytaniaModeracji],
 ];
 
 function funkcyjneEksporty(): Array<[string, DowolneZapytanie]> {

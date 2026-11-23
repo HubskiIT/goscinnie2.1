@@ -23,6 +23,7 @@ import {
   companyMembers,
   companyVerification,
 } from "@/lib/db/schema/katalog";
+import { moderationSubmissions } from "@/lib/db/schema/moderacja";
 import {
   mozeEdytowacProfil,
   type PowodOdmowy,
@@ -513,11 +514,46 @@ export async function opublikujSzkic(
    * płatnościach przedłużałby dostęp za darmo.
    */
   const [obecny] = await db
-    .select({ status: companies.status })
+    .select({
+      status: companies.status,
+      /*
+       * Czy ta firma była już kiedykolwiek przyjęta przez moderację.
+       * Rozstrzyga o rodzaju zgłoszenia: pierwsze wejście do katalogu
+       * to `company`, każde następne to `company_change`, czyli poprawka
+       * w czymś, co już tam jest.
+       */
+      bylaPrzyjeta: sql<boolean>`exists (
+        select 1 from ${moderationSubmissions}
+        where ${moderationSubmissions.subjectKind} in ('company', 'company_change')
+          and ${moderationSubmissions.subjectId} = ${companies.id}
+          and ${moderationSubmissions.status} = 'approved'
+      )`,
+    })
     .from(companies)
     .where(eq(companies.id, companyId))
     .limit(1);
-  if (obecny?.status === "active") return { ok: true, dane: null };
+
+  if (obecny?.status === "active") {
+    /*
+     * Profil już opublikowany: ostatni krok kreatora jest zapisaniem
+     * poprawek, a nie publikacją. Abonamentu nie dokładamy drugi raz,
+     * ale poprawka idzie do akceptacji, bo zmiana w opublikowanym wpisie
+     * też podlega moderacji.
+     *
+     * `onConflictDoNothing` zamiast sprawdzenia w kodzie: drugie przejście
+     * przez ostatni krok ma być bez skutku, a częściowy indeks unikalny
+     * z migracji 0015 rozstrzyga to w bazie, bez wyścigu.
+     */
+    await db
+      .insert(moderationSubmissions)
+      .values({
+        subjectKind: obecny.bylaPrzyjeta ? "company_change" : "company",
+        subjectId: companyId,
+      })
+      .onConflictDoNothing();
+
+    return { ok: true, dane: null };
+  }
 
   const [plan] = await db
     .select({ id: plans.id })
@@ -558,6 +594,31 @@ export async function opublikujSzkic(
       status: "active",
       expiresAt: wygasaO,
     });
+
+    /*
+     * ZGŁOSZENIE DO MODERACJI, W TEJ SAMEJ TRANSAKCJI CO PUBLIKACJA.
+     *
+     * Status `active` zostaje ustawiony od razu, a nie dopiero po zgodzie,
+     * i to jest świadomy wybór. Widoczność publiczna i tak zależy od zgody:
+     * katalog i profil wymagają przyjętego zgłoszenia, więc firma przed
+     * decyzją jest niewidoczna niezależnie od statusu. Rozdzielenie tych
+     * dwóch rzeczy daje za to dwie korzyści:
+     *
+     *   - odmowa nie kasuje niczyjej pracy. Profil zostaje kompletny,
+     *     właściciel czyta komentarz, poprawia i zgłasza się ponownie,
+     *     zamiast przechodzić kreator od nowa,
+     *   - panel firmy działa normalnie przez cały czas oczekiwania,
+     *     bo firma jest aktywna dla samej siebie.
+     *
+     * Kosztem jest abonament startujący w chwili publikacji, a nie zgody.
+     * Przy darmowym dostępie z lib/akcje/profil.ts to nic nie znaczy;
+     * gdy ruszą płatności, trzeba będzie przesunąć start abonamentu
+     * na moment decyzji albo przedłużyć go o czas oczekiwania.
+     */
+    await tx
+      .insert(moderationSubmissions)
+      .values({ subjectKind: "company", subjectId: companyId })
+      .onConflictDoNothing();
   });
 
   return { ok: true, dane: null };

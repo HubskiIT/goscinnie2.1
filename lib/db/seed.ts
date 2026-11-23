@@ -662,6 +662,65 @@ export async function zasiej(): Promise<void> {
   const rozpatrzonoWczoraj = new Date();
   rozpatrzonoWczoraj.setDate(rozpatrzonoWczoraj.getDate() - 1);
 
+  /*
+   * Zgody moderacji dla wszystkich firm z zasiewu.
+   *
+   * KONIECZNE, nie ozdobne. Od migracji 0015 widoczność w katalogu wymaga
+   * przyjętego zgłoszenia, a migracje idą przed zasiewem, więc firmy
+   * zakładane tutaj nie mają jak załapać się na uzupełnienie historii
+   * z migracji. Bez tej wstawki `pnpm db:reset` daje pusty katalog
+   * i sypie się połowa testów, w miejscach niemających nic wspólnego
+   * z moderacją.
+   *
+   * Moderator jest pusty, tak samo jak w uzupełnieniu historii z migracji:
+   * tych wpisów nikt nie przeglądał, bo powstały razem z bazą.
+   */
+  const moderator = uzytkownicy[19];
+  if (!moderator) throw new Error("Zasiew: brak konta moderatora.");
+
+  await db.insert(schema.moderationSubmissions).values(
+    firmy.map((firma) => ({
+      subjectKind: "company" as const,
+      subjectId: firma.id,
+      status: "approved" as const,
+      decidedAt: new Date(),
+    })),
+  );
+
+  /*
+   * Dwa zgłoszenia zmian, żeby kolejka moderacji miała na czym stanąć.
+   *
+   * Oba dotyczą firm **już przyjętych i widocznych w katalogu**, i to jest
+   * sedno tego zasiewu: pokazuje regułę, że oczekująca albo odrzucona
+   * poprawka nie wyrzuca firmy z katalogu. Zgłoszenie na firmie niewidocznej
+   * nie dowiodłoby niczego, bo nie dałoby się odróżnić „wypadła przez
+   * moderację” od „nigdy jej tam nie było”.
+   *
+   * firma-5  zmiana czeka na decyzję
+   * firma-6  zmiana odrzucona, z komentarzem dla właściciela
+   */
+  const [, , , , firmaZeZmianaWKolejce, firmaZOdrzuconaZmiana] = firmy;
+  if (!firmaZeZmianaWKolejce || !firmaZOdrzuconaZmiana) {
+    throw new Error("Zasiew: za mało firm na warianty moderacji.");
+  }
+
+  await db.insert(schema.moderationSubmissions).values([
+    {
+      subjectKind: "company_change" as const,
+      subjectId: firmaZeZmianaWKolejce.id,
+      status: "pending" as const,
+    },
+    {
+      subjectKind: "company_change" as const,
+      subjectId: firmaZOdrzuconaZmiana.id,
+      status: "rejected" as const,
+      decidedAt: new Date(),
+      decidedByUserId: moderator.id,
+      reason:
+        "Opis obiecuje nocleg, a w danych nie ma pokoi. Dopisz liczbę miejsc albo usuń tę obietnicę.",
+    },
+  ]);
+
   await db.insert(schema.companyClaims).values([
     {
       companyId: firmaDoPrzejecia.id,

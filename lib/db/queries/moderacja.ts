@@ -12,7 +12,13 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { companies } from "@/lib/db/schema/katalog";
 import { type ModerationSubmission, moderationSubmissions } from "@/lib/db/schema/moderacja";
-import { mozeModerowac, type PowodOdmowy, type Widz } from "@/lib/permissions";
+import { users } from "@/lib/db/schema/tozsamosc";
+import {
+  mozeModerowac,
+  type PowodOdmowy,
+  upewnijSieZeGalazUprawnienIstnieje,
+  type Widz,
+} from "@/lib/permissions";
 
 /** Co podlega moderacji. Odpowiada typowi `moderation_subject` w bazie. */
 export type RodzajPrzedmiotu = (typeof moderationSubmissions.subjectKind.enumValues)[number];
@@ -32,6 +38,20 @@ export type PozycjaKolejki = {
    * taki wiersz, a nie wywalić się na nim.
    */
   nazwa: string | null;
+  /**
+   * Adres, pod którym da się obejrzeć wpis przed decyzją.
+   *
+   * Składany tutaj, a nie w komponencie, bo każdy rodzaj przedmiotu ma
+   * inną trasę i inny identyfikator w adresie: firma chodzi po slugu,
+   * nie po UUID. Komponent składający te adresy sam musiałby znać
+   * routing czterech encji naraz.
+   *
+   * Pusty, gdy rodzaju jeszcze nie umiemy pokazać. Pozycja zostaje wtedy
+   * w kolejce bez odnośnika, zamiast prowadzić pod adres, który nie
+   * istnieje: martwy link w panelu moderacji jest gorszy niż jego brak,
+   * bo moderator klika go raz i przestaje ufać całej liście.
+   */
+  adresPodgladu: string | null;
 };
 
 /**
@@ -53,6 +73,9 @@ export async function zglosDoModeracji(
   rodzaj: RodzajPrzedmiotu,
   przedmiotId: string,
 ): Promise<WynikModeracji<null>> {
+  // Domyślna odmowa w pierwszej linii, przed czymkolwiek innym.
+  upewnijSieZeGalazUprawnienIstnieje(widz, "zglosDoModeracji");
+
   if (widz.rodzaj === "anonim") return { ok: false, powod: "brak-dostepu" };
 
   await db
@@ -77,10 +100,14 @@ export async function czyZaakceptowany(
   rodzaj: RodzajPrzedmiotu,
   przedmiotId: string,
 ): Promise<WynikModeracji<boolean>> {
-  // Pytanie o widoczność zadaje każdy, łącznie z anonimem: to on ogląda
-  // katalog. Widz jest tu po to, żeby funkcja trzymała konwencję modułu,
-  // a nie żeby cokolwiek odmawiać.
-  void widz;
+  /*
+   * Pytanie o widoczność zadaje każdy, łącznie z anonimem: to on ogląda
+   * katalog. Ta funkcja nikomu więc nie odmawia z powodu roli, ale i tak
+   * przechodzi przez bramę domyślnej odmowy, bo widz spoza typu znaczy,
+   * że ktoś dopisał wariant i nie przemyślał tego miejsca. Cisza byłaby
+   * tu gorsza niż wyjątek.
+   */
+  upewnijSieZeGalazUprawnienIstnieje(widz, "czyZaakceptowany");
 
   const [wiersz] = await db
     .select({ id: moderationSubmissions.id })
@@ -132,18 +159,27 @@ export async function pobierzKolejke(widz: Widz): Promise<WynikModeracji<Pozycja
     .filter((z) => z.rodzaj === "company" || z.rodzaj === "company_change")
     .map((z) => z.przedmiotId);
 
-  const nazwyFirm = new Map<string, string>();
+  const firmy = new Map<string, { nazwa: string; slug: string }>();
   if (idFirm.length > 0) {
     const wiersze = await db
-      .select({ id: companies.id, nazwa: companies.name })
+      .select({ id: companies.id, nazwa: companies.name, slug: companies.slug })
       .from(companies)
       .where(inArray(companies.id, idFirm));
-    for (const wiersz of wiersze) nazwyFirm.set(wiersz.id, wiersz.nazwa);
+    for (const wiersz of wiersze) {
+      firmy.set(wiersz.id, { nazwa: wiersz.nazwa, slug: wiersz.slug });
+    }
   }
 
   return {
     ok: true,
-    dane: zgloszenia.map((z) => ({ ...z, nazwa: nazwyFirm.get(z.przedmiotId) ?? null })),
+    dane: zgloszenia.map((z) => {
+      const firma = firmy.get(z.przedmiotId);
+      return {
+        ...z,
+        nazwa: firma?.nazwa ?? null,
+        adresPodgladu: firma ? `/f/${firma.slug}` : null,
+      };
+    }),
   };
 }
 
@@ -216,4 +252,132 @@ export async function rozstrzygnij(
   if (!zmienione) return { ok: false, powod: "brak-dostepu" };
 
   return { ok: true, dane: zmienione };
+}
+
+/** Komu wysłać decyzję i w sprawie czego. */
+export type AdresatDecyzji = { email: string; nazwaFirmy: string };
+
+/**
+ * Właściciel wpisu, którego dotyczy zgłoszenie.
+ *
+ * Osobne zapytanie, a nie pole w `rozstrzygnij`, bo rozstrzyganie i pisanie
+ * listu to dwie różne rzeczy: decyzja ma zapaść także wtedy, gdy poczta
+ * leży. Akcja woła najpierw jedno, potem drugie, i nieudana wysyłka nie
+ * cofa decyzji.
+ *
+ * Dziś rozpoznaje wyłącznie firmy. Imprezy i zlecenia dojdą ze swoimi
+ * plastrami i wtedy ta funkcja urośnie o ich gałęzie. Do tego czasu
+ * zwraca `null`, czyli „nie ma komu pisać”, a nie rzuca: decyzja
+ * o imprezie ma zapaść, nawet jeśli nie umiemy o niej jeszcze zawiadomić.
+ */
+export async function pobierzAdresataDecyzji(
+  widz: Widz,
+  rodzaj: RodzajPrzedmiotu,
+  przedmiotId: string,
+): Promise<WynikModeracji<AdresatDecyzji | null>> {
+  const rozstrzygniecie = mozeModerowac(widz);
+  if (!rozstrzygniecie.wolno) return { ok: false, powod: rozstrzygniecie.powod };
+
+  if (rodzaj !== "company" && rodzaj !== "company_change") {
+    return { ok: true, dane: null };
+  }
+
+  const [wiersz] = await db
+    .select({ email: users.email, nazwaFirmy: companies.name })
+    .from(companies)
+    .innerJoin(users, eq(users.id, companies.ownerUserId))
+    .where(eq(companies.id, przedmiotId))
+    .limit(1);
+
+  return { ok: true, dane: wiersz ?? null };
+}
+
+/** Stan wpisu widziany oczami jego właściciela. */
+export type StanWpisu =
+  | { rodzaj: "nigdy-nie-zgloszony" }
+  | { rodzaj: "czeka"; zgloszoneO: Date }
+  | { rodzaj: "przyjety"; decyzjaO: Date }
+  /** Odmowa zawsze niesie powód: pilnuje tego `rozstrzygnij` i panel. */
+  | { rodzaj: "odrzucony"; decyzjaO: Date; powod: string };
+
+/**
+ * Stan moderacji wpisu firmy, do pokazania właścicielowi w jego panelu.
+ *
+ * Bierze **ostatnie** zgłoszenie, a nie istnienie zgody, i to jest inna
+ * odpowiedź niż ta, której potrzebuje katalog. Katalog pyta „czy wolno to
+ * pokazać światu” i odpowiada mu zgoda kiedykolwiek. Właściciel pyta „co
+ * się dzieje z tym, co wysłałem”, a na to odpowiada wyłącznie ostatnia
+ * decyzja: firma w katalogu z odrzuconą poprawką ma zobaczyć tę odmowę,
+ * a nie zgodę sprzed pół roku.
+ *
+ * Dostęp ma członek tej firmy i moderator. Obcemu nic do tego: stan
+ * moderacji cudzego wpisu mówi, że ktoś coś zgłosił i co mu odpowiedziano.
+ */
+export async function pobierzStanWpisuFirmy(
+  widz: Widz,
+  companyId: string,
+  czlonekTejFirmy: boolean,
+): Promise<WynikModeracji<StanWpisu>> {
+  /*
+   * Brama przed sprawdzeniem członkostwa, nie po nim. Przy odwrotnej
+   * kolejności widz spoza typu z `czlonekTejFirmy` ustawionym na prawdę
+   * przechodziłby bez żadnej kontroli, bo alternatywa zwarłaby się na
+   * pierwszym członie i `mozeModerowac` nigdy by się nie wykonało.
+   */
+  upewnijSieZeGalazUprawnienIstnieje(widz, "pobierzStanWpisuFirmy");
+
+  const wolno = czlonekTejFirmy || mozeModerowac(widz).wolno;
+  if (!wolno) return { ok: false, powod: "brak-dostepu" };
+
+  const [ostatnie] = await db
+    .select({
+      status: moderationSubmissions.status,
+      powod: moderationSubmissions.reason,
+      zgloszoneO: moderationSubmissions.createdAt,
+      decyzjaO: moderationSubmissions.decidedAt,
+    })
+    .from(moderationSubmissions)
+    .where(
+      and(
+        inArray(moderationSubmissions.subjectKind, ["company", "company_change"]),
+        eq(moderationSubmissions.subjectId, companyId),
+      ),
+    )
+    .orderBy(desc(moderationSubmissions.createdAt))
+    .limit(1);
+
+  if (!ostatnie) return { ok: true, dane: { rodzaj: "nigdy-nie-zgloszony" } };
+
+  if (ostatnie.status === "pending") {
+    return { ok: true, dane: { rodzaj: "czeka", zgloszoneO: ostatnie.zgloszoneO } };
+  }
+
+  /*
+   * Data decyzji nie może tu być pusta: pilnuje tego CHECK
+   * `moderation_submissions_decyzja_ma_date` z migracji 0015. Zamiast
+   * udawać, że może, i podstawiać datę zgłoszenia, wolimy głośny błąd:
+   * pusta data przy rozstrzygniętym wierszu znaczy, że ktoś ustawił
+   * status z pominięciem `rozstrzygnij`.
+   */
+  if (ostatnie.decyzjaO === null) {
+    throw new Error(
+      `Zgłoszenie moderacyjne firmy ${companyId} ma status ${ostatnie.status} bez daty decyzji. ` +
+        "Status zmieniono z pominięciem rozstrzygnij() w lib/db/queries/moderacja.ts.",
+    );
+  }
+
+  if (ostatnie.status === "approved") {
+    return { ok: true, dane: { rodzaj: "przyjety", decyzjaO: ostatnie.decyzjaO } };
+  }
+
+  return {
+    ok: true,
+    dane: {
+      rodzaj: "odrzucony",
+      decyzjaO: ostatnie.decyzjaO,
+      // Odmowa bez powodu nie powstaje przez rozstrzygnij(), ale gdyby
+      // powstała inną drogą, panel ma pokazać cokolwiek sensownego.
+      powod: ostatnie.powod ?? "Bez podanego powodu. Napisz do nas, wyjaśnimy.",
+    },
+  };
 }
