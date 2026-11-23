@@ -12,6 +12,7 @@
  * `mozeEdytowacProfil` z lib/permissions.ts. Innej drogi do zapisu nie ma.
  */
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { czyRodzajLokalu } from "@/content/rodzaje-lokali";
 import { db } from "@/lib/db";
 import type { Odmowa, Wynik } from "@/lib/db/queries/wynik";
 import { plans, subscriptions } from "@/lib/db/schema/abonament";
@@ -110,10 +111,21 @@ function userIdWidza(widz: Widz): string | null {
  * powiedziałoby pytającemu, że pod tym identyfikatorem coś jest, a tego
  * nie musi wiedzieć nikt poza jej członkami.
  */
-async function firmaDoZapisu(
+export async function firmaDoZapisu(
   widz: Widz,
   companyId: string,
 ): Promise<Wynik<{ id: string; name: string; slug: string }>> {
+  /*
+   * Brama domyślnej odmowy przed odczytem, nie po nim.
+   *
+   * `mozeEdytowacProfil` niżej i tak rzuci dla widza bez gałęzi, ale
+   * dopiero po zapytaniu do bazy. Nagłówek tests/konwencja-zapytan.test.ts
+   * mówi o tym wprost: odmowa ma być pierwszą linią. Ta funkcja jest teraz
+   * eksportowana i wołana także spoza tego modułu, więc tym bardziej
+   * nie może zaczynać od czytania.
+   */
+  upewnijSieZeGalazUprawnienIstnieje(widz, "firmaDoZapisu");
+
   const [firma] = await db
     .select({ id: companies.id, name: companies.name, slug: companies.slug })
     .from(companies)
@@ -233,11 +245,36 @@ export async function zapiszKategorieSzkicu(
 
   const istniejacy = await pobierzSzkicFirmy(widz);
 
+  /*
+   * Rodzaj firmy bierzemy ze slugu, nie z formularza.
+   *
+   * Formularz przysyła pole `rodzaj` i Zod je sprawdza, ale do bazy idzie
+   * odpowiedź słownika. Wejście może twierdzić „usługa” i podawać slug
+   * „sala-weselna”; gdyby zapisać jedno i drugie, w katalogu leżałaby
+   * firma będąca lokalem i usługodawcą naraz, a każde pytanie o nią
+   * zależałoby od tego, które pole się akurat przeczyta.
+   */
+  const rodzaj = czyRodzajLokalu(slugKategorii) ? "venue" : "service";
+
   if (istniejacy) {
     const dostep = await firmaDoZapisu(widz, istniejacy.id);
     if (!dostep.ok) return dostep;
 
     await podmienKategorie(istniejacy.id, kategoria.id);
+
+    /*
+     * Rodzaj przestawiamy razem z kategorią, bo zmiana kategorii z sali
+     * na DJ-a zmienia też to, czym firma jest. Szczegółów starego rodzaju
+     * nie kasujemy: zasada 5 zabrania twardego usuwania, a wiersz
+     * w `venue_details` przy firmie usługowej jest niewidoczny, bo profil
+     * czyta tabelę pasującą do rodzaju. Gdyby ktoś wrócił do sali,
+     * odpowiedzi tam czekają.
+     */
+    await db
+      .update(companies)
+      .set({ kind: rodzaj, updatedAt: new Date() })
+      .where(eq(companies.id, istniejacy.id));
+
     return { ok: true, dane: { companyId: istniejacy.id } };
   }
 
@@ -278,6 +315,8 @@ export async function zapiszKategorieSzkicu(
         cityId: jakakolwiekMiejscowosc.id,
         point: sql`${PUNKT_ZEROWY}`,
         status: "draft",
+        // Rodzaj znamy już tutaj, bo wynika z wybranej kategorii.
+        kind: rodzaj,
       })
       .returning({ id: companies.id });
 

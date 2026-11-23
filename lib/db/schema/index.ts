@@ -4,5 +4,6 @@ export * from "./gielda";
 export * from "./katalog";
 export * from "./moderacja";
 export * from "./sesje";
+export * from "./szczegoly";
 export * from "./tozsamosc";
 export * from "./typy";
