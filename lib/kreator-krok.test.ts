@@ -26,6 +26,8 @@ const PUSTY: SzkicKreatora = {
   cityId: null,
   maNip: false,
   opublikowany: false,
+  rodzaj: null,
+  brakiSzczegolow: [],
 };
 
 const ZKATEGORIA: SzkicKreatora = { ...PUSTY, kategoria: "sala-weselna" };
@@ -96,9 +98,31 @@ describe("krok z adresu", () => {
   });
 
   it("śmieci w adresie nie wywracają kreatora", () => {
-    for (const zadany of ["", "0", "-3", "abc", "5", "7", "99", "2.9", "2abc", " "]) {
-      // Krok 5 (wybór planu) jest wyłączony razem z PayU, więc też nie przechodzi.
+    /*
+     * „5” zeszło z tej listy, bo piąty krok istnieje od czasu szczegółów
+     * wpisu. Wcześniej był zarezerwowany na wybór planu, którego nie ma,
+     * więc adres z piątką był śmieciem jak każdy inny.
+     */
+    for (const zadany of ["", "0", "-3", "abc", "7", "99", "2.9", "2abc", " "]) {
       expect(krokPoczatkowy(zadany, KOMPLETNY, true), `dla ${JSON.stringify(zadany)}`).toBe(6);
     }
+  });
+
+  it("piąty krok jest osiągalny z adresu, bo to prawdziwy krok", () => {
+    // W tył wolno: poprawianie wcześniejszego kroku to normalna rzecz,
+    // a szczegóły wpisu poprawia się najczęściej ze wszystkich.
+    expect(krokPoczatkowy("5", KOMPLETNY, true)).toBe(5);
+  });
+
+  it("szkic z brakami w szczegółach zatrzymuje się na piątym kroku", () => {
+    /*
+     * Najważniejszy przypadek tego bloku: komplet danych firmy nie
+     * wystarcza do publikacji, jeśli nie ma odpowiedzi koniecznych.
+     * Bez tego kreator pokazywałby podsumowanie i przycisk publikacji,
+     * a serwer odmawiałby po kliknięciu.
+     */
+    const zBrakami = { ...KOMPLETNY, brakiSzczegolow: ["parking"] };
+    expect(krokDlaSzkicu(zBrakami, true)).toBe(5);
+    expect(krokPoczatkowy("6", zBrakami, true)).toBe(5);
   });
 });

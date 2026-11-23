@@ -5,7 +5,15 @@ import { pobierzKategorie_ } from "@/content/kategorie";
 import { pobierzRodzajLokalu } from "@/content/rodzaje-lokali";
 import type { FirmaWKatalogu } from "@/lib/db/queries/katalog";
 
+import type { GrupaOdpowiedzi } from "@/lib/szczegoly-profil";
+
 interface ProfilFirmyScreenProps {
+  /**
+   * Odpowiedzi na pytania szczegółowe, pogrupowane, już przetłumaczone
+   * na zdania przez `szczegolyNaProfil`. Pytania bez odpowiedzi w ogóle
+   * tu nie docierają: profil mówi, co wiadomo, a nie czego brakuje.
+   */
+  szczegoly?: readonly GrupaOdpowiedzi[];
   firma: FirmaWKatalogu;
 }
 
@@ -21,7 +29,7 @@ interface ProfilFirmyScreenProps {
  * miejsce żadnego komunikatu: profil ma wtedy po prostu mniej sekcji, a nie
  * dziurę z napisem o tym, czego właściciel nie zrobił.
  */
-export function ProfilFirmyScreen({ firma }: ProfilFirmyScreenProps) {
+export function ProfilFirmyScreen({ firma, szczegoly = [] }: ProfilFirmyScreenProps) {
   const rodzajLokalu = pobierzRodzajLokalu(firma.kategoria);
   const kategoria = rodzajLokalu ?? pobierzKategorie_(firma.kategoria);
   const powrot = rodzajLokalu
@@ -94,6 +102,30 @@ export function ProfilFirmyScreen({ firma }: ProfilFirmyScreenProps) {
           <p className="m-0 text-[16px] leading-[1.75] text-[#3E3344] whitespace-pre-line">
             {firma.opis}
           </p>
+
+          {/*
+            Konkrety pod opisem, a nie nad nim. Opis sprzedaje, konkrety
+            rozstrzygają, a człowiek czyta w tej kolejności: najpierw „czy
+            mi się podoba”, potem „czy się da”.
+          */}
+          {szczegoly.map((grupa) => (
+            <section key={grupa.tytul} className="mt-8">
+              <h3 className="m-0 mb-3 font-fraunces font-medium text-[20px]">{grupa.tytul}</h3>
+              <dl className="m-0 grid sm:grid-cols-2 gap-x-8 gap-y-2.5">
+                {grupa.odpowiedzi.map((pozycja) => (
+                  <div
+                    key={pozycja.pytanie}
+                    className="flex justify-between gap-4 border-b border-[#EFE5DD] pb-2"
+                  >
+                    <dt className="m-0 text-[15px] text-[#6A5C70]">{pozycja.pytanie}</dt>
+                    <dd className="m-0 text-[15px] font-semibold text-[#241C2B] text-right">
+                      {pozycja.odpowiedz}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ))}
 
           {firma.galeria.length > 0 ? (
             <>

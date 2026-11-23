@@ -20,9 +20,22 @@ export type SzkicKreatora = {
   maNip: boolean;
   /** Firma jest już w katalogu, a kreator służy do poprawek. */
   opublikowany: boolean;
+  /**
+   * Lokal czy usługodawca. Rozstrzyga, który zestaw pytań pokazać w kroku
+   * piątym. Puste, dopóki nie wybrano kategorii.
+   */
+  rodzaj: "venue" | "service" | null;
+  /**
+   * Odpowiedzi, których brakuje do publikacji, po ludzku.
+   *
+   * Lista, nie licznik ani wartość logiczna, bo kreator pokazuje ją wprost:
+   * „brakuje parkingu i godziny, do której można grać”. Licznik kazałby
+   * człowiekowi szukać, czego brakuje, w formularzu na dwadzieścia pól.
+   */
+  brakiSzczegolow: readonly string[];
 };
 
-export type Krok = 1 | 2 | 3 | 4 | 6;
+export type Krok = 1 | 2 | 3 | 4 | 5 | 6;
 
 /**
  * Pierwszy krok, na którym jest jeszcze coś do zrobienia.
@@ -43,6 +56,13 @@ export function krokDlaSzkicu(szkic: SzkicKreatora | null, zalogowany: boolean):
   if (!szkic.kategoria) return 2;
   if (!szkic.nazwa.trim() || !szkic.opis.trim() || !szkic.cityId) return 3;
   if (!szkic.maNip) return 4;
+  /*
+   * Krok piąty zatrzymuje wyłącznie przy brakach **koniecznych** do
+   * publikacji, a nie przy każdym niewypełnionym polu. Reszta pytań jest
+   * do dokończenia później z panelu i zatrzymywanie na nich kreatora
+   * zamieniłoby „dokończ później” w „wypełnij wszystko teraz”.
+   */
+  if (szkic.brakiSzczegolow.length > 0) return 5;
   return 6;
 }
 
@@ -73,7 +93,7 @@ export function krokPoczatkowy(
    */
   const liczba = /^\d+$/.test(zadany ?? "") ? Number(zadany) : Number.NaN;
 
-  const dozwolone: Krok[] = [1, 2, 3, 4, 6];
+  const dozwolone: Krok[] = [1, 2, 3, 4, 5, 6];
   const trafiony = dozwolone.find((krok) => krok === liczba);
 
   if (trafiony !== undefined && trafiony <= osiagalny && trafiony >= minimalny) {

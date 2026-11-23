@@ -14,6 +14,7 @@
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { czyRodzajLokalu } from "@/content/rodzaje-lokali";
 import { db } from "@/lib/db";
+import { pobierzSzczegolyFirmy } from "@/lib/db/queries/szczegoly";
 import type { Odmowa, Wynik } from "@/lib/db/queries/wynik";
 import { plans, subscriptions } from "@/lib/db/schema/abonament";
 import { cities } from "@/lib/db/schema/geografia";
@@ -31,6 +32,7 @@ import {
   upewnijSieZeGalazUprawnienIstnieje,
   type Widz,
 } from "@/lib/permissions";
+import { brakiLokalu, brakiUslugodawcy } from "@/lib/validators/szczegoly";
 
 // Typy wyniku mieszkają w lib/db/queries/wynik.ts, bo korzysta z nich też
 // moduł zleceń. Reeksport, żeby istniejące importy z tego modułu działały.
@@ -497,9 +499,21 @@ export async function zapiszWeryfikacjeSzkicu(
 }
 
 /** Czego brakuje, żeby szkic dał się opublikować. Pusta lista znaczy „gotowy”. */
-export type Braki = Array<"kategoria" | "nazwa" | "opis" | "lokalizacja" | "nip">;
+export type Braki = Array<"kategoria" | "nazwa" | "opis" | "lokalizacja" | "nip" | "szczegoly">;
 
-export type GotowoscSzkicu = { companyId: string; braki: Braki; kategoria: string | null };
+export type GotowoscSzkicu = {
+  companyId: string;
+  braki: Braki;
+  kategoria: string | null;
+  /**
+   * Które konkretnie odpowiedzi szczegółowe są puste, po ludzku.
+   *
+   * Osobno od `braki`, bo `braki` są listą nazw kroków, a to jest listą
+   * pytań wewnątrz jednego z nich. Zwinięte w jedno, kreator mówiłby
+   * „uzupełnij szczegóły” przy formularzu na dwadzieścia pól.
+   */
+  brakiSzczegolow: readonly string[];
+};
 
 /**
  * Czy szkic ma komplet danych do publikacji.
@@ -522,7 +536,32 @@ export async function sprawdzGotowoscSzkicu(widz: Widz): Promise<Wynik<GotowoscS
   if (!szkic.maWspolrzedne) braki.push("lokalizacja");
   if (!szkic.maNip) braki.push("nip");
 
-  return { ok: true, dane: { companyId: szkic.id, braki, kategoria: szkic.kategoria } };
+  /*
+   * Szczegóły liczone tutaj, a nie w komponencie, bo ta sama lista
+   * rozstrzyga dwie rzeczy: co kreator pokazuje i czego odmawia
+   * publikacja. Policzone w dwóch miejscach rozjechałyby się przy
+   * pierwszej zmianie reguły i człowiek zobaczyłby zielony kreator
+   * oraz czerwoną odmowę po kliknięciu.
+   */
+  const szczegoly = await pobierzSzczegolyFirmy(widz, szkic.id);
+  const brakiSzczegolow =
+    szczegoly.rodzaj === "venue"
+      ? brakiLokalu(szczegoly.lokal ?? {})
+      : szczegoly.rodzaj === "service"
+        ? brakiUslugodawcy(szczegoly.uslugodawca ?? {}, szczegoly.wCenie.length)
+        : /*
+           * Rodzaj nieznany znaczy brak kategorii, a to jest już na liście
+           * wyżej. Dokładanie tu drugiego braku kazałoby człowiekowi
+           * uzupełnić szczegóły, zanim w ogóle wie, o co zostanie zapytany.
+           */
+          [];
+
+  if (brakiSzczegolow.length > 0) braki.push("szczegoly");
+
+  return {
+    ok: true,
+    dane: { companyId: szkic.id, braki, kategoria: szkic.kategoria, brakiSzczegolow },
+  };
 }
 
 /**
@@ -545,6 +584,19 @@ export async function opublikujSzkic(
 
   const dostep = await firmaDoZapisu(widz, companyId);
   if (!dostep.ok) return dostep;
+
+  /*
+   * Odmowa publikacji przy niekompletnych szczegółach.
+   *
+   * Druga bariera obok kreatora, który i tak nie puszcza dalej: ta ścieżka
+   * jest wołana także spoza formularza, a profil bez parkingu i godziny
+   * ciszy trafiłby do katalogu i wrócił z moderacji z komentarzem, którego
+   * dałoby się uniknąć.
+   */
+  const gotowosc = await sprawdzGotowoscSzkicu(widz);
+  if (gotowosc.ok && gotowosc.dane.brakiSzczegolow.length > 0) {
+    return { ok: false, powod: "brak-dostepu" };
+  }
 
   /*
    * Profil już opublikowany: ostatni krok kreatora jest wtedy zapisaniem

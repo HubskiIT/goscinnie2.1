@@ -7,6 +7,8 @@ import { WpisBezProfiluScreen } from "@/components/screens/WpisBezProfiluScreen"
 import { pobierzLokal } from "@/content/ogloszenia";
 import { widzZZadania } from "@/lib/auth/widz";
 import { pobierzFirmeKatalogu } from "@/lib/db/queries/katalog";
+import { pobierzSzczegolyFirmyPoSlugu } from "@/lib/db/queries/szczegoly";
+import { szczegolyNaProfil } from "@/lib/szczegoly-profil";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -50,7 +52,18 @@ export default async function Strona({ params }: Props) {
   const { slug } = await params;
   const wynik = await znajdz(slug);
   if (!wynik) notFound();
-  if (wynik.rodzaj === "baza") return <ProfilFirmyScreen firma={wynik.firma} />;
+  if (wynik.rodzaj === "baza") {
+    /*
+     * Szczegóły czytamy dopiero tutaj, gdy już wiadomo, że firma istnieje
+     * i jest widoczna. Pobranie ich w `znajdz` kosztowałoby dwa zapytania
+     * przy każdym wejściu na adres przykładowego ogłoszenia i przy każdym
+     * trafieniu w nieistniejący slug.
+     */
+    const widz = await widzZZadania(await headers());
+    const szczegoly = await pobierzSzczegolyFirmyPoSlugu(widz, wynik.firma.slug);
+
+    return <ProfilFirmyScreen firma={wynik.firma} szczegoly={szczegolyNaProfil(szczegoly)} />;
+  }
   // Firma, która nie przejęła jeszcze wpisu, dostaje wersję "przejmij profil".
   if (wynik.lokal.status === "visitcard") return <WpisBezProfiluScreen lokal={wynik.lokal} />;
   return <ProfilScreen lokal={wynik.lokal} />;

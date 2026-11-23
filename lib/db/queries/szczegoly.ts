@@ -269,3 +269,31 @@ function doSzczegolowUslugodawcy(w: WierszUslugodawcy): SzczegolyUslugodawcy {
     fakturaVat: w.vatInvoice,
   };
 }
+
+/**
+ * Szczegóły firmy odnalezionej po slugu.
+ *
+ * Osobna funkcja, a nie identyfikator dołożony do `FirmaWKatalogu`.
+ * Typ publicznego profilu celowo nie niesie `id`: profil jest publiczny,
+ * a wewnętrzny identyfikator nie ma po co jechać do przeglądarki, żeby
+ * ułatwić komuś składanie adresów do zapytań. Jedno zapytanie więcej jest
+ * tańsze niż wyciek identyfikatorów do każdego wyniku katalogu.
+ */
+export async function pobierzSzczegolyFirmyPoSlugu(
+  widz: Widz,
+  slug: string,
+): Promise<SzczegolyFirmy> {
+  upewnijSieZeGalazUprawnienIstnieje(widz, "pobierzSzczegolyFirmyPoSlugu");
+
+  const [firma] = await db
+    .select({ id: companies.id })
+    .from(companies)
+    .where(eq(companies.slug, slug))
+    .limit(1);
+
+  // Brak firmy nie jest tu błędem: strona i tak pokazała już 404 albo
+  // znalazła przykładowe ogłoszenie z content/, które nie ma szczegółów.
+  if (!firma) return { rodzaj: "nieznany" };
+
+  return pobierzSzczegolyFirmy(widz, firma.id);
+}

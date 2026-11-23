@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
 import { BladPola, idBledu, maBlad } from "@/components/BladPola";
 import { KomunikatFormularza } from "@/components/KomunikatFormularza";
+import { KrokSzczegolow, type WartosciSzczegolow } from "@/components/KrokSzczegolow";
 import { ListaWymaganHasla } from "@/components/ListaWymaganHasla";
 import { PoleMiejscowosci } from "@/components/PoleMiejscowosci";
 import { WysylkaZdjec } from "@/components/WysylkaZdjec";
@@ -18,6 +19,8 @@ import {
   zapiszKrokKategoria,
   zapiszKrokLokalizacja,
   zapiszKrokOpis,
+  zapiszKrokSzczegolowLokalu,
+  zapiszKrokSzczegolowUslugodawcy,
 } from "@/lib/akcje/profil";
 import { zarejestrujFirme } from "@/lib/akcje/rejestracja";
 import type { ZdjecieDoPokazania } from "@/lib/akcje/zdjecia";
@@ -36,6 +39,7 @@ const NAZWY_KROKOW = [
   "Rodzaj ogłoszenia",
   "Budowa profilu",
   "Dane firmy",
+  "Szczegóły wpisu",
   "Publikacja",
 ] as const;
 
@@ -44,11 +48,13 @@ const KROKOW = NAZWY_KROKOW.length;
 /**
  * Kroki w kolejności, w jakiej je pokazujemy.
  *
- * Numer kroku nie jest numerem pozycji na pasku: piątego, czyli wyboru planu,
- * nie ma, dopóki PayU jest wyłączone. Bez tej tablicy ostatni krok podpisywał
- * się „Krok 6 z 5" i zostawał bez nazwy, bo `NAZWY_KROKOW[5]` nie istnieje.
+ * Numer kroku nie był dotąd numerem pozycji na pasku: piąty był
+ * zarezerwowany na wybór planu, którego nie ma, dopóki PayU jest wyłączone,
+ * więc tablica przeskakiwała z czwórki na szóstkę. Piątkę zajmują teraz
+ * szczegóły wpisu i wszystkie sześć kroków istnieje naprawdę. Wybór planu,
+ * gdy wróci razem z płatnościami, dostanie własny numer na końcu.
  */
-const KROKI: Krok[] = [1, 2, 3, 4, 6];
+const KROKI: Krok[] = [1, 2, 3, 4, 5, 6];
 
 /**
  * Kreator rejestracji firmy z prawdziwymi akcjami backendu.
@@ -62,12 +68,22 @@ export function RejestracjaFirmyScreen({
   szkic = null,
   zdjecia = [],
   zalogowany = false,
+  wartosciSzczegolow = {},
+  wCenie = [],
 }: {
   szkic?: SzkicKreatora | null;
   /** Zdjęcia odczytane na serwerze, żeby galeria nie migała pustką. */
   zdjecia?: readonly ZdjecieDoPokazania[];
   /** Czy krok pierwszy, czyli zakładanie konta, jest już za nami. */
   zalogowany?: boolean;
+  /**
+   * Zapisane odpowiedzi kroku piątego, przełożone na napisy przez
+   * `wartosciSzczegolowDoFormularza`. Czytane na serwerze razem ze
+   * szkicem, żeby pola stały wypełnione od pierwszego rysowania.
+   */
+  wartosciSzczegolow?: WartosciSzczegolow;
+  /** Pozycje „co jest w cenie”, w kolejności. Puste przy lokalu. */
+  wCenie?: readonly string[];
 }) {
   const searchParams = useSearchParams();
 
@@ -243,7 +259,30 @@ export function RejestracjaFirmyScreen({
 
       const wynik = await zapiszKrokDaneKontaktowe(STAN_POCZATKOWY, formData);
       setStanKroku(wynik);
-      // Krok 5 (wybór planu) pomijamy, dopóki PayU jest wyłączone.
+      if (wynik.status === "zapisano") setStep(5);
+    });
+  };
+
+  /**
+   * Krok 5: szczegóły zależne od rodzaju firmy.
+   *
+   * Formularz czytamy prosto z DOM-u przez `FormData(e.currentTarget)`,
+   * a nie z osobnych stanów jak w krokach wyżej. Pól jest tu dwadzieścia
+   * i lista „co w cenie” o zmiennej długości; trzymanie tego w stanach
+   * komponentu dołożyłoby dwadzieścia `useState` bez żadnego zysku, bo
+   * żadne z tych pól niczym nie steruje.
+   */
+  const handleSubmitKrok5 = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    startTransition(async () => {
+      const wynik =
+        szkic?.rodzaj === "venue"
+          ? await zapiszKrokSzczegolowLokalu(STAN_POCZATKOWY, formData)
+          : await zapiszKrokSzczegolowUslugodawcy(STAN_POCZATKOWY, formData);
+
+      setStanKroku(wynik);
       if (wynik.status === "zapisano") setStep(6);
     });
   };
@@ -742,6 +781,44 @@ export function RejestracjaFirmyScreen({
                     type="submit"
                     disabled={czeka}
                     className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-3.5 cursor-pointer shadow-xs disabled:opacity-50"
+                  >
+                    {czeka ? "Zapisuję..." : "Dalej →"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {step === 5 && szkic?.rodzaj != null && (
+              <form onSubmit={handleSubmitKrok5}>
+                <h2 className="font-fraunces text-[24px] font-medium mb-2">
+                  5. {szkic.rodzaj === "venue" ? "O lokalu" : "O usłudze"}
+                </h2>
+                <p className="text-[14px] text-[#6A5C70] mb-6">
+                  {szkic.rodzaj === "venue"
+                    ? "Odpowiedzi, o które klienci dopytują telefonicznie. Każda z nich to jedna rozmowa mniej."
+                    : "To, o co klienci pytają zaraz po cenie. Każda odpowiedź to jedna rozmowa mniej."}
+                </p>
+
+                <KrokSzczegolow
+                  rodzaj={szkic.rodzaj}
+                  stan={stanKroku}
+                  wartosci={wartosciSzczegolow}
+                  wCenie={wCenie}
+                  braki={szkic.brakiSzczegolow}
+                />
+
+                <div className="flex justify-between mt-8">
+                  <button
+                    type="button"
+                    onClick={() => setStep(4)}
+                    className="text-[15px] font-semibold text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer"
+                  >
+                    ← Wstecz
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={czeka}
+                    className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] disabled:opacity-60 transition-colors border-0 rounded-[12px] px-7 py-3.5 cursor-pointer"
                   >
                     {czeka ? "Zapisuję..." : "Dalej →"}
                   </button>
