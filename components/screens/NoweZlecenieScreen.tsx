@@ -5,7 +5,7 @@ import { useActionState, useEffect, useState } from "react";
 import { BladPola, idBledu, maBlad } from "@/components/BladPola";
 import { KomunikatFormularza } from "@/components/KomunikatFormularza";
 import { PoleMiejscowosci } from "@/components/PoleMiejscowosci";
-import { OKAZJE } from "@/content/okazje";
+import { MAKS_ZNAKOW_INNEJ_OKAZJI, OKAZJA_INNA, OKAZJE } from "@/content/okazje";
 import { dodajZlecenie } from "@/lib/akcje/zlecenia";
 import { STAN_POCZATKOWY, wartoscPola } from "@/lib/formularze";
 import { TRASY } from "@/lib/trasy";
@@ -27,6 +27,7 @@ const KLUCZ_SZKICU = "goscinnie:szkic-zlecenia";
 
 const POLA_SZKICU = [
   "okazja",
+  "innaOkazja",
   "dataWydarzenia",
   "liczbaOsob",
   "miejscowosc",
@@ -90,6 +91,19 @@ export function NoweZlecenieScreen({ zalogowany }: { zalogowany: boolean }) {
   const wartosc = (pole: (typeof POLA_SZKICU)[number]): string =>
     wartoscPola(stan, pole) || (szkic[pole] ?? "");
 
+  /*
+   * Okazja wybrana ręcznie w tej sesji, albo `null`, dopóki człowiek nic
+   * nie kliknął. Dopóki jest `null`, o wyborze decyduje to samo co o reszcie
+   * pól: odpowiedź nieudanej walidacji, a po niej szkic z sessionStorage.
+   *
+   * Dwa źródła zamiast jednego stanu, bo szkic dojeżdża dopiero w useEffect
+   * po zamontowaniu. Stan zainicjowany jednorazowo z `wartosc("okazja")`
+   * zostałby pusty na zawsze, więc wracający człowiek miałby wybraną
+   * „Inną okazję” w liście i schowane pole na jej nazwę.
+   */
+  const [wybranaOkazjaRecznie, setWybranaOkazja] = useState<string | null>(null);
+  const wybranaOkazja = wybranaOkazjaRecznie ?? wartosc("okazja");
+
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
       <section className="grow px-6 sm:px-12 md:px-[130px] pt-12 flex flex-col lg:flex-row gap-11 items-start pb-16">
@@ -140,6 +154,7 @@ export function NoweZlecenieScreen({ zalogowany }: { zalogowany: boolean }) {
                 name="okazja"
                 required
                 defaultValue={wartosc("okazja")}
+                onChange={(zdarzenie) => setWybranaOkazja(zdarzenie.currentTarget.value)}
                 aria-invalid={maBlad(stan, "okazja")}
                 aria-describedby={maBlad(stan, "okazja") ? idBledu("okazja") : undefined}
                 className={KLASA_POLA}
@@ -150,9 +165,48 @@ export function NoweZlecenieScreen({ zalogowany }: { zalogowany: boolean }) {
                     {okazja.nazwa}
                   </option>
                 ))}
+                {/*
+                  Na końcu listy, a nie w środku alfabetu: „inna” jest
+                  wyjściem awaryjnym dla tych, którzy nie znaleźli swojego,
+                  a nie równorzędną propozycją. Postawiona wyżej zbierałaby
+                  wybory od ludzi, dla których słownik ma właściwą pozycję.
+                */}
+                <option value={OKAZJA_INNA.slug}>{OKAZJA_INNA.nazwa}</option>
               </select>
               <BladPola stan={stan} pole="okazja" />
             </div>
+
+            {/*
+              Pole pokazuje się dopiero po wyborze „Innej okazji”.
+
+              Stan trzyma `wybranaOkazja`, nie sam DOM, bo wartość musi
+              przetrwać ponowne narysowanie formularza po odmowie serwera.
+              Przy sterowaniu samym `defaultValue` wybór wracał do okazji
+              zapisanej w szkicu, a wpisana nazwa znikała razem z polem.
+            */}
+            {wybranaOkazja === OKAZJA_INNA.slug ? (
+              <div className="flex flex-col gap-2">
+                <label htmlFor="z-inna-okazja" className={KLASA_ETYKIETY}>
+                  Co to za okazja
+                </label>
+                <input
+                  id="z-inna-okazja"
+                  name="innaOkazja"
+                  type="text"
+                  required
+                  maxLength={MAKS_ZNAKOW_INNEJ_OKAZJI}
+                  placeholder="np. zjazd rocznika, parapetówka, obrona pracy"
+                  defaultValue={wartosc("innaOkazja")}
+                  aria-invalid={maBlad(stan, "innaOkazja")}
+                  aria-describedby={maBlad(stan, "innaOkazja") ? idBledu("innaOkazja") : undefined}
+                  className={KLASA_POLA}
+                />
+                <BladPola stan={stan} pole="innaOkazja" />
+                <p className="m-0 text-[13px] text-[#6A5C70]">
+                  Nazwę zobaczą firmy na giełdzie, tak samo jak okazję z listy.
+                </p>
+              </div>
+            ) : null}
 
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="grow flex flex-col gap-2">

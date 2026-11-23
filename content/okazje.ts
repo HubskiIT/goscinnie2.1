@@ -120,6 +120,33 @@ export const OKAZJE: readonly Okazja[] = [
   },
 ] as const;
 
+/**
+ * Slug okazji wpisywanej przez klienta własnymi słowami.
+ *
+ * DLACZEGO POZA `OKAZJE`, A NIE JAKO DWUNASTA POZYCJA LISTY. Ta lista
+ * napędza trzy rzeczy, do których „inna” nie pasuje:
+ *
+ *   - sitemapę i strony lądowania `/okazje/[okazja]`, a strona „inna”
+ *     nie ma czego pokazać: nie wskazuje żadnych rodzajów lokali ani
+ *     kategorii usługodawców, bo z założenia nie wiadomo, czego dotyczy,
+ *   - pasek filtrów katalogu, gdzie „inna” nie zawęziłaby niczego,
+ *   - kafelki okazji na stronie głównej.
+ *
+ * W bazie jest zwykłym wierszem `event_types`, więc `requests.event_type_id`
+ * dalej ma dokąd wskazywać i nie trzeba rozluźniać klucza obcego. Nazwę
+ * wpisaną przez klienta trzyma osobna kolumna `requests.custom_event_name`.
+ */
+export const OKAZJA_INNA = {
+  slug: "inna",
+  nazwa: "Inna okazja",
+} as const;
+
+/** Ile znaków może mieć okazja wpisana własnymi słowami. */
+export const MAKS_ZNAKOW_INNEJ_OKAZJI = 60;
+
+/** Najkrótsza sensowna nazwa okazji. „Bal” ma trzy znaki, „Dzień dziecka” więcej. */
+export const MIN_ZNAKOW_INNEJ_OKAZJI = 3;
+
 export function pobierzOkazje(): readonly Okazja[] {
   return OKAZJE;
 }

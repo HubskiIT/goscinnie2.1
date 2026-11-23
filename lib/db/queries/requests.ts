@@ -11,6 +11,7 @@
  * tests/konwencja-zapytan.test.ts, wyliczając eksporty tego pliku.
  */
 import { and, count, desc, eq, sql } from "drizzle-orm";
+import { OKAZJA_INNA } from "@/content/okazje";
 import { db } from "@/lib/db";
 import { cities } from "@/lib/db/schema/geografia";
 import { bids, requests } from "@/lib/db/schema/gielda";
@@ -121,7 +122,7 @@ export async function pobierzListeZlecen(
     db
       .select({
         id: requests.id,
-        rodzajOkazji: eventTypes.name,
+        rodzajOkazji: sql<string>`coalesce(${requests.customEventName}, ${eventTypes.name})`,
         dataWydarzenia: requests.eventDate,
         liczbaOsob: requests.guests,
         // Powiat, nie nazwa miasta i nie współrzędne. Anonim nie pozna adresu.
@@ -157,7 +158,7 @@ async function listaZZajawka(znakow: number, parametry: ParametryListy) {
   return db
     .select({
       id: requests.id,
-      rodzajOkazji: eventTypes.name,
+      rodzajOkazji: sql<string>`coalesce(${requests.customEventName}, ${eventTypes.name})`,
       dataWydarzenia: requests.eventDate,
       liczbaOsob: requests.guests,
       powiat: cities.powiat,
@@ -179,7 +180,7 @@ async function listaPelna(parametry: ParametryListy) {
   return db
     .select({
       id: requests.id,
-      rodzajOkazji: eventTypes.name,
+      rodzajOkazji: sql<string>`coalesce(${requests.customEventName}, ${eventTypes.name})`,
       dataWydarzenia: requests.eventDate,
       liczbaOsob: requests.guests,
       powiat: cities.powiat,
@@ -247,7 +248,7 @@ export async function pobierzZlecenie(widz: Widz, id: string): Promise<ZlecenieJ
   const wiersze = await db
     .select({
       id: requests.id,
-      rodzajOkazji: eventTypes.name,
+      rodzajOkazji: sql<string>`coalesce(${requests.customEventName}, ${eventTypes.name})`,
       dataWydarzenia: requests.eventDate,
       liczbaOsob: requests.guests,
       powiat: cities.powiat,
@@ -299,7 +300,7 @@ export async function pobierzWlasneZlecenie(
   const wiersze = await db
     .select({
       id: requests.id,
-      rodzajOkazji: eventTypes.name,
+      rodzajOkazji: sql<string>`coalesce(${requests.customEventName}, ${eventTypes.name})`,
       dataWydarzenia: requests.eventDate,
       liczbaOsob: requests.guests,
       powiat: cities.powiat,
@@ -385,11 +386,17 @@ export async function pobierzZlecenieDlaWidza(
 export const WAZNOSC_ZLECENIA_DNI = 30;
 
 /** Powody odmowy przy wystawianiu zlecenia. */
-export type OdmowaZlecenia = PowodOdmowy | "miejscowosc-bez-wspolrzednych" | "nieznana-okazja";
+export type OdmowaZlecenia =
+  | PowodOdmowy
+  | "miejscowosc-bez-wspolrzednych"
+  | "nieznana-okazja"
+  | "niezgodna-wlasna-okazja";
 
 /** Wejście do `utworzZlecenie`. Kwoty już w groszach, bo przeliczył je Zod. */
 export type DaneNowegoZlecenia = {
   okazja: string;
+  /** Nazwa wpisana przez klienta. Niepusta wyłącznie przy okazji `inna`. */
+  innaOkazja: string | null;
   dataWydarzenia: string;
   liczbaOsob: number;
   cityId: string;
@@ -443,6 +450,24 @@ export async function utworzZlecenie(
   // Okazja spoza słownika to odmowa, nie zlecenie z przypadkową okazją.
   if (!okazja) return { ok: false, powod: "nieznana-okazja" };
 
+  /*
+   * Druga bariera pod regułą „własna nazwa dokładnie przy okazji `inna`”.
+   *
+   * Pierwsza stoi w Zodzie na granicy formularza. Ta stoi tutaj, bo to
+   * jedyna ścieżka zapisu do `requests` i jedyne miejsce, przez które
+   * przechodzą też wywołania spoza formularza: API, import, przyszła
+   * akcja wystawiania zlecenia z panelu. Warunku nie da się zapisać jako
+   * CHECK w bazie, bo sięga przez klucz obcy do `event_types`, więc bez
+   * tej linii schemat przyjąłby zlecenie z dwiema nazwami okazji naraz.
+   *
+   * Obie bariery sprawdza osobny test: każda ma przypadek, który pada po
+   * zdjęciu wyłącznie jej.
+   */
+  const wlasnaNazwa = dane.innaOkazja?.trim() || null;
+  if ((dane.okazja === OKAZJA_INNA.slug) !== (wlasnaNazwa !== null)) {
+    return { ok: false, powod: "niezgodna-wlasna-okazja" };
+  }
+
   const [miejscowosc] = await db
     .select({ id: cities.id, maPunkt: sql<boolean>`${cities.point} is not null` })
     .from(cities)
@@ -464,6 +489,7 @@ export async function utworzZlecenie(
     .values({
       authorUserId: widz.userId,
       eventTypeId: okazja.id,
+      customEventName: wlasnaNazwa,
       eventDate: dane.dataWydarzenia,
       guests: dane.liczbaOsob,
       cityId: miejscowosc.id,
@@ -511,7 +537,7 @@ export async function pobierzMojeZlecenia(widz: Widz): Promise<ZlecenieAutora[]>
   const wiersze = await db
     .select({
       id: requests.id,
-      rodzajOkazji: eventTypes.name,
+      rodzajOkazji: sql<string>`coalesce(${requests.customEventName}, ${eventTypes.name})`,
       dataWydarzenia: requests.eventDate,
       liczbaOsob: requests.guests,
       powiat: cities.powiat,
