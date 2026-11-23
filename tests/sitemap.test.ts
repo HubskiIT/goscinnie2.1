@@ -23,6 +23,19 @@ import { NiezaimplementowanaGalazUprawnien, type Widz } from "@/lib/permissions"
 import { TRASY } from "@/lib/trasy";
 
 const ANONIM: Widz = { rodzaj: "anonim" };
+/**
+ * Widz spoza typu `Widz`, czyli taki, którego gałęzi uprawnień nie ma.
+ *
+ * Rolę tę pełnił moderator, dopóki jego gałąź nie istniała. Powstała razem
+ * z kolejką moderacji, więc wartownik musiał się zmienić. Widz zbudowany
+ * rzutowaniem nie wygasa: tak właśnie wygląda wariant dopisany do typu
+ * przez kogoś, kto zapomniał o gałęzi w zapytaniu.
+ */
+const WIDZ_BEZ_GALEZI = {
+  rodzaj: "ksiegowy",
+  userId: "99999999-9999-4999-8999-999999999999",
+} as unknown as Widz;
+
 const MODERATOR: Widz = { rodzaj: "moderator", userId: "11111111-1111-4111-8111-111111111111" };
 
 /** Firma widoczna w katalogu: instancja pozytywna dla testów negatywnych. */
@@ -103,9 +116,14 @@ describe("w mapie witryny stoją tylko profile widoczne w katalogu", () => {
   });
 
   it("zapytanie odmawia widzowi, którego gałąź uprawnień nie istnieje", async () => {
-    await expect(pobierzSlugiFirmDoSitemapy(MODERATOR)).rejects.toBeInstanceOf(
+    await expect(pobierzSlugiFirmDoSitemapy(WIDZ_BEZ_GALEZI)).rejects.toBeInstanceOf(
       NiezaimplementowanaGalazUprawnien,
     );
+  });
+
+  it("moderator dostaje mapę witryny jak każdy inny widz", () => {
+    // Mapa witryny jest publiczna: rola nie zmienia tego, co w niej stoi.
+    return expect(pobierzSlugiFirmDoSitemapy(MODERATOR)).resolves.toBeInstanceOf(Array);
   });
 
   it("każdy profil pojawia się raz, nawet przy kilku kategoriach", async () => {

@@ -4,8 +4,11 @@ import { RejestracjaFirmyScreen } from "@/components/screens/RejestracjaFirmyScr
 import type { ZdjecieDoPokazania } from "@/lib/akcje/zdjecia";
 import { widzZZadania } from "@/lib/auth/widz";
 import { pobierzSzkicFirmy } from "@/lib/db/queries/kreator";
+import { pobierzSzczegolyFirmy } from "@/lib/db/queries/szczegoly";
 import { pobierzZdjeciaFirmy } from "@/lib/db/queries/zdjecia";
 import type { SzkicKreatora } from "@/lib/kreator-krok";
+import { wartosciSzczegolowDoFormularza } from "@/lib/szczegoly-formularz";
+import { brakiLokalu, brakiUslugodawcy } from "@/lib/validators/szczegoly";
 import { adresZdjecia } from "@/lib/zdjecia/skladowanie";
 
 export const metadata: Metadata = {
@@ -25,6 +28,23 @@ export default async function Strona() {
   const widz = await widzZZadania(await headers());
   const szkic = await pobierzSzkicFirmy(widz);
 
+  /*
+   * Szczegóły i braki liczy serwer, nie komponent.
+   *
+   * Braki wynikają z reguły publikacji, a ta mieszka w walidatorach.
+   * Policzone w przeglądarce rozjechałyby się z odmową serwera przy
+   * pierwszej zmianie reguły, a człowiek zobaczyłby zielony kreator
+   * i czerwoną odmowę po kliknięciu.
+   */
+  const szczegoly = szkic ? await pobierzSzczegolyFirmy(widz, szkic.id) : null;
+
+  const braki =
+    szczegoly === null || szczegoly.rodzaj === "nieznany"
+      ? []
+      : szczegoly.rodzaj === "venue"
+        ? brakiLokalu(szczegoly.lokal ?? {})
+        : brakiUslugodawcy(szczegoly.uslugodawca ?? {}, szczegoly.wCenie.length);
+
   const doKreatora: SzkicKreatora | null = szkic && {
     nazwa: szkic.nazwa,
     opis: szkic.opis,
@@ -39,6 +59,8 @@ export default async function Strona() {
     cityId: szkic.maWspolrzedne ? szkic.cityId : null,
     maNip: szkic.maNip,
     opublikowany: szkic.status === "active",
+    rodzaj: szczegoly?.rodzaj === "nieznany" ? null : (szczegoly?.rodzaj ?? null),
+    brakiSzczegolow: braki,
   };
 
   /*
@@ -61,6 +83,8 @@ export default async function Strona() {
       szkic={doKreatora}
       zdjecia={zdjecia}
       zalogowany={widz.rodzaj !== "anonim"}
+      wartosciSzczegolow={szczegoly ? wartosciSzczegolowDoFormularza(szczegoly) : {}}
+      wCenie={szczegoly?.rodzaj === "service" ? szczegoly.wCenie : []}
     />
   );
 }

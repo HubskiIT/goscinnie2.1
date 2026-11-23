@@ -8,8 +8,11 @@
  *   widzZZadania         kim jest ten człowiek w ogóle
  *   widzWKontekscieZlecenia   kim jest przy tym jednym zleceniu
  */
+import { eq } from "drizzle-orm";
 import { cache } from "react";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema/tozsamosc";
 import type { Widz } from "@/lib/permissions";
 import { czlonkostwoUzytkownika } from "./firma";
 
@@ -43,9 +46,35 @@ export const widzZZadania = cache(async (naglowki: Headers): Promise<Widz> => {
     return { rodzaj: "anonim" };
   }
 
-  // Przynależność do firmy rozstrzyga tabela company_members, nie kolumna
-  // `role` w `users`. Kolumna mówi, kim ktoś jest z grubsza, a nie w czyim
-  // imieniu działa w tym żądaniu.
+  /*
+   * ROLA MODERATORA WYGRYWA Z CZŁONKOSTWEM W FIRMIE i to jest decyzja,
+   * nie kolejność przypadkowa.
+   *
+   * Konto z rolą moderatora jest kontem administracyjnym. Gdyby ten sam
+   * człowiek bywał raz moderatorem, raz firmą, zależnie od tego, czy
+   * dopisano go gdzieś do `company_members`, powstałby widz zmienny
+   * w czasie i nie do opisania w tabeli uprawnień. Gorzej: moderator
+   * z własną firmą w katalogu ocenia zgłoszenia konkurencji.
+   *
+   * SKUTEK, KTÓRY TRZEBA ZNAĆ: konto z tą rolą **nie obsłuży panelu
+   * firmy**. Jeśli ten sam człowiek prowadzi firmę w serwisie, potrzebuje
+   * drugiego konta. Pilnuje tego scripts/nadaj-moderatora.ts, który
+   * odmawia nadania roli koncie należącemu do firmy, zamiast po cichu
+   * odciąć komuś panel.
+   */
+  const [konto] = await db
+    .select({ rola: users.role })
+    .from(users)
+    .where(eq(users.id, sesja.user.id))
+    .limit(1);
+
+  if (konto?.rola === "moderator") {
+    return { rodzaj: "moderator", userId: sesja.user.id };
+  }
+
+  // Poza moderatorem przynależność do firmy rozstrzyga tabela
+  // company_members, nie kolumna `role` w `users`. Kolumna mówi, kim ktoś
+  // jest z grubsza, a nie w czyim imieniu działa w tym żądaniu.
   const czlonkostwo = await czlonkostwoUzytkownika(sesja.user.id);
 
   if (czlonkostwo) {
@@ -60,7 +89,6 @@ export const widzZZadania = cache(async (naglowki: Headers): Promise<Widz> => {
     };
   }
 
-  // Moderator wejdzie razem z panelem moderacji.
   return { rodzaj: "klient", userId: sesja.user.id };
 });
 

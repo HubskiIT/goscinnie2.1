@@ -18,9 +18,13 @@ import type { Widz } from "@/lib/permissions";
 const SLUGI_LOKALI = pobierzRodzajeLokali().map((r) => r.slug);
 const SLUGI_USLUG = pobierzKategorie().map((k) => k.slug);
 
-export function czyRodzajLokalu(slugKategorii: string): boolean {
-  return SLUGI_LOKALI.includes(slugKategorii);
-}
+/*
+ * Rozpoznanie rodzaju mieszka w content/rodzaje-lokali.ts, przy samym
+ * słowniku. Tutaj był drugi egzemplarz tej samej funkcji i przy dopisywaniu
+ * rodzaju firmy do bazy napisałem nieświadomie trzeci. Dwie kopie tej samej
+ * reguły to dwie odpowiedzi na to samo pytanie, czekające na rozjazd.
+ */
+export { czyRodzajLokalu } from "@/content/rodzaje-lokali";
 
 function miejscowosc(firma: FirmaWKatalogu): Lokal["miejscowosc"] {
   return {

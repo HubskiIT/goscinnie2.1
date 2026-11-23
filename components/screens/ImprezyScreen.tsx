@@ -1,14 +1,33 @@
 import Link from "next/link";
 import { EtykietaPrzykladu } from "@/components/EtykietaPrzykladu";
 import { PasekFiltrow } from "@/components/PasekFiltrow";
-import { dzienTygodnia, zlote } from "@/content/format";
-import { type Impreza, pobierzLokal } from "@/content/ogloszenia";
 import { type KryteriaImprez, PARAMETRY_IMPREZ } from "@/lib/filtry";
 
-const MIESIAC = new Intl.DateTimeFormat("pl-PL", { month: "short" });
+/**
+ * Jeden kafelek zapowiedzi, gotowy do narysowania.
+ *
+ * Ekran dostaje go złożonego, a nie składa sam z surowej imprezy.
+ * Wcześniej szukał lokalu w `content/ogloszenia.ts`, co działało wyłącznie
+ * dla przykładów: prawdziwa impreza z bazy wskazuje firmę, której w tym
+ * pliku nie ma, więc wypadała bez nazwy lokalu i bez miejscowości.
+ */
+export type PozycjaZapowiedzi = {
+  slug: string;
+  /** Dzień i skrót miesiąca na kartce z datą. */
+  day: string;
+  month: string;
+  title: string;
+  /** „Nazwa lokalu, miejscowość”. */
+  place: string;
+  time: string;
+  tags: readonly string[];
+  /** Gotowy napis z ceną albo „wstęp wolny”. */
+  price: string;
+  przykladowe: boolean;
+};
 
 interface ImprezyScreenProps {
-  imprezy: readonly Impreza[];
+  imprezy: readonly PozycjaZapowiedzi[];
   kryteria: KryteriaImprez;
 }
 
@@ -18,21 +37,7 @@ export function ImprezyScreen({ imprezy, kryteria }: ImprezyScreenProps) {
     kryteria.miejscowosc !== null ||
     kryteria.od !== null ||
     kryteria.do !== null;
-  const events = imprezy.map((impreza) => {
-    const data = new Date(impreza.data);
-    const lokal = pobierzLokal(impreza.lokalSlug);
-    return {
-      slug: impreza.slug,
-      day: String(data.getDate()),
-      month: MIESIAC.format(data),
-      title: impreza.nazwa,
-      place: lokal === undefined ? "" : `${lokal.nazwa}, ${lokal.miejscowosc.nazwa}`,
-      time: `${dzienTygodnia(impreza.data)}, ${impreza.godzinaOd} do ${impreza.godzinaDo}`,
-      tags: impreza.dlaDoroslych ? ["dla dorosłych"] : [],
-      price: zlote(impreza.cenaBiletuGrosze),
-      przykladowe: impreza.przykladowe,
-    };
-  });
+  const events = imprezy;
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">

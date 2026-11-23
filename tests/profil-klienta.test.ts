@@ -17,7 +17,7 @@ import { pobierzProfilKlienta, zapiszProfilKlienta } from "@/lib/db/queries/kont
 import { pobierzMojeZlecenia } from "@/lib/db/queries/requests";
 import { requests } from "@/lib/db/schema/gielda";
 import { users } from "@/lib/db/schema/tozsamosc";
-import { NiezaimplementowanaGalazUprawnien, type Widz } from "@/lib/permissions";
+import type { Widz } from "@/lib/permissions";
 import { daneProfiluKlienta } from "@/lib/validators/konto";
 
 const ANONIM: Widz = { rodzaj: "anonim" };
@@ -113,11 +113,12 @@ describe("własne zlecenia na /moje", () => {
     expect(typeof pierwsze.liczbaOfert).toBe("number");
   });
 
-  it("anonim nie ma własnych zleceń, moderator rzuca", async () => {
+  it("ani anonim, ani moderator nie mają własnych zleceń", async () => {
+    // Moderator nie wystawia zleceń, więc lista jego własnych jest pusta.
+    // Do czasu kolejki moderacji sprawdzaliśmy tu rzut, bo był ostatnim
+    // widzem bez gałęzi uprawnień.
     expect(await pobierzMojeZlecenia(ANONIM)).toEqual([]);
-    await expect(pobierzMojeZlecenia(MODERATOR)).rejects.toBeInstanceOf(
-      NiezaimplementowanaGalazUprawnien,
-    );
+    expect(await pobierzMojeZlecenia(MODERATOR)).toEqual([]);
   });
 });
 
@@ -162,13 +163,13 @@ describe("zapis profilu", () => {
     expect(profil?.email).toBeTruthy();
   });
 
-  it("anonim dostaje odmowę, moderator rzuca", async () => {
-    const wynik = await zapiszProfilKlienta(ANONIM, { imie: "Ktokolwiek", telefon: null });
-
-    expect(wynik).toEqual({ ok: false, powod: "brak-dostepu" });
-    await expect(
-      zapiszProfilKlienta(MODERATOR, { imie: "Ktokolwiek", telefon: null }),
-    ).rejects.toBeInstanceOf(NiezaimplementowanaGalazUprawnien);
+  it("anonim i moderator dostają odmowę", async () => {
+    // Konto moderatora jest administracyjne: nie ma profilu klienta,
+    // który miałby co zapisywać.
+    for (const widz of [ANONIM, MODERATOR]) {
+      const wynik = await zapiszProfilKlienta(widz, { imie: "Ktokolwiek", telefon: null });
+      expect(wynik).toEqual({ ok: false, powod: "brak-dostepu" });
+    }
   });
 });
 

@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { PanelScreen } from "@/components/screens/PanelScreen";
 import { widzZZadania } from "@/lib/auth/widz";
 import { pobierzMojeFirmy } from "@/lib/db/queries/katalog";
+import { mozeModerowac } from "@/lib/permissions";
 
 export const metadata: Metadata = {
   title: "Twój panel",
@@ -15,7 +16,11 @@ interface Props {
 
 export default async function Strona({ searchParams }: Props) {
   // Layout panelu przepuszcza tylko zalogowanych, więc anonima tu nie ma.
-  const firmy = await pobierzMojeFirmy(await widzZZadania(await headers()));
+  const widz = await widzZZadania(await headers());
+  const firmy = await pobierzMojeFirmy(widz);
   const poPublikacji = (await searchParams).opublikowano === "1";
-  return <PanelScreen firmy={firmy} poPublikacji={poPublikacji} />;
+
+  return (
+    <PanelScreen firmy={firmy} poPublikacji={poPublikacji} moderator={mozeModerowac(widz).wolno} />
+  );
 }

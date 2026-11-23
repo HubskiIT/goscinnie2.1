@@ -15,12 +15,14 @@
  * importowane wpisy z przyciskiem „Przejmij profil”. Szkic z kreatora to
  * co innego: niedokończona firma, której właściciel jeszcze nie pokazał.
  */
-import { and, asc, eq, exists, gt, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, exists, gt, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
+import type { StanWpisu } from "@/lib/db/queries/moderacja";
 import { pobierzZdjeciaFirmy } from "@/lib/db/queries/zdjecia";
 import { subscriptions } from "@/lib/db/schema/abonament";
 import { cities } from "@/lib/db/schema/geografia";
 import { categories, companies, companyCategories, companyMembers } from "@/lib/db/schema/katalog";
+import { moderationSubmissions } from "@/lib/db/schema/moderacja";
 import { upewnijSieZeGalazUprawnienIstnieje, type Widz } from "@/lib/permissions";
 import { adresZdjecia } from "@/lib/zdjecia/skladowanie";
 
@@ -59,10 +61,41 @@ export type FirmaWKatalogu = {
   galeria: string[];
 };
 
-/** Warunek „firma jest w katalogu”, wspólny dla listy i pojedynczego profilu. */
+/**
+ * Warunek „firma jest w katalogu”, wspólny dla listy i pojedynczego profilu.
+ *
+ * Trzy rzeczy naraz, wszystkie konieczne: firma jest aktywna, ma opłacony
+ * i nieprzeterminowany abonament oraz **przeszła moderację**.
+ *
+ * Trzeci warunek stoi tutaj, a nie w każdym zapytaniu z osobna, bo to
+ * jedyny sposób, żeby nowe zapytanie nie zapomniało go dopisać. Dopisany
+ * w pięciu miejscach prędzej czy później zostanie pominięty w szóstym
+ * i wtedy firma przed akceptacją pojawi się dokładnie w jednym widoku,
+ * czego nikt nie zauważy do pierwszego zgłoszenia.
+ */
 function jestWKatalogu() {
   return and(
     eq(companies.status, "active"),
+    /*
+     * Liczy się istnienie zgody kiedykolwiek, nie ostatnia decyzja.
+     * Firma raz przyjęta zostaje w katalogu, gdy czeka na akceptację
+     * kolejnej zmiany: inaczej każda poprawka opisu wyrzucałaby ją
+     * z wyników na czas rozpatrywania, czyli karałaby za aktualizowanie
+     * wpisu. Zmiana, która jest nie do przyjęcia, kończy się zawieszeniem
+     * firmy, a to osobna decyzja i osobny status.
+     */
+    exists(
+      db
+        .select({ jeden: sql`1` })
+        .from(moderationSubmissions)
+        .where(
+          and(
+            eq(moderationSubmissions.subjectKind, "company"),
+            eq(moderationSubmissions.subjectId, companies.id),
+            eq(moderationSubmissions.status, "approved"),
+          ),
+        ),
+    ),
     exists(
       db
         .select({ jeden: sql`1` })
@@ -253,6 +286,17 @@ export type MojaFirma = {
   status: "draft" | "active" | "visitcard" | "suspended";
   /** Czy firma jest teraz widoczna w katalogu. */
   wKatalogu: boolean;
+  /** Lokal czy usługodawca. Rozstrzyga, czy panel pokazuje imprezy. */
+  rodzaj: "venue" | "service" | null;
+  /**
+   * Co się dzieje z ostatnim zgłoszeniem tej firmy do moderacji.
+   *
+   * Osobne od `wKatalogu`, bo to dwa różne pytania i mają różne
+   * odpowiedzi. „Czy jestem w katalogu” pyta o teraz. „Co się dzieje
+   * z tym, co wysłałem” pyta o ostatnią decyzję, a firma widoczna
+   * w katalogu może mieć odrzuconą poprawkę i musi o tym wiedzieć.
+   */
+  stanModeracji: StanWpisu;
 };
 
 /**
@@ -269,9 +313,11 @@ export async function pobierzMojeFirmy(widz: Widz): Promise<MojaFirma[]> {
 
   const wiersze = await db
     .select({
+      id: companies.id,
       slug: companies.slug,
       nazwa: companies.name,
       status: companies.status,
+      rodzaj: companies.kind,
       wKatalogu: sql<boolean>`${jestWKatalogu()}`,
     })
     .from(companies)
@@ -279,5 +325,80 @@ export async function pobierzMojeFirmy(widz: Widz): Promise<MojaFirma[]> {
     .where(eq(companyMembers.userId, widz.userId))
     .orderBy(asc(companies.createdAt));
 
-  return wiersze;
+  if (wiersze.length === 0) return [];
+
+  /*
+   * Stan moderacji dociągamy jednym zapytaniem po wszystkie firmy naraz,
+   * a nie pytaniem na firmę. Człowiek ma ich zwykle jedną, ale pętla
+   * z zapytaniem w środku jest wzorcem, który zaczyna boleć dokładnie
+   * wtedy, gdy przestaje być widoczny.
+   *
+   * Bierzemy wszystkie zgłoszenia tych firm i wybieramy najnowsze
+   * w pamięci. Zgłoszeń na firmę jest tyle, ile zmian w jej wpisie, czyli
+   * garść; `distinct on` oszczędziłby kilku wierszy kosztem surowego SQL-a
+   * w miejscu, w którym nikt go nie szuka.
+   */
+  const zgloszenia = await db
+    .select({
+      companyId: moderationSubmissions.subjectId,
+      status: moderationSubmissions.status,
+      powod: moderationSubmissions.reason,
+      zgloszoneO: moderationSubmissions.createdAt,
+      decyzjaO: moderationSubmissions.decidedAt,
+    })
+    .from(moderationSubmissions)
+    .where(
+      and(
+        inArray(moderationSubmissions.subjectKind, ["company", "company_change"]),
+        inArray(
+          moderationSubmissions.subjectId,
+          wiersze.map((w) => w.id),
+        ),
+      ),
+    )
+    .orderBy(desc(moderationSubmissions.createdAt));
+
+  const najnowsze = new Map<string, (typeof zgloszenia)[number]>();
+  for (const z of zgloszenia) {
+    if (!najnowsze.has(z.companyId)) najnowsze.set(z.companyId, z);
+  }
+
+  return wiersze.map(({ id, ...firma }) => ({
+    ...firma,
+    stanModeracji: stanZeZgloszenia(najnowsze.get(id)),
+  }));
+}
+
+/** Zamiana wiersza zgłoszenia na stan pokazywany właścicielowi. */
+function stanZeZgloszenia(
+  zgloszenie:
+    | {
+        status: "pending" | "approved" | "rejected";
+        powod: string | null;
+        zgloszoneO: Date;
+        decyzjaO: Date | null;
+      }
+    | undefined,
+): StanWpisu {
+  if (!zgloszenie) return { rodzaj: "nigdy-nie-zgloszony" };
+  if (zgloszenie.status === "pending") {
+    return { rodzaj: "czeka", zgloszoneO: zgloszenie.zgloszoneO };
+  }
+
+  /*
+   * Rozstrzygnięcie bez daty nie powstaje: pilnuje tego CHECK
+   * `moderation_submissions_decyzja_ma_date` z migracji 0015. Gdyby
+   * powstało inną drogą, data zgłoszenia jest tu uczciwszym zastępstwem
+   * niż wyjątek wywalający cały panel właścicielowi, który nic nie zrobił
+   * źle. Panel moderatora ma na to ostrzejszą reakcję, bo to jego praca.
+   */
+  const decyzjaO = zgloszenie.decyzjaO ?? zgloszenie.zgloszoneO;
+
+  if (zgloszenie.status === "approved") return { rodzaj: "przyjety", decyzjaO };
+
+  return {
+    rodzaj: "odrzucony",
+    decyzjaO,
+    powod: zgloszenie.powod ?? "Bez podanego powodu. Napisz do nas, wyjaśnimy.",
+  };
 }

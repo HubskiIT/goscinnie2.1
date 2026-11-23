@@ -48,3 +48,20 @@ export function pobierzRodzajeLokali(): readonly RodzajLokalu[] {
 export function pobierzRodzajLokalu(slug: string): RodzajLokalu | undefined {
   return RODZAJE_LOKALI.find((r) => r.slug === slug);
 }
+
+/**
+ * Czy ten slug nazywa rodzaj lokalu.
+ *
+ * Jedyne miejsce, w którym rozstrzyga się „lokal czy usługodawca”.
+ * Zbiory slugów w tym pliku i w content/kategorie.ts są rozłączne, więc
+ * przynależność wynika z samego slugu i nie trzeba jej nikogo pytać.
+ *
+ * Używane przy zapisie rodzaju firmy w kreatorze. **Nie bierzemy tego
+ * z formularza**, choć formularz przysyła pole `rodzaj`: wejście może
+ * twierdzić „usługa” i podawać slug „sala-weselna”, a wtedy w bazie
+ * leży firma, która jest jednym i drugim naraz. Słownik nie może sam
+ * sobie zaprzeczyć, więc pytamy jego.
+ */
+export function czyRodzajLokalu(slug: string): boolean {
+  return RODZAJE_LOKALI.some((rodzaj) => rodzaj.slug === slug);
+}

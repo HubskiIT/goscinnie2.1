@@ -28,7 +28,18 @@ vi.mock("next/headers", () => ({
 const { zarejestrujFirme, zarejestrujKlienta } = await import("@/lib/akcje/rejestracja");
 
 const ANONIM: Widz = { rodzaj: "anonim" };
-const MODERATOR: Widz = { rodzaj: "moderator", userId: "11111111-1111-4111-8111-111111111111" };
+/**
+ * Widz spoza typu `Widz`, czyli taki, którego gałęzi uprawnień nie ma.
+ *
+ * Rolę tę pełnił moderator, dopóki jego gałąź nie istniała. Powstała razem
+ * z kolejką moderacji, więc wartownik musiał się zmienić. Widz zbudowany
+ * rzutowaniem nie wygasa: tak właśnie wygląda wariant dopisany do typu
+ * przez kogoś, kto zapomniał o gałęzi w zapytaniu.
+ */
+const WIDZ_BEZ_GALEZI = {
+  rodzaj: "ksiegowy",
+  userId: "99999999-9999-4999-8999-999999999999",
+} as unknown as Widz;
 
 /** Konto firmowe z zasiewu, które nie zdążyło założyć firmy. */
 const FIRMA_BEZ_PROFILU = "firma-bez-profilu@przyklad.pl";
@@ -142,11 +153,11 @@ describe("rola zapisywana przy zakładaniu konta", () => {
 
 describe("zapytania o konto trzymają konwencję", () => {
   it("odmawiają widzowi, którego gałąź uprawnień nie istnieje", async () => {
-    await expect(rolaKonta(MODERATOR, FIRMA_Z_PROFILEM)).rejects.toBeInstanceOf(
+    await expect(rolaKonta(WIDZ_BEZ_GALEZI, FIRMA_Z_PROFILEM)).rejects.toBeInstanceOf(
       NiezaimplementowanaGalazUprawnien,
     );
     await expect(
-      oznaczKontoJakoFirmowe(MODERATOR, "11111111-1111-4111-8111-111111111111"),
+      oznaczKontoJakoFirmowe(WIDZ_BEZ_GALEZI, "11111111-1111-4111-8111-111111111111"),
     ).rejects.toBeInstanceOf(NiezaimplementowanaGalazUprawnien);
   });
 });

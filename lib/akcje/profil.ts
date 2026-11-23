@@ -25,6 +25,7 @@ import {
   zapiszOpisSzkicu,
   zapiszWeryfikacjeSzkicu,
 } from "@/lib/db/queries/kreator";
+import { zapiszSzczegolyLokalu, zapiszSzczegolyUslugodawcy } from "@/lib/db/queries/szczegoly";
 import type { StanFormularza } from "@/lib/formularze";
 import type { PowodOdmowy, Widz } from "@/lib/permissions";
 import { DARMOWY_DOSTEP_DO, PLATNOSCI_WLACZONE } from "@/lib/serwis";
@@ -34,6 +35,7 @@ import {
   daneOpisu,
   daneWeryfikacji,
 } from "@/lib/validators/kreator";
+import { listaWCenie, szczegolyLokalu, szczegolyUslugodawcy } from "@/lib/validators/szczegoly";
 
 type WynikWalidacji<T> = { ok: true; dane: T } | { ok: false; stan: StanFormularza };
 
@@ -204,6 +206,7 @@ const NAZWA_BRAKU = {
   opis: "opisu działalności",
   lokalizacja: "miejscowości",
   nip: "NIP-u",
+  szczegoly: "odpowiedzi o lokal albo usługę",
 } as const;
 
 /**
@@ -227,9 +230,21 @@ export async function wyslijDoZatwierdzenia(
 
   if (gotowosc.dane.braki.length > 0) {
     const czego = gotowosc.dane.braki.map((brak) => NAZWA_BRAKU[brak]).join(", ");
+
+    /*
+     * Przy brakujących szczegółach wymieniamy je po nazwie, zamiast
+     * odesłać do kroku. „Brakuje odpowiedzi o lokal” przy formularzu
+     * na dwadzieścia pól każe człowiekowi szukać, a listę pytań mamy
+     * pod ręką i nic nie kosztuje ją pokazać.
+     */
+    const szczegoly = gotowosc.dane.brakiSzczegolow;
+    const dopisek = szczegoly.length > 0 ? ` Konkretnie: ${szczegoly.join(", ")}.` : "";
+
     return {
       status: "bledy",
-      bledy: { _: [`Do publikacji brakuje jeszcze: ${czego}. Wróć do wcześniejszych kroków.`] },
+      bledy: {
+        _: [`Do publikacji brakuje jeszcze: ${czego}. Wróć do wcześniejszych kroków.${dopisek}`],
+      },
       wartosci: {},
     };
   }
@@ -246,4 +261,67 @@ export async function wyslijDoZatwierdzenia(
   if (!wynik.ok) return odmowa(wynik.powod);
 
   redirect("/panel?opublikowano=1");
+}
+
+/**
+ * Krok 5: szczegóły lokalu.
+ *
+ * Osobna akcja od szczegółów usługodawcy, a nie jedna z rozgałęzieniem
+ * w środku. Zestawy pytań nie mają ze sobą nic wspólnego poza tym, że
+ * stoją na tym samym kroku, a wspólna akcja musiałaby zgadywać rodzaj
+ * z zawartości formularza, czyli z wejścia. Rodzaj firmy jest w bazie
+ * i tam go sprawdzamy.
+ */
+export async function zapiszKrokSzczegolowLokalu(
+  _poprzedni: StanFormularza,
+  dane: FormData,
+): Promise<StanFormularza> {
+  const wejscie = sprawdz(szczegolyLokalu, dane);
+  if (!wejscie.ok) return wejscie.stan;
+
+  const widz = await widzKreatora();
+  const szkic = await szkicAlboOdmowa(widz);
+  if (!szkic.ok) return szkic.stan;
+
+  const wynik = await zapiszSzczegolyLokalu(widz, szkic.companyId, wejscie.dane);
+  if (!wynik.ok) return odmowa(wynik.powod);
+
+  return { status: "zapisano" };
+}
+
+/** Krok 5: szczegóły usługodawcy, razem z listą „co jest w cenie”. */
+export async function zapiszKrokSzczegolowUslugodawcy(
+  _poprzedni: StanFormularza,
+  dane: FormData,
+): Promise<StanFormularza> {
+  const wejscie = sprawdz(szczegolyUslugodawcy, dane);
+  if (!wejscie.ok) return wejscie.stan;
+
+  /*
+   * Lista „co w cenie” jedzie jako wiele pól o tej samej nazwie, więc
+   * bierzemy ją przez `getAll`, a nie przez `Object.fromEntries` jak resztę.
+   * Ta druga droga zostawia z kilku pozycji wyłącznie ostatnią i robi to
+   * po cichu: formularz z pięcioma pozycjami zapisuje jedną, bez błędu.
+   *
+   * Puste pozycje odsiewamy tutaj, bo człowiek zostawia puste wiersze
+   * po skasowaniu treści, a nie po to, żeby zapisać pustą pozycję.
+   */
+  const wCenie = dane
+    .getAll("wCenie")
+    .map((w) => (typeof w === "string" ? w.trim() : ""))
+    .filter((w) => w !== "");
+
+  const pozycje = listaWCenie.safeParse(wCenie);
+  if (!pozycje.success) {
+    return bladPola("wCenie", pozycje.error.issues[0]?.message ?? "Popraw listę pozycji.");
+  }
+
+  const widz = await widzKreatora();
+  const szkic = await szkicAlboOdmowa(widz);
+  if (!szkic.ok) return szkic.stan;
+
+  const wynik = await zapiszSzczegolyUslugodawcy(widz, szkic.companyId, wejscie.dane, pozycje.data);
+  if (!wynik.ok) return odmowa(wynik.powod);
+
+  return { status: "zapisano" };
 }

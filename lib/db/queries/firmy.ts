@@ -8,7 +8,7 @@
  * Profil jest publiczny, więc nie ma tu ściany abonamentowej. Jest za to
  * rozróżnienie statusów, które decyduje o tym, czy strona w ogóle istnieje.
  */
-import { and, asc, eq, gte, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { cities } from "@/lib/db/schema/geografia";
 import {
@@ -19,6 +19,7 @@ import {
   companyClaims,
   companyMembers,
 } from "@/lib/db/schema/katalog";
+import { moderationSubmissions } from "@/lib/db/schema/moderacja";
 import {
   mozeEdytowacProfil,
   mozeZglosicPrzejecie,
@@ -74,6 +75,18 @@ export async function pobierzProfilFirmy(widz: Widz, slug: string): Promise<Prof
       pojemnoscMin: companies.capacityMin,
       pojemnoscMax: companies.capacityMax,
       status: companies.status,
+      /*
+       * Czy wpis przeszedł moderację. Podzapytanie, a nie złączenie, bo
+       * zgłoszeń dla jednej firmy jest wiele: pierwsze przy publikacji,
+       * potem po jednym na każdą zmianę. Złączenie zwielokrotniłoby wiersz
+       * firmy i trzeba by go składać z powrotem.
+       */
+      zaakceptowany: sql<boolean>`exists (
+        select 1 from ${moderationSubmissions}
+        where ${moderationSubmissions.subjectKind} = 'company'
+          and ${moderationSubmissions.subjectId} = ${companies.id}
+          and ${moderationSubmissions.status} = 'approved'
+      )`,
       miasto: cities.name,
       powiat: cities.powiat,
       wojewodztwo: cities.wojewodztwo,
@@ -95,9 +108,11 @@ export async function pobierzProfilFirmy(widz: Widz, slug: string): Promise<Prof
   const widocznosc = widocznoscProfilu(widz, {
     status: firma.status,
     czlonekTejFirmy,
+    zaakceptowany: firma.zaakceptowany,
   });
 
-  // Zawieszony profil kończy się tutaj i nie pobieramy dla niego niczego więcej.
+  // Zawieszony albo nieprzejrzany profil kończy się tutaj i nie pobieramy
+  // dla niego niczego więcej.
   if (!widocznosc.widoczny) return null;
 
   const kategorieFirmy = await db

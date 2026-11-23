@@ -10,7 +10,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { hash } from "@node-rs/argon2";
+import { eq } from "drizzle-orm";
 import { cenaRocznaStartGrosze, klasaKategorii } from "@/content/cennik";
+import { czyRodzajLokalu } from "@/content/rodzaje-lokali";
 import { db, schema } from "./index";
 
 /**
@@ -88,6 +90,12 @@ const MIASTA = [
 ];
 
 const KATEGORIE = [
+  /*
+   * `sale` zostaje w słowniku, choć żadna firma z zasiewu już jej nie używa.
+   * Korzysta z niej tests/przejecie.test.ts jako kategorii istniejącej
+   * w bazie, a nieprzypisanej żadnej firmie, więc jej usunięcie wywaliłoby
+   * tamten test z powodu niemającego z nim nic wspólnego.
+   */
   { slug: "sale", name: "Sale i lokale" },
   { slug: "catering", name: "Catering" },
   { slug: "fotograf", name: "Fotograf" },
@@ -130,12 +138,23 @@ const OKAZJE = [
  * Złośliwość zostaje tam, gdzie coś sprawdza: apostrof w nazwie, pusty opis,
  * brak ceny, firma należąca do dwóch kategorii.
  */
+/*
+ * KATEGORIA LOKALU TO RODZAJ LOKALU, NIE „sale”.
+ *
+ * Cztery pierwsze firmy miały wcześniej kategorię `sale`, czyli slug, który
+ * nie występuje ani w content/rodzaje-lokali.ts, ani w content/kategorie.ts.
+ * Skutek był taki, że żadna firma z zasiewu nie pojawiała się na stronie
+ * „Lokale i sale”: ta strona pyta o slugi rodzajów lokali, a w bazie
+ * leżało coś, czego nie ma w żadnym słowniku. Wyszło dopiero przy
+ * wprowadzaniu rodzaju firmy do bazy, bo rodzaj wyprowadza się z tej samej
+ * kategorii i wszystkie 300 firm wyszło usługodawcami.
+ */
 const NAZWY_FIRM: ReadonlyArray<{ nazwa: string; kategoria: string }> = [
-  { nazwa: "Dworek pod Dębem", kategoria: "sale" },
+  { nazwa: "Dworek pod Dębem", kategoria: "sala-weselna" },
   // Apostrof w nazwie: wariant złośliwy dla slugów i dla cytowania w SQL.
-  { nazwa: "Zajazd u Grzegorza'a", kategoria: "sale" },
-  { nazwa: "Willa Źródło", kategoria: "sale" },
-  { nazwa: "Sala Bankietowa Łąka", kategoria: "sale" },
+  { nazwa: "Zajazd u Grzegorza'a", kategoria: "sala-weselna" },
+  { nazwa: "Willa Źródło", kategoria: "sala-weselna" },
+  { nazwa: "Sala Bankietowa Łąka", kategoria: "sala-weselna" },
   { nazwa: "Kuchnia Ćwierć Miary", kategoria: "catering" },
   { nazwa: "Stół Świętokrzyski", kategoria: "catering" },
   { nazwa: "Fotografia Ćmielów", kategoria: "fotograf" },
@@ -438,6 +457,28 @@ export async function zasiej(): Promise<void> {
     .insert(schema.companyCategories)
     .values(firmy.map((f, i) => ({ companyId: f.id, categoryId: kategoriaFirmy(i).id })));
 
+  /*
+   * Rodzaj firmy: lokal czy usługodawca.
+   *
+   * Ustawiany tu, a nie przy wstawianiu firm, bo wynika z kategorii,
+   * a tę przypisujemy dopiero teraz. Wyprowadzony ze slugu przez
+   * `czyRodzajLokalu`, czyli tą samą funkcją, której używa kreator:
+   * drugi sposób liczenia tego samego rozjechałby się przy pierwszym
+   * dopisaniu rodzaju lokalu do słownika.
+   *
+   * KONIECZNE, nie ozdobne. Migracja 0016 uzupełnia rodzaj z kategorii,
+   * ale migracje idą przed zasiewem, więc firmy zakładane tutaj nie mają
+   * jak się na to uzupełnienie załapać. Bez tej pętli każda firma
+   * z zasiewu ma pusty rodzaj i nie jest ani lokalem, ani usługodawcą:
+   * nie da się do niej dodać imprezy ani pokazać jej pytań szczegółowych.
+   */
+  for (const [i, firma] of firmy.entries()) {
+    await db
+      .update(schema.companies)
+      .set({ kind: czyRodzajLokalu(kategoriaFirmy(i).slug) ? "venue" : "service" })
+      .where(eq(schema.companies.id, firma.id));
+  }
+
   // Członkostwa i abonamenty. Cztery warianty firm, bo na nich stoi cała
   // reguła „co kto widzi” po stronie firmowej:
   //
@@ -662,6 +703,165 @@ export async function zasiej(): Promise<void> {
   const rozpatrzonoWczoraj = new Date();
   rozpatrzonoWczoraj.setDate(rozpatrzonoWczoraj.getDate() - 1);
 
+  /*
+   * Zgody moderacji dla wszystkich firm z zasiewu.
+   *
+   * KONIECZNE, nie ozdobne. Od migracji 0015 widoczność w katalogu wymaga
+   * przyjętego zgłoszenia, a migracje idą przed zasiewem, więc firmy
+   * zakładane tutaj nie mają jak załapać się na uzupełnienie historii
+   * z migracji. Bez tej wstawki `pnpm db:reset` daje pusty katalog
+   * i sypie się połowa testów, w miejscach niemających nic wspólnego
+   * z moderacją.
+   *
+   * Moderator jest pusty, tak samo jak w uzupełnieniu historii z migracji:
+   * tych wpisów nikt nie przeglądał, bo powstały razem z bazą.
+   */
+  const moderator = uzytkownicy[19];
+  if (!moderator) throw new Error("Zasiew: brak konta moderatora.");
+
+  await db.insert(schema.moderationSubmissions).values(
+    firmy.map((firma) => ({
+      subjectKind: "company" as const,
+      subjectId: firma.id,
+      status: "approved" as const,
+      decidedAt: new Date(),
+    })),
+  );
+
+  /*
+   * Dwa zgłoszenia zmian, żeby kolejka moderacji miała na czym stanąć.
+   *
+   * Oba dotyczą firm **już przyjętych i widocznych w katalogu**, i to jest
+   * sedno tego zasiewu: pokazuje regułę, że oczekująca albo odrzucona
+   * poprawka nie wyrzuca firmy z katalogu. Zgłoszenie na firmie niewidocznej
+   * nie dowiodłoby niczego, bo nie dałoby się odróżnić „wypadła przez
+   * moderację” od „nigdy jej tam nie było”.
+   *
+   * firma-5  zmiana czeka na decyzję
+   * firma-6  zmiana odrzucona, z komentarzem dla właściciela
+   */
+  const [, , , , firmaZeZmianaWKolejce, firmaZOdrzuconaZmiana] = firmy;
+  if (!firmaZeZmianaWKolejce || !firmaZOdrzuconaZmiana) {
+    throw new Error("Zasiew: za mało firm na warianty moderacji.");
+  }
+
+  await db.insert(schema.moderationSubmissions).values([
+    {
+      subjectKind: "company_change" as const,
+      subjectId: firmaZeZmianaWKolejce.id,
+      status: "pending" as const,
+    },
+    {
+      subjectKind: "company_change" as const,
+      subjectId: firmaZOdrzuconaZmiana.id,
+      status: "rejected" as const,
+      decidedAt: new Date(),
+      decidedByUserId: moderator.id,
+      reason:
+        "Opis obiecuje nocleg, a w danych nie ma pokoi. Dopisz liczbę miejsc albo usuń tę obietnicę.",
+    },
+  ]);
+
+  /*
+   * Imprezy. Trzy warianty, bo na nich stoją trzy różne reguły:
+   *
+   *   zaakceptowana  widoczna w zapowiedziach i pod swoim adresem
+   *   oczekująca     istnieje, widzi ją tylko jej lokal
+   *   po dacie       zaakceptowana, ale wypadła z zapowiedzi
+   *
+   * Trzeci wariant jest tu najważniejszy i najłatwiejszy do przeoczenia:
+   * bez niego nie da się odróżnić zapytania, które filtruje po dacie,
+   * od takiego, które po prostu pokazuje wszystko zaakceptowane.
+   *
+   * Wszystkie przy firmie-1, bo ona jest aktywna, ma abonament i zgodę
+   * moderacji, czyli jedyna w zasiewie spełnia warunek widoczności lokalu.
+   */
+  const okazjaSylwester = okazje.find((o) => o.slug === "urodziny") ?? okazje[0];
+  if (!okazjaSylwester) throw new Error("Zasiew: brak okazji dla imprez.");
+
+  const zaMiesiac = new Date();
+  zaMiesiac.setMonth(zaMiesiac.getMonth() + 1);
+  const wTygodniu = new Date();
+  wTygodniu.setDate(wTygodniu.getDate() + 7);
+  const wZeszlymMiesiacu = new Date();
+  wZeszlymMiesiacu.setMonth(wZeszlymMiesiacu.getMonth() - 1);
+
+  const dzien = (data: Date) => data.toISOString().slice(0, 10);
+
+  const wstawioneImprezy = await db
+    .insert(schema.events)
+    .values([
+      {
+        companyId: firmaAktywna.id,
+        slug: "zasiew-impreza-widoczna",
+        name: "Wieczór z muzyką na żywo",
+        eventTypeId: okazjaSylwester.id,
+        eventDate: dzien(zaMiesiac),
+        startsAt: "20:00",
+        endsAt: "23:00",
+        ticketPrice: 8000,
+        description:
+          "Koncert zespołu i kolacja w cenie biletu. Sala na sto osób, parking przy obiekcie.",
+        adultsOnly: false,
+      },
+      {
+        companyId: firmaAktywna.id,
+        slug: "zasiew-impreza-oczekujaca",
+        name: "Potańcówka w stodole",
+        eventTypeId: okazjaSylwester.id,
+        eventDate: dzien(wTygodniu),
+        startsAt: "19:00",
+        // Koniec pusty: gramy do ostatniego gościa. To poprawny stan,
+        // a nie brak danych, i zasiew ma go pokrywać.
+        endsAt: null,
+        ticketPrice: null,
+        description:
+          "Wstęp wolny, gramy do ostatniego gościa. Bufet i bar czynne przez cały wieczór.",
+        adultsOnly: true,
+      },
+      {
+        companyId: firmaAktywna.id,
+        slug: "zasiew-impreza-po-dacie",
+        name: "Andrzejki zeszłoroczne",
+        eventTypeId: okazjaSylwester.id,
+        eventDate: dzien(wZeszlymMiesiacu),
+        startsAt: "20:00",
+        endsAt: "23:30",
+        ticketPrice: 12000,
+        description:
+          "Impreza, która już się odbyła. Zostaje pod swoim adresem, znika z zapowiedzi.",
+        adultsOnly: false,
+      },
+    ])
+    .returning();
+
+  const [imprezaWidoczna, imprezaOczekujaca, imprezaPoDacie] = wstawioneImprezy;
+  if (!imprezaWidoczna || !imprezaOczekujaca || !imprezaPoDacie) {
+    throw new Error("Zasiew: nie wstawiono kompletu imprez.");
+  }
+
+  await db.insert(schema.moderationSubmissions).values([
+    {
+      subjectKind: "event" as const,
+      subjectId: imprezaWidoczna.id,
+      status: "approved" as const,
+      decidedAt: new Date(),
+      decidedByUserId: moderator.id,
+    },
+    {
+      subjectKind: "event" as const,
+      subjectId: imprezaPoDacie.id,
+      status: "approved" as const,
+      decidedAt: new Date(),
+      decidedByUserId: moderator.id,
+    },
+    {
+      subjectKind: "event" as const,
+      subjectId: imprezaOczekujaca.id,
+      status: "pending" as const,
+    },
+  ]);
+
   await db.insert(schema.companyClaims).values([
     {
       companyId: firmaDoPrzejecia.id,
@@ -762,6 +962,37 @@ export async function zasiej(): Promise<void> {
       }),
     )
     .returning();
+
+  /*
+   * Zgody moderacji dla zleceń z zasiewu.
+   *
+   * Konieczne z tego samego powodu co przy firmach: od chwili, w której
+   * widoczność na giełdzie zależy od przyjętego zgłoszenia, zlecenie bez
+   * wiersza w tej tabeli jest niewidoczne. Bez tej wstawki `pnpm db:reset`
+   * daje pustą giełdę i sypie się komplet testów uprawnień, w miejscach
+   * niemających nic wspólnego z moderacją.
+   *
+   * Jedno zlecenie zostaje oczekujące, żeby reguła „niezaakceptowane nie
+   * trafia na giełdę” miała na czym się pokazać. Bierzemy ostatnie z listy,
+   * a nie pierwsze z brzegu: zlecenia o niskich numerach mają przypisane
+   * scenariusze ofert i limitu planu, więc zabranie któregoś z nich
+   * z giełdy wywróciłoby tamte testy z powodu niemającego z nimi związku.
+   */
+  const zlecenieOczekujace = zlecenia[zlecenia.length - 1];
+  if (!zlecenieOczekujace) throw new Error("Zasiew: brak zleceń do moderacji.");
+
+  await db.insert(schema.moderationSubmissions).values(
+    zlecenia.map((zlecenie) =>
+      zlecenie.id === zlecenieOczekujace.id
+        ? { subjectKind: "request" as const, subjectId: zlecenie.id, status: "pending" as const }
+        : {
+            subjectKind: "request" as const,
+            subjectId: zlecenie.id,
+            status: "approved" as const,
+            decidedAt: new Date(),
+          },
+    ),
+  );
 
   /*
    * Oferty. Cztery scenariusze, każdy pod inną regułę:

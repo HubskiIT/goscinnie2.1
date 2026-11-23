@@ -19,6 +19,7 @@ import { requests } from "@/lib/db/schema/gielda";
 import {
   KOD_HTTP,
   mozeDodacZlecenie,
+  mozeModerowac,
   mozeZlozycOferte,
   mozeZobaczycKontakt,
   mozeZobaczycSzczegoly,
@@ -63,48 +64,112 @@ describe("kody HTTP niosące logikę biznesową", () => {
   });
 });
 
-describe("domyślna odmowa: gałąź, której nie ma, nie przepuszcza", () => {
-  // Najgroźniejszy błąd w tym projekcie to gałąź uprawnień, która jeszcze
-  // nie istnieje i dlatego przepuszcza wszystko. Ten blok pilnuje, że każda
-  // niezaimplementowana gałąź rzuca, zamiast zwracać cokolwiek.
-  // Lista kurczy się z każdym plastrem. Klient i autor zeszły z niej razem
-  // z sesjami, firma razem z abonamentami. Zostaje moderator, czekający
-  // na panel moderacji.
-  const niezaimplementowani: ReadonlyArray<readonly [string, Widz]> = [
-    ["moderator", { rodzaj: "moderator", userId: "u5" }],
-  ];
+describe("domyślna odmowa: widz spoza typu nie przepuszcza", () => {
+  /*
+   * Najgroźniejszy błąd w tym projekcie to gałąź uprawnień, która nie
+   * istnieje i dlatego przepuszcza wszystko. Lista niezaimplementowanych
+   * widzów jest już pusta: moderator wszedł razem z kolejką moderacji
+   * i ma własny blok niżej.
+   *
+   * Została siatka pod dopisaniem nowego wariantu do typu `Widz`.
+   * TypeScript złapie brak gałęzi na przypisaniu do `never`, ale dopiero
+   * przy kompilacji, a ten test sprawdza, co się dzieje w działającym
+   * programie: ma polecieć wyjątek, a nie wrócić pusty obiekt albo
+   * komplet danych. Rzutowanie przez `unknown` jest tutaj celowe, bo
+   * inaczej takiego widza nie da się zbudować.
+   */
+  const NIEZNANY = { rodzaj: "ksiegowy", userId: "u9" } as unknown as Widz;
 
-  for (const [nazwa, widz] of niezaimplementowani) {
-    it(`widocznoscZlecenia rzuca dla widza: ${nazwa}`, () => {
-      expect(() => widocznoscZlecenia(widz)).toThrow(NiezaimplementowanaGalazUprawnien);
-    });
+  it("widocznoscZlecenia rzuca", () => {
+    expect(() => widocznoscZlecenia(NIEZNANY)).toThrow(NiezaimplementowanaGalazUprawnien);
+  });
 
-    it(`mozeZobaczycSzczegoly rzuca dla widza: ${nazwa}`, () => {
-      expect(() => mozeZobaczycSzczegoly(widz)).toThrow(NiezaimplementowanaGalazUprawnien);
-    });
+  it("mozeZobaczycSzczegoly rzuca", () => {
+    expect(() => mozeZobaczycSzczegoly(NIEZNANY)).toThrow(NiezaimplementowanaGalazUprawnien);
+  });
 
-    it(`mozeZlozycOferte rzuca dla widza: ${nazwa}`, () => {
-      expect(() =>
-        mozeZlozycOferte(widz, {
-          requestId: "z1",
-          jestJuzOferta: false,
-          przyjmujeOferty: true,
-          ofertWOkresie: 0,
-          limitPlanu: 15,
-        }),
-      ).toThrow(NiezaimplementowanaGalazUprawnien);
-    });
+  it("mozeZobaczycKontakt rzuca", () => {
+    expect(() => mozeZobaczycKontakt(NIEZNANY, true)).toThrow(NiezaimplementowanaGalazUprawnien);
+  });
 
-    it(`mozeZobaczycKontakt rzuca dla widza: ${nazwa}`, () => {
-      expect(() => mozeZobaczycKontakt(widz, true)).toThrow(NiezaimplementowanaGalazUprawnien);
-    });
-  }
-
-  it("zapytanie o listę rzuca dla widza, którego gałąź nie istnieje", async () => {
-    const moderator: Widz = { rodzaj: "moderator", userId: "u5" };
-    await expect(pobierzListeZlecen(moderator, { limit: 5, offset: 0 })).rejects.toThrow(
+  it("zapytanie o listę rzuca, zanim dotknie bazy", async () => {
+    await expect(pobierzListeZlecen(NIEZNANY, { limit: 5, offset: 0 })).rejects.toThrow(
       NiezaimplementowanaGalazUprawnien,
     );
+  });
+});
+
+describe("moderator: widzi treść, którą ocenia, i nic ponadto", () => {
+  const MODERATOR: Widz = { rodzaj: "moderator", userId: "66666666-6666-4666-8666-666666666666" };
+
+  it("widzi cały opis zlecenia, bo to on podlega moderacji", () => {
+    expect(widocznoscZlecenia(MODERATOR).opis).toEqual({ rodzaj: "caly" });
+  });
+
+  it("nie widzi budżetu ani danych kontaktowych", () => {
+    /*
+     * Budżet nie podlega moderacji: nie da się go zgłosić i nie ma czego
+     * w nim rozstrzygać. To kolumna, za którą firmy płacą abonament.
+     */
+    const widocznosc = widocznoscZlecenia(MODERATOR);
+    expect(widocznosc.budzet).toBe(false);
+    expect(widocznosc.daneKontaktowe).toBe(false);
+  });
+
+  it("nie widzi liczby ofert ani cen konkurencji", () => {
+    // Te dwa pola widzi wyłącznie autor zlecenia. Rola administratora
+    // niczego tu nie zmienia.
+    const widocznosc = widocznoscZlecenia(MODERATOR);
+    expect(widocznosc.liczbaOfert).toBe(false);
+    expect(widocznosc.cenyKonkurencji).toBe(false);
+  });
+
+  it("widzi lokalizację z dokładnością do powiatu, jak obcy", () => {
+    expect(widocznoscZlecenia(MODERATOR).lokalizacja).toBe("powiat");
+  });
+
+  it("nie składa ofert", () => {
+    expect(
+      mozeZlozycOferte(MODERATOR, {
+        requestId: "z1",
+        jestJuzOferta: false,
+        przyjmujeOferty: true,
+        ofertWOkresie: 0,
+        limitPlanu: 15,
+      }),
+    ).toEqual({ wolno: false, powod: "brak-dostepu" });
+  });
+
+  it("nie widzi danych kontaktowych nawet przy wpisie na krótkiej liście", () => {
+    // Krótka lista jest decyzją klienta wobec konkretnej firmy.
+    // Moderator nie jest stroną tej rozmowy i wpis na niej go nie dotyczy.
+    expect(mozeZobaczycKontakt(MODERATOR, true)).toEqual({
+      wolno: false,
+      powod: "brak-dostepu",
+    });
+  });
+
+  it("może moderować, a nikt inny nie może", () => {
+    expect(mozeModerowac(MODERATOR)).toEqual({ wolno: true });
+
+    /*
+     * Instancja pozytywna wyżej jest konieczna: bez niej funkcja
+     * odmawiająca wszystkim przeszłaby komplet przypadków niżej.
+     */
+    const pozostali: readonly Widz[] = [
+      ANONIM,
+      { rodzaj: "klient", userId: "22222222-2222-4222-8222-222222222222" },
+      { rodzaj: "autor", userId: "33333333-3333-4333-8333-333333333333" },
+      {
+        rodzaj: "firma",
+        userId: "44444444-4444-4444-8444-444444444444",
+        companyId: "55555555-5555-4555-8555-555555555555",
+        abonament: true,
+      },
+    ];
+    for (const widz of pozostali) {
+      expect(mozeModerowac(widz)).toEqual({ wolno: false, powod: "brak-dostepu" });
+    }
   });
 });
 
@@ -392,7 +457,9 @@ describe("kto może wystawić zlecenie", () => {
     expect(mozeDodacZlecenie(ANONIM)).toEqual({ wolno: false, powod: "brak-dostepu" });
   });
 
-  it("moderator rzuca, bo jego gałęzi jeszcze nie napisano", () => {
-    expect(() => mozeDodacZlecenie(MODERATOR)).toThrow(NiezaimplementowanaGalazUprawnien);
+  it("moderator nie wystawia zleceń, bo oceniałby własną treść", () => {
+    // To nie jest zakaz dla człowieka, tylko dla roli: od wystawiania
+    // zleceń jest zwykłe konto klienta, założone osobno.
+    expect(mozeDodacZlecenie(MODERATOR)).toEqual({ wolno: false, powod: "brak-dostepu" });
   });
 });

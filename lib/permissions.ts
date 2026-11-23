@@ -23,9 +23,11 @@
  * 3. Abonament jest aktywny, gdy `status = 'active'` **i** `expires_at > now()`.
  *    Oba warunki, zawsze.
  *
- * STAN PLIKU: zaimplementowane są gałęzie anonima, klienta, autora zlecenia
- * oraz firmy, z abonamentem i bez. Moderator wciąż rzuca. Składanie ofert
- * (mozeZlozycOferte dla firmy) czeka na osobny plaster.
+ * STAN PLIKU: zaimplementowane są wszystkie pięć gałęzi, moderatora
+ * włącznie. Moderator jest celowo wąski: widzi treść, którą ocenia, i nie
+ * może nic, co robi klient albo firma. Nie składa ofert, nie wystawia
+ * zleceń, nie zgłasza przejęć, nie widzi budżetów ani danych kontaktowych.
+ * Uzasadnienie każdej z tych odmów stoi przy niej.
  */
 
 /** Kto pyta. Kolejność odpowiada kolumnom tabeli w docs/uprawnienia.md. */
@@ -126,14 +128,6 @@ export class NiezaimplementowanaGalazUprawnien extends Error {
   }
 }
 
-/** Czytelny opis widza do komunikatów błędów. Firma rozbita po abonamencie. */
-function opiszWidza(widz: Widz): string {
-  if (widz.rodzaj === "firma") {
-    return widz.abonament ? "firma z abonamentem" : "firma bez abonamentu";
-  }
-  return widz.rodzaj;
-}
-
 /**
  * Co ten widz może zobaczyć w zleceniu.
  * Wywoływane przez zapytania w lib/db/queries/, zanim zbudują `select`.
@@ -207,8 +201,34 @@ export function widocznoscZlecenia(widz: Widz): WidocznoscZlecenia {
         cenyKonkurencji: false,
       };
 
+    /*
+     * Moderator widzi to, co ma ocenić, i ani pola więcej.
+     *
+     * Przedmiotem moderacji jest **opis** wpisany przez klienta: to w nim
+     * trafiają się numery telefonu, adresy i treści, których na giełdzie
+     * być nie powinno. Dlatego opis w całości.
+     *
+     * Budżetu nie widzi, choć bywa kuszące dać mu wszystko „bo i tak jest
+     * administratorem”. Budżet nie podlega moderacji: nie da się go zgłosić,
+     * nie da się go naruszyć i nie ma czego w nim rozstrzygać. To kolumna,
+     * za którą firmy płacą abonament, więc wchodzi tylko tam, gdzie jest
+     * potrzebna, a tutaj nie jest.
+     *
+     * Dane kontaktowe tym bardziej: odsłania je wyłącznie krótka lista,
+     * czyli działanie klienta, a moderator nie jest stroną tej rozmowy.
+     */
     case "moderator":
-      throw new NiezaimplementowanaGalazUprawnien(opiszWidza(widz), "widocznoscZlecenia");
+      return {
+        rodzajOkazji: true,
+        dataWydarzenia: true,
+        liczbaOsob: true,
+        lokalizacja: "powiat",
+        opis: { rodzaj: "caly" },
+        budzet: false,
+        daneKontaktowe: false,
+        liczbaOfert: false,
+        cenyKonkurencji: false,
+      };
 
     default: {
       // Jeśli ktoś dopisze wariant do typu Widz i zapomni o gałęzi tutaj,
@@ -239,7 +259,9 @@ export function mozeZobaczycSzczegoly(widz: Widz): Rozstrzygniecie {
       return { wolno: true };
 
     case "moderator":
-      throw new NiezaimplementowanaGalazUprawnien(opiszWidza(widz), "mozeZobaczycSzczegoly");
+      // Widzi zlecenie w zakresie z widocznoscZlecenia, czyli z opisem
+      // i bez budżetu. Bez tego nie miałby czego moderować.
+      return { wolno: true };
 
     default: {
       const nigdy: never = widz;
@@ -319,8 +341,14 @@ export function mozeZlozycOferte(widz: Widz, kontekst: KontekstOferty): Rozstrzy
       return { wolno: true };
     }
 
+    /*
+     * Moderator nie składa ofert. Nie jest firmą, nie ma abonamentu i nie
+     * ma planu, z którego miałby liczyć limit, a dopuszczenie go tutaj
+     * znaczyłoby, że ten sam człowiek ocenia zlecenia i staje o nie
+     * w szranki z firmami, które za to płacą.
+     */
     case "moderator":
-      throw new NiezaimplementowanaGalazUprawnien(opiszWidza(widz), "mozeZlozycOferte");
+      return { wolno: false, powod: "brak-dostepu" };
 
     default: {
       const nigdy: never = widz;
@@ -352,8 +380,13 @@ export function mozeWycofacOferte(widz: Widz, kontekst: KontekstWycofania): Rozs
       if (kontekst.naKrotkiejLiscie) return { wolno: false, powod: "brak-dostepu" };
       return { wolno: true };
 
+    /*
+     * Nie ma czego wycofywać: moderator nie składa ofert. Zdjęcie oferty
+     * naruszającej zasady jest decyzją moderacyjną i idzie przez kolejkę
+     * z lib/db/queries/moderacja.ts, a nie przez cudzy przycisk „wycofaj”.
+     */
     case "moderator":
-      throw new NiezaimplementowanaGalazUprawnien(opiszWidza(widz), "mozeWycofacOferte");
+      return { wolno: false, powod: "brak-dostepu" };
 
     default: {
       const nigdy: never = widz;
@@ -386,8 +419,13 @@ export function mozeZarzadzacKrotkaLista(widz: Widz): Rozstrzygniecie {
     case "firma":
       return { wolno: false, powod: "brak-dostepu" };
 
+    /*
+     * Krótka lista należy do klienta i tylko do niego: wpis na niej odsłania
+     * firmie jego dane kontaktowe. Moderator dopisujący kogoś do cudzej
+     * krótkiej listy ujawniałby cudze dane cudzej firmie.
+     */
     case "moderator":
-      throw new NiezaimplementowanaGalazUprawnien(opiszWidza(widz), "mozeZarzadzacKrotkaLista");
+      return { wolno: false, powod: "brak-dostepu" };
 
     default: {
       const nigdy: never = widz;
@@ -423,8 +461,13 @@ export function mozeDodacZlecenie(widz: Widz): Rozstrzygniecie {
     case "anonim":
       return { wolno: false, powod: "brak-dostepu" };
 
+    /*
+     * Konto moderatora nie wystawia zleceń, bo oceniałoby własną treść.
+     * To nie jest zakaz dla człowieka, tylko dla roli: od wystawiania
+     * zleceń jest zwykłe konto klienta, założone osobno.
+     */
     case "moderator":
-      throw new NiezaimplementowanaGalazUprawnien(opiszWidza(widz), "mozeDodacZlecenie");
+      return { wolno: false, powod: "brak-dostepu" };
 
     default: {
       const nigdy: never = widz;
@@ -461,8 +504,12 @@ export function zakresOfert(widz: Widz): Rozstrzygniecie & { zakres?: ZakresOfer
     case "klient":
       return { wolno: false, powod: "brak-dostepu" };
 
+    /*
+     * Ceny ofert są tym, czego nie widzi nawet firma z abonamentem.
+     * Moderacja dotyczy treści, nie cen, więc nie ma tu czego oglądać.
+     */
     case "moderator":
-      throw new NiezaimplementowanaGalazUprawnien(opiszWidza(widz), "zakresOfert");
+      return { wolno: false, powod: "brak-dostepu" };
 
     default: {
       const nigdy: never = widz;
@@ -481,6 +528,15 @@ export type KontekstProfilu = {
   status: StatusProfilu;
   /** Czy pytający należy do tej firmy. */
   czlonekTejFirmy: boolean;
+  /**
+   * Czy wpis przeszedł moderację.
+   *
+   * Osobno od `status`, bo to dwie różne rzeczy: status mówi, w jakim
+   * stanie jest firma (szkic, aktywna, wizytówka, zawieszona), a to mówi,
+   * czy ktokolwiek ten wpis przejrzał. Firma może być aktywna i czekać
+   * na akceptację zmiany, i może być szkicem już zaakceptowanym.
+   */
+  zaakceptowany: boolean;
 };
 
 export type WidocznoscProfilu = {
@@ -525,6 +581,27 @@ export function widocznoscProfilu(widz: Widz, kontekst: KontekstProfilu): Widocz
     };
   }
 
+  /*
+   * Wpis przed akceptacją jest niewidoczny dla świata, tak samo jak
+   * zawieszony: prawdziwe 404, nie pusta strona z nagłówkiem.
+   *
+   * Dwa wyjątki, oba konieczne:
+   *
+   *   - moderator, bo inaczej nie miałby jak obejrzeć tego, co ocenia,
+   *     a kolejka pokazywałaby same nazwy,
+   *   - członek tej firmy, bo to jego wpis i ma widzieć, co wysłał.
+   *     Bez tego kreator kończyłby się ekranem 404 na własnym profilu,
+   *     co każdy przeczyta jako awarię, a nie jako oczekiwanie na decyzję.
+   */
+  if (!kontekst.zaakceptowany && widz.rodzaj !== "moderator" && !kontekst.czlonekTejFirmy) {
+    return {
+      widoczny: false,
+      kalendarz: false,
+      wezwanieDoPrzejecia: false,
+      daneKontaktowe: false,
+    };
+  }
+
   return {
     widoczny: true,
     kalendarz: kontekst.status === "active",
@@ -549,6 +626,13 @@ export function mozeZglosicPrzejecie(widz: Widz, czlonekTejFirmy: boolean): Rozs
   upewnijSieZeGalazUprawnienIstnieje(widz, "mozeZglosicPrzejecie");
 
   if (widz.rodzaj === "anonim") return { wolno: false, powod: "brak-dostepu" };
+  /*
+   * Moderator rozpatruje wnioski o przejęcie, więc sam ich nie składa.
+   * Bez tej linii przechodziłby warunek niżej jak każdy obcy i wypadał
+   * na kogoś, kto może zgłosić się po dowolną firmę w katalogu, a potem
+   * sam swój wniosek zatwierdzić.
+   */
+  if (widz.rodzaj === "moderator") return { wolno: false, powod: "brak-dostepu" };
   if (czlonekTejFirmy) return { wolno: false, powod: "brak-dostepu" };
   return { wolno: true };
 }
@@ -568,6 +652,42 @@ export function mozeEdytowacProfil(widz: Widz, czlonekTejFirmy: boolean): Rozstr
 }
 
 /**
+ * Czy ten widz może oglądać kolejkę moderacji i rozstrzygać zgłoszenia.
+ *
+ * Jedna funkcja na oba, bo to jedno uprawnienie: nie ma sensu wpuszczać
+ * kogoś do kolejki bez prawa decyzji ani odwrotnie. Rozdzielimy je, gdy
+ * pojawi się rola, która ma tylko podglądać.
+ *
+ * Rola bierze się z kolumny `users.role`, a rozpoznaje ją `widzZZadania`.
+ * **Moderator wygrywa z członkostwem w firmie**: konto z rolą moderatora
+ * jest kontem administracyjnym i nie prowadzi działalności w serwisie.
+ * Uzasadnienie i skutki opisane w lib/auth/widz.ts.
+ */
+export function mozeModerowac(widz: Widz): Rozstrzygniecie {
+  switch (widz.rodzaj) {
+    case "moderator":
+      return { wolno: true };
+
+    case "anonim":
+    case "klient":
+    case "autor":
+    case "firma":
+      /*
+       * Jedna odmowa dla wszystkich i celowo nierozróżnialna. Komunikat
+       * w rodzaju „nie jesteś moderatorem” przy jednych, a „zaloguj się”
+       * przy drugich, mówiłby obcemu, że takie konto w ogóle istnieje
+       * i gdzie szukać panelu.
+       */
+      return { wolno: false, powod: "brak-dostepu" };
+
+    default: {
+      const nigdy: never = widz;
+      throw new NiezaimplementowanaGalazUprawnien(String(nigdy), "mozeModerowac");
+    }
+  }
+}
+
+/**
  * Rzuca, gdy gałąź uprawnień dla tego widza nie jest jeszcze zaimplementowana.
  *
  * Wydzielone, bo zapytania muszą odmówić **zanim** dotkną bazy, a nie mają
@@ -584,8 +704,19 @@ export function upewnijSieZeGalazUprawnienIstnieje(widz: Widz, funkcja: string):
     case "firma":
       return;
 
+    /*
+     * Moderator przechodzi przez tę bramę od chwili, w której powstała
+     * kolejka moderacji. Każda funkcja, która z niej korzysta, ma od tego
+     * momentu własną, świadomą gałąź dla moderatora niżej w swoim ciele.
+     *
+     * Dopisując tu nową funkcję z tą bramą, sprawdź, co jej dalszy ciąg
+     * robi z moderatorem. `mozeZglosicPrzejecie` jest przykładem, w którym
+     * samo przepuszczenie przez bramę dałoby zgodę: funkcja odmawia tylko
+     * anonimowi i członkowi tej firmy, więc moderator wypadał na kogoś,
+     * kto może przejąć cudzy profil.
+     */
     case "moderator":
-      throw new NiezaimplementowanaGalazUprawnien(opiszWidza(widz), funkcja);
+      return;
 
     default: {
       const nigdy: never = widz;
@@ -615,8 +746,12 @@ export function mozeZobaczycKontakt(widz: Widz, jestNaShortliscie: boolean): Roz
       if (!widz.abonament) return { wolno: false, powod: "brak-abonamentu" };
       return jestNaShortliscie ? { wolno: true } : { wolno: false, powod: "brak-dostepu" };
 
+    /*
+     * Dane kontaktowe klienta odsłania wyłącznie jego własna decyzja
+     * o krótkiej liście. Rola administratora jej nie zastępuje.
+     */
     case "moderator":
-      throw new NiezaimplementowanaGalazUprawnien(opiszWidza(widz), "mozeZobaczycKontakt");
+      return { wolno: false, powod: "brak-dostepu" };
 
     default: {
       const nigdy: never = widz;

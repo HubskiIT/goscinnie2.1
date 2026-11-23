@@ -12,7 +12,9 @@
  * `mozeEdytowacProfil` z lib/permissions.ts. Innej drogi do zapisu nie ma.
  */
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { czyRodzajLokalu } from "@/content/rodzaje-lokali";
 import { db } from "@/lib/db";
+import { pobierzSzczegolyFirmy } from "@/lib/db/queries/szczegoly";
 import type { Odmowa, Wynik } from "@/lib/db/queries/wynik";
 import { plans, subscriptions } from "@/lib/db/schema/abonament";
 import { cities } from "@/lib/db/schema/geografia";
@@ -23,12 +25,14 @@ import {
   companyMembers,
   companyVerification,
 } from "@/lib/db/schema/katalog";
+import { moderationSubmissions } from "@/lib/db/schema/moderacja";
 import {
   mozeEdytowacProfil,
   type PowodOdmowy,
   upewnijSieZeGalazUprawnienIstnieje,
   type Widz,
 } from "@/lib/permissions";
+import { brakiLokalu, brakiUslugodawcy } from "@/lib/validators/szczegoly";
 
 // Typy wyniku mieszkają w lib/db/queries/wynik.ts, bo korzysta z nich też
 // moduł zleceń. Reeksport, żeby istniejące importy z tego modułu działały.
@@ -109,10 +113,21 @@ function userIdWidza(widz: Widz): string | null {
  * powiedziałoby pytającemu, że pod tym identyfikatorem coś jest, a tego
  * nie musi wiedzieć nikt poza jej członkami.
  */
-async function firmaDoZapisu(
+export async function firmaDoZapisu(
   widz: Widz,
   companyId: string,
 ): Promise<Wynik<{ id: string; name: string; slug: string }>> {
+  /*
+   * Brama domyślnej odmowy przed odczytem, nie po nim.
+   *
+   * `mozeEdytowacProfil` niżej i tak rzuci dla widza bez gałęzi, ale
+   * dopiero po zapytaniu do bazy. Nagłówek tests/konwencja-zapytan.test.ts
+   * mówi o tym wprost: odmowa ma być pierwszą linią. Ta funkcja jest teraz
+   * eksportowana i wołana także spoza tego modułu, więc tym bardziej
+   * nie może zaczynać od czytania.
+   */
+  upewnijSieZeGalazUprawnienIstnieje(widz, "firmaDoZapisu");
+
   const [firma] = await db
     .select({ id: companies.id, name: companies.name, slug: companies.slug })
     .from(companies)
@@ -232,11 +247,36 @@ export async function zapiszKategorieSzkicu(
 
   const istniejacy = await pobierzSzkicFirmy(widz);
 
+  /*
+   * Rodzaj firmy bierzemy ze slugu, nie z formularza.
+   *
+   * Formularz przysyła pole `rodzaj` i Zod je sprawdza, ale do bazy idzie
+   * odpowiedź słownika. Wejście może twierdzić „usługa” i podawać slug
+   * „sala-weselna”; gdyby zapisać jedno i drugie, w katalogu leżałaby
+   * firma będąca lokalem i usługodawcą naraz, a każde pytanie o nią
+   * zależałoby od tego, które pole się akurat przeczyta.
+   */
+  const rodzaj = czyRodzajLokalu(slugKategorii) ? "venue" : "service";
+
   if (istniejacy) {
     const dostep = await firmaDoZapisu(widz, istniejacy.id);
     if (!dostep.ok) return dostep;
 
     await podmienKategorie(istniejacy.id, kategoria.id);
+
+    /*
+     * Rodzaj przestawiamy razem z kategorią, bo zmiana kategorii z sali
+     * na DJ-a zmienia też to, czym firma jest. Szczegółów starego rodzaju
+     * nie kasujemy: zasada 5 zabrania twardego usuwania, a wiersz
+     * w `venue_details` przy firmie usługowej jest niewidoczny, bo profil
+     * czyta tabelę pasującą do rodzaju. Gdyby ktoś wrócił do sali,
+     * odpowiedzi tam czekają.
+     */
+    await db
+      .update(companies)
+      .set({ kind: rodzaj, updatedAt: new Date() })
+      .where(eq(companies.id, istniejacy.id));
+
     return { ok: true, dane: { companyId: istniejacy.id } };
   }
 
@@ -277,6 +317,8 @@ export async function zapiszKategorieSzkicu(
         cityId: jakakolwiekMiejscowosc.id,
         point: sql`${PUNKT_ZEROWY}`,
         status: "draft",
+        // Rodzaj znamy już tutaj, bo wynika z wybranej kategorii.
+        kind: rodzaj,
       })
       .returning({ id: companies.id });
 
@@ -457,9 +499,21 @@ export async function zapiszWeryfikacjeSzkicu(
 }
 
 /** Czego brakuje, żeby szkic dał się opublikować. Pusta lista znaczy „gotowy”. */
-export type Braki = Array<"kategoria" | "nazwa" | "opis" | "lokalizacja" | "nip">;
+export type Braki = Array<"kategoria" | "nazwa" | "opis" | "lokalizacja" | "nip" | "szczegoly">;
 
-export type GotowoscSzkicu = { companyId: string; braki: Braki; kategoria: string | null };
+export type GotowoscSzkicu = {
+  companyId: string;
+  braki: Braki;
+  kategoria: string | null;
+  /**
+   * Które konkretnie odpowiedzi szczegółowe są puste, po ludzku.
+   *
+   * Osobno od `braki`, bo `braki` są listą nazw kroków, a to jest listą
+   * pytań wewnątrz jednego z nich. Zwinięte w jedno, kreator mówiłby
+   * „uzupełnij szczegóły” przy formularzu na dwadzieścia pól.
+   */
+  brakiSzczegolow: readonly string[];
+};
 
 /**
  * Czy szkic ma komplet danych do publikacji.
@@ -482,7 +536,32 @@ export async function sprawdzGotowoscSzkicu(widz: Widz): Promise<Wynik<GotowoscS
   if (!szkic.maWspolrzedne) braki.push("lokalizacja");
   if (!szkic.maNip) braki.push("nip");
 
-  return { ok: true, dane: { companyId: szkic.id, braki, kategoria: szkic.kategoria } };
+  /*
+   * Szczegóły liczone tutaj, a nie w komponencie, bo ta sama lista
+   * rozstrzyga dwie rzeczy: co kreator pokazuje i czego odmawia
+   * publikacja. Policzone w dwóch miejscach rozjechałyby się przy
+   * pierwszej zmianie reguły i człowiek zobaczyłby zielony kreator
+   * oraz czerwoną odmowę po kliknięciu.
+   */
+  const szczegoly = await pobierzSzczegolyFirmy(widz, szkic.id);
+  const brakiSzczegolow =
+    szczegoly.rodzaj === "venue"
+      ? brakiLokalu(szczegoly.lokal ?? {})
+      : szczegoly.rodzaj === "service"
+        ? brakiUslugodawcy(szczegoly.uslugodawca ?? {}, szczegoly.wCenie.length)
+        : /*
+           * Rodzaj nieznany znaczy brak kategorii, a to jest już na liście
+           * wyżej. Dokładanie tu drugiego braku kazałoby człowiekowi
+           * uzupełnić szczegóły, zanim w ogóle wie, o co zostanie zapytany.
+           */
+          [];
+
+  if (brakiSzczegolow.length > 0) braki.push("szczegoly");
+
+  return {
+    ok: true,
+    dane: { companyId: szkic.id, braki, kategoria: szkic.kategoria, brakiSzczegolow },
+  };
 }
 
 /**
@@ -507,17 +586,65 @@ export async function opublikujSzkic(
   if (!dostep.ok) return dostep;
 
   /*
+   * Odmowa publikacji przy niekompletnych szczegółach.
+   *
+   * Druga bariera obok kreatora, który i tak nie puszcza dalej: ta ścieżka
+   * jest wołana także spoza formularza, a profil bez parkingu i godziny
+   * ciszy trafiłby do katalogu i wrócił z moderacji z komentarzem, którego
+   * dałoby się uniknąć.
+   */
+  const gotowosc = await sprawdzGotowoscSzkicu(widz);
+  if (gotowosc.ok && gotowosc.dane.brakiSzczegolow.length > 0) {
+    return { ok: false, powod: "brak-dostepu" };
+  }
+
+  /*
    * Profil już opublikowany: ostatni krok kreatora jest wtedy zapisaniem
    * poprawek, a nie publikacją. Drugi abonament dla tej samej firmy przy
    * każdej poprawce opisu byłby śmieciem w rozliczeniach, a przy włączonych
    * płatnościach przedłużałby dostęp za darmo.
    */
   const [obecny] = await db
-    .select({ status: companies.status })
+    .select({
+      status: companies.status,
+      /*
+       * Czy ta firma była już kiedykolwiek przyjęta przez moderację.
+       * Rozstrzyga o rodzaju zgłoszenia: pierwsze wejście do katalogu
+       * to `company`, każde następne to `company_change`, czyli poprawka
+       * w czymś, co już tam jest.
+       */
+      bylaPrzyjeta: sql<boolean>`exists (
+        select 1 from ${moderationSubmissions}
+        where ${moderationSubmissions.subjectKind} in ('company', 'company_change')
+          and ${moderationSubmissions.subjectId} = ${companies.id}
+          and ${moderationSubmissions.status} = 'approved'
+      )`,
+    })
     .from(companies)
     .where(eq(companies.id, companyId))
     .limit(1);
-  if (obecny?.status === "active") return { ok: true, dane: null };
+
+  if (obecny?.status === "active") {
+    /*
+     * Profil już opublikowany: ostatni krok kreatora jest zapisaniem
+     * poprawek, a nie publikacją. Abonamentu nie dokładamy drugi raz,
+     * ale poprawka idzie do akceptacji, bo zmiana w opublikowanym wpisie
+     * też podlega moderacji.
+     *
+     * `onConflictDoNothing` zamiast sprawdzenia w kodzie: drugie przejście
+     * przez ostatni krok ma być bez skutku, a częściowy indeks unikalny
+     * z migracji 0015 rozstrzyga to w bazie, bez wyścigu.
+     */
+    await db
+      .insert(moderationSubmissions)
+      .values({
+        subjectKind: obecny.bylaPrzyjeta ? "company_change" : "company",
+        subjectId: companyId,
+      })
+      .onConflictDoNothing();
+
+    return { ok: true, dane: null };
+  }
 
   const [plan] = await db
     .select({ id: plans.id })
@@ -558,6 +685,31 @@ export async function opublikujSzkic(
       status: "active",
       expiresAt: wygasaO,
     });
+
+    /*
+     * ZGŁOSZENIE DO MODERACJI, W TEJ SAMEJ TRANSAKCJI CO PUBLIKACJA.
+     *
+     * Status `active` zostaje ustawiony od razu, a nie dopiero po zgodzie,
+     * i to jest świadomy wybór. Widoczność publiczna i tak zależy od zgody:
+     * katalog i profil wymagają przyjętego zgłoszenia, więc firma przed
+     * decyzją jest niewidoczna niezależnie od statusu. Rozdzielenie tych
+     * dwóch rzeczy daje za to dwie korzyści:
+     *
+     *   - odmowa nie kasuje niczyjej pracy. Profil zostaje kompletny,
+     *     właściciel czyta komentarz, poprawia i zgłasza się ponownie,
+     *     zamiast przechodzić kreator od nowa,
+     *   - panel firmy działa normalnie przez cały czas oczekiwania,
+     *     bo firma jest aktywna dla samej siebie.
+     *
+     * Kosztem jest abonament startujący w chwili publikacji, a nie zgody.
+     * Przy darmowym dostępie z lib/akcje/profil.ts to nic nie znaczy;
+     * gdy ruszą płatności, trzeba będzie przesunąć start abonamentu
+     * na moment decyzji albo przedłużyć go o czas oczekiwania.
+     */
+    await tx
+      .insert(moderationSubmissions)
+      .values({ subjectKind: "company", subjectId: companyId })
+      .onConflictDoNothing();
   });
 
   return { ok: true, dane: null };

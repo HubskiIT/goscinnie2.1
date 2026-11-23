@@ -15,6 +15,20 @@ import { cities } from "./geografia";
 import { users } from "./tozsamosc";
 import { geographyPoint, znacznikiCzasu } from "./typy";
 
+/**
+ * Czym jest firma: miejscem czy usługą.
+ *
+ * DLACZEGO TO W OGÓLE MUSI BYĆ W BAZIE. Kreator pytał o to od początku
+ * (`rodzaj` w `daneKategorii`), ale nigdzie tej odpowiedzi nie zapisywał.
+ * Rozróżnienie żyło wyłącznie w `content/`: strona lokali przekazywała
+ * do zapytania listę slugów z `rodzaje-lokali.ts`, strona usługodawców
+ * listę z `kategorie.ts`. Dopóki pytanie brzmiało „pokaż mi sale”, to
+ * wystarczało. Przestaje wystarczać przy pytaniach, które zadaje sama
+ * baza: które firmy mogą dodać imprezę, o co pytać w kreatorze, które
+ * filtry pokazać w katalogu.
+ */
+export const companyKind = pgEnum("company_kind", ["venue", "service"]);
+
 export const companyStatus = pgEnum("company_status", [
   "draft",
   "active",
@@ -61,6 +75,17 @@ export const companies = pgTable(
     capacityMin: integer("capacity_min"),
     capacityMax: integer("capacity_max"),
     status: companyStatus("status").notNull().default("draft"),
+    /**
+     * Lokal czy usługodawca. Puste, dopóki firma nie przejdzie kroku
+     * z wyborem kategorii: wiersz powstaje przy zakładaniu konta, a rodzaj
+     * wiadomy jest dopiero krok dalej.
+     *
+     * Nullowalne celowo, zamiast domyślnej wartości. Domyślne `service`
+     * znaczyłoby, że każda firma w trakcie zakładania jest usługodawcą,
+     * i to zdanie byłoby nieodróżnialne od prawdziwej odpowiedzi. Puste
+     * pole mówi „jeszcze nie wiadomo” i tylko to.
+     */
+    kind: companyKind("kind"),
     ...znacznikiCzasu,
   },
   (t) => [

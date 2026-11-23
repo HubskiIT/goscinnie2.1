@@ -19,7 +19,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 import { dodajZdjecie, pobierzZdjeciaFirmy, usunZdjecie } from "@/lib/db/queries/zdjecia";
 import { companyMembers, companyPhotos } from "@/lib/db/schema/katalog";
-import { NiezaimplementowanaGalazUprawnien, type Widz } from "@/lib/permissions";
+import type { Widz } from "@/lib/permissions";
 import { MAKS_BAJTOW, MAKS_BOK, MAKS_ZDJEC } from "@/lib/zdjecia/granice";
 import { przygotujZdjecie } from "@/lib/zdjecia/obrobka";
 
@@ -255,17 +255,19 @@ describe("kto może zmieniać zdjęcia", () => {
     expect(wynik).toEqual({ ok: false, powod: "brak-dostepu" });
   });
 
-  it("moderator rzuca, bo jego gałęzi uprawnień nie napisano", async () => {
+  it("moderator dostaje odmowę: nie redaguje cudzych wpisów", async () => {
+    // Gałąź moderatora powstała razem z kolejką moderacji. Przyjmuje
+    // wpisy albo odsyła je z komentarzem, ale niczego w nich nie zmienia.
     const { companyId } = await firmaZCzlonkiem();
 
-    await expect(
-      dodajZdjecie(MODERATOR, companyId, {
-        sciezka: "x/0.webp",
-        szerokosc: 10,
-        wysokosc: 10,
-        kluczWysylki: crypto.randomUUID(),
-      }),
-    ).rejects.toBeInstanceOf(NiezaimplementowanaGalazUprawnien);
+    const wynik = await dodajZdjecie(MODERATOR, companyId, {
+      sciezka: "x/0.webp",
+      szerokosc: 10,
+      wysokosc: 10,
+      kluczWysylki: crypto.randomUUID(),
+    });
+
+    expect(wynik).toEqual({ ok: false, powod: "brak-dostepu" });
   });
 
   it("członek jednej firmy nie dodaje zdjęcia innej", async () => {

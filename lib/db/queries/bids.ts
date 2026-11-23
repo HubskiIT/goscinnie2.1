@@ -25,6 +25,7 @@ import {
   mozeZarzadzacKrotkaLista,
   mozeZlozycOferte,
   type PowodOdmowy,
+  upewnijSieZeGalazUprawnienIstnieje,
   type Widz,
   zakresOfert,
 } from "@/lib/permissions";
@@ -255,6 +256,23 @@ export async function zlozOferte(widz: Widz, dane: DaneOferty): Promise<Wynik<Of
  * z rozmową bez treści.
  */
 export async function wycofajOferte(widz: Widz, bidId: string): Promise<Wynik<null>> {
+  /*
+   * Domyślna odmowa PRZED odczytem, nie po nim.
+   *
+   * Funkcja czytała dotąd ofertę i krótką listę, a dopiero potem pytała
+   * o uprawnienia. Dla widza, którego gałąź nie istnieje, kończyło się to
+   * i tak rzutem z `mozeWycofacOferte`, więc wyglądało na poprawne, ale
+   * dwa zapytania do bazy zdążyły już pójść. Nagłówek
+   * tests/konwencja-zapytan.test.ts mówi o tym wprost: odmowa ma być
+   * pierwszą linią, nie ostatnią, bo przy dopisywaniu trzeciego odczytu
+   * nikt nie pamięta, że kontrola jest dopiero pod nimi.
+   *
+   * Wyszło przy wymianie wartownika w tym teście z moderatora na widza
+   * spoza typu. Poprzedni wartownik maskował to zachowanie, bo rzut
+   * i tak przychodził, tyle że za późno.
+   */
+  upewnijSieZeGalazUprawnienIstnieje(widz, "wycofajOferte");
+
   const [oferta] = await db
     .select({ id: bids.id, companyId: bids.companyId })
     .from(bids)
