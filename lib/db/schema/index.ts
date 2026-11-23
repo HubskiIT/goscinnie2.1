@@ -1,6 +1,7 @@
 export * from "./abonament";
 export * from "./geografia";
 export * from "./gielda";
+export * from "./imprezy";
 export * from "./katalog";
 export * from "./moderacja";
 export * from "./sesje";

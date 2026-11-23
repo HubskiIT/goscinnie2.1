@@ -10,6 +10,7 @@
  */
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { events } from "@/lib/db/schema/imprezy";
 import { companies } from "@/lib/db/schema/katalog";
 import { type ModerationSubmission, moderationSubmissions } from "@/lib/db/schema/moderacja";
 import { users } from "@/lib/db/schema/tozsamosc";
@@ -152,8 +153,9 @@ export async function pobierzKolejke(widz: Widz): Promise<WynikModeracji<Pozycja
    * czterech lewych złączeń i tyluż kolumn z nazwą, z których trzy byłyby
    * puste w każdym wierszu.
    *
-   * Dziś rozpoznajemy nazwy firm. Imprezy i zlecenia dojdą razem ze swoimi
-   * plastrami; do tego czasu pokazują się bez nazwy, a nie znikają z kolejki.
+   * Rozpoznajemy firmy i imprezy. Zlecenia dojdą ze swoim plastrem;
+   * do tego czasu pokazują się bez nazwy, a nie znikają z kolejki,
+   * bo wpis bez nazwy ma dać się rozstrzygnąć.
    */
   const idFirm = zgloszenia
     .filter((z) => z.rodzaj === "company" || z.rodzaj === "company_change")
@@ -170,15 +172,40 @@ export async function pobierzKolejke(widz: Widz): Promise<WynikModeracji<Pozycja
     }
   }
 
+  const idImprez = zgloszenia.filter((z) => z.rodzaj === "event").map((z) => z.przedmiotId);
+
+  const imprezy = new Map<string, { nazwa: string; slug: string }>();
+  if (idImprez.length > 0) {
+    const wiersze = await db
+      .select({ id: events.id, nazwa: events.name, slug: events.slug })
+      .from(events)
+      .where(inArray(events.id, idImprez));
+    for (const wiersz of wiersze) {
+      imprezy.set(wiersz.id, { nazwa: wiersz.nazwa, slug: wiersz.slug });
+    }
+  }
+
   return {
     ok: true,
     dane: zgloszenia.map((z) => {
       const firma = firmy.get(z.przedmiotId);
-      return {
-        ...z,
-        nazwa: firma?.nazwa ?? null,
-        adresPodgladu: firma ? `/f/${firma.slug}` : null,
-      };
+      if (firma) {
+        return { ...z, nazwa: firma.nazwa, adresPodgladu: `/f/${firma.slug}` };
+      }
+
+      const impreza = imprezy.get(z.przedmiotId);
+      if (impreza) {
+        /*
+         * Podgląd imprezy przed akceptacją prowadzi pod jej publiczny
+         * adres, a ten dla niezaakceptowanej zwraca 404. To jest celowe
+         * i nie jest to błąd: moderator ma zobaczyć, co ocenia, więc
+         * zamiast martwego linku dajemy mu nazwę i treść w kolejce,
+         * a adres dopiero wtedy, gdy impreza jest już widoczna.
+         */
+        return { ...z, nazwa: impreza.nazwa, adresPodgladu: null };
+      }
+
+      return { ...z, nazwa: null, adresPodgladu: null };
     }),
   };
 }
@@ -277,6 +304,24 @@ export async function pobierzAdresataDecyzji(
 ): Promise<WynikModeracji<AdresatDecyzji | null>> {
   const rozstrzygniecie = mozeModerowac(widz);
   if (!rozstrzygniecie.wolno) return { ok: false, powod: rozstrzygniecie.powod };
+
+  if (rodzaj === "event") {
+    /*
+     * Przy imprezie piszemy do właściciela lokalu, bo to on ją zgłosił,
+     * ale nazywamy ją po imieniu. „Wpis »Dwór Pod Lipami« wymaga
+     * poprawki” przy odrzuconej imprezie sylwestrowej brzmi jak decyzja
+     * o całym profilu i tak zostałoby przeczytane.
+     */
+    const [wiersz] = await db
+      .select({ email: users.email, nazwaFirmy: events.name })
+      .from(events)
+      .innerJoin(companies, eq(companies.id, events.companyId))
+      .innerJoin(users, eq(users.id, companies.ownerUserId))
+      .where(eq(events.id, przedmiotId))
+      .limit(1);
+
+    return { ok: true, dane: wiersz ?? null };
+  }
 
   if (rodzaj !== "company" && rodzaj !== "company_change") {
     return { ok: true, dane: null };

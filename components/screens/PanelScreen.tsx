@@ -102,6 +102,16 @@ export function PanelScreen({ firmy, poPublikacji, moderator }: PanelScreenProps
                     Popraw i wyślij ponownie
                   </Link>
                 ) : null}
+                {/*
+                  Wejście w imprezy wyłącznie dla lokali: usługodawca nie ma
+                  gdzie ich zorganizować, a przycisk prowadzący pod adres,
+                  który odpowie 404, jest gorszy niż jego brak.
+                */}
+                {firma.rodzaj === "venue" ? (
+                  <Link href="/panel/imprezy" className={PRZYCISK_OBRYS}>
+                    Twoje imprezy
+                  </Link>
+                ) : null}
               </div>
             </li>
           ))}

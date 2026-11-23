@@ -4,11 +4,40 @@ import Link from "next/link";
 import { useState } from "react";
 import { EtykietaPrzykladu } from "@/components/EtykietaPrzykladu";
 import { dataDluga, dzienTygodnia, zlote } from "@/content/format";
-import type { Impreza, Lokal } from "@/content/ogloszenia";
+/**
+ * Impreza i jej lokal w zakresie, jakiego potrzebuje ten ekran.
+ *
+ * Własne typy zamiast `Impreza` i `Lokal` z content/ogloszenia.ts, bo ta
+ * strona pokazuje dwie prawdziwe imprezy z bazy i przykłady z pliku naraz.
+ * Wymaganie pełnego `Lokal` kazałoby podrabiać dla firmy z bazy piętnaście
+ * pól, z których ten ekran używa dwóch, a każde podrobione pole jest
+ * zaproszeniem do pokazania czegoś nieprawdziwego.
+ */
+export type ImprezaDoPokazania = {
+  nazwa: string;
+  okazja: string;
+  data: string;
+  godzinaOd: string;
+  /** `null` znaczy „do ostatniego gościa”, a nie brak danych. */
+  godzinaDo: string | null;
+  /** `null` znaczy wstęp wolny. */
+  cenaBiletuGrosze: number | null;
+  opis: string;
+  dlaDoroslych: boolean;
+  przykladowe: boolean;
+};
+
+export type LokalImprezy = {
+  slug: string;
+  nazwa: string;
+  miejscowosc: string;
+  /** Doprecyzowanie położenia, gdy jest znane. Puste przy firmach z bazy. */
+  dopisek: string | null;
+};
 
 interface ImprezaScreenProps {
-  impreza: Impreza;
-  lokal: Lokal;
+  impreza: ImprezaDoPokazania;
+  lokal: LokalImprezy;
 }
 
 export function ImprezaScreen({ impreza, lokal }: ImprezaScreenProps) {
@@ -70,15 +99,24 @@ export function ImprezaScreen({ impreza, lokal }: ImprezaScreenProps) {
             </div>
           ) : null}
           <p className="m-0 mb-8 text-[17px] text-[#6A5C70]">
-            {dataDluga(impreza.data)}, {impreza.godzinaOd} do {impreza.godzinaDo} &nbsp;·&nbsp;{" "}
+            {dataDluga(impreza.data)},{" "}
+            {impreza.godzinaDo === null
+              ? `od ${impreza.godzinaOd}`
+              : `${impreza.godzinaOd} do ${impreza.godzinaDo}`}{" "}
+            &nbsp;·&nbsp;{" "}
+            {/*
+              Adres lokalu z danych, nie wpisany na sztywno. Wcześniej
+              każda impreza linkowała do „dwor-pod-lipami”, bo ekran
+              powstał z jednego przykładu i nikt nie miał innego.
+            */}
             <Link
-              href="/f/dwor-pod-lipami"
+              href={`/f/${lokal.slug}`}
               className="text-[#8A5405] hover:text-[#241C2B] underline bg-transparent border-0 cursor-pointer p-0 font-inherit"
             >
               {lokal.nazwa}
             </Link>
-            , {lokal.miejscowosc.nazwa}, {lokal.miejscowosc.odlegloscOdCentrumKm} km od centrum
-            Wrocławia
+            , {lokal.miejscowosc}
+            {lokal.dopisek === null ? "" : `, ${lokal.dopisek}`}
           </p>
 
           <h2 className="m-0 mb-4 font-fraunces font-medium text-[26px]">O imprezie</h2>
@@ -225,10 +263,19 @@ export function ImprezaScreen({ impreza, lokal }: ImprezaScreenProps) {
         <aside className="w-full lg:w-[360px] shrink-0">
           <div className="border border-[#D9CCC2] rounded-[20px] bg-white p-[26px] flex flex-col gap-4 shadow-sm">
             <div>
+              {/*
+                Brak ceny znaczy wstęp wolny, a nie brak danych, więc
+                pokazujemy to słowami zamiast pustego miejsca albo zera
+                złotych, które czyta się jak pomyłkę.
+              */}
               <span className="font-fraunces text-[34px] font-medium">
-                {zlote(impreza.cenaBiletuGrosze)}
+                {impreza.cenaBiletuGrosze === null
+                  ? "Wstęp wolny"
+                  : zlote(impreza.cenaBiletuGrosze)}
               </span>{" "}
-              <span className="text-[15px] text-[#6A5C70]">od osoby</span>
+              {impreza.cenaBiletuGrosze === null ? null : (
+                <span className="text-[15px] text-[#6A5C70]">od osoby</span>
+              )}
             </div>
             <div className="h-[1px] bg-[#EFE5DD]" />
 
@@ -289,7 +336,7 @@ export function ImprezaScreen({ impreza, lokal }: ImprezaScreenProps) {
             <div className="text-[14px] text-[#6A5C70] flex justify-between pt-1">
               <span>Suma:</span>
               <strong className="text-[16px] text-[#241C2B] font-bold">
-                {zlote(ticketCount * impreza.cenaBiletuGrosze)}
+                {zlote(ticketCount * (impreza.cenaBiletuGrosze ?? 0))}
               </strong>
             </div>
 

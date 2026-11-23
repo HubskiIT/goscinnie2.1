@@ -18,6 +18,7 @@
 import { describe, expect, it } from "vitest";
 import * as zapytaniaOfert from "@/lib/db/queries/bids";
 import * as zapytaniaFirm from "@/lib/db/queries/firmy";
+import * as zapytaniaImprez from "@/lib/db/queries/imprezy";
 import * as zapytaniaKatalogu from "@/lib/db/queries/katalog";
 import * as zapytaniaKonta from "@/lib/db/queries/konto";
 import * as zapytaniaKreatora from "@/lib/db/queries/kreator";
@@ -86,6 +87,7 @@ const MODULY: Array<[string, Record<string, unknown>]> = [
   ["zdjecia", zapytaniaZdjec],
   ["moderacja", zapytaniaModeracji],
   ["szczegoly", zapytaniaSzczegolow],
+  ["imprezy", zapytaniaImprez],
 ];
 
 function funkcyjneEksporty(): Array<[string, DowolneZapytanie]> {

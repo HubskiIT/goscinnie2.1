@@ -286,6 +286,8 @@ export type MojaFirma = {
   status: "draft" | "active" | "visitcard" | "suspended";
   /** Czy firma jest teraz widoczna w katalogu. */
   wKatalogu: boolean;
+  /** Lokal czy usługodawca. Rozstrzyga, czy panel pokazuje imprezy. */
+  rodzaj: "venue" | "service" | null;
   /**
    * Co się dzieje z ostatnim zgłoszeniem tej firmy do moderacji.
    *
@@ -315,6 +317,7 @@ export async function pobierzMojeFirmy(widz: Widz): Promise<MojaFirma[]> {
       slug: companies.slug,
       nazwa: companies.name,
       status: companies.status,
+      rodzaj: companies.kind,
       wKatalogu: sql<boolean>`${jestWKatalogu()}`,
     })
     .from(companies)

@@ -721,6 +721,106 @@ export async function zasiej(): Promise<void> {
     },
   ]);
 
+  /*
+   * Imprezy. Trzy warianty, bo na nich stoją trzy różne reguły:
+   *
+   *   zaakceptowana  widoczna w zapowiedziach i pod swoim adresem
+   *   oczekująca     istnieje, widzi ją tylko jej lokal
+   *   po dacie       zaakceptowana, ale wypadła z zapowiedzi
+   *
+   * Trzeci wariant jest tu najważniejszy i najłatwiejszy do przeoczenia:
+   * bez niego nie da się odróżnić zapytania, które filtruje po dacie,
+   * od takiego, które po prostu pokazuje wszystko zaakceptowane.
+   *
+   * Wszystkie przy firmie-1, bo ona jest aktywna, ma abonament i zgodę
+   * moderacji, czyli jedyna w zasiewie spełnia warunek widoczności lokalu.
+   */
+  const okazjaSylwester = okazje.find((o) => o.slug === "urodziny") ?? okazje[0];
+  if (!okazjaSylwester) throw new Error("Zasiew: brak okazji dla imprez.");
+
+  const zaMiesiac = new Date();
+  zaMiesiac.setMonth(zaMiesiac.getMonth() + 1);
+  const wTygodniu = new Date();
+  wTygodniu.setDate(wTygodniu.getDate() + 7);
+  const wZeszlymMiesiacu = new Date();
+  wZeszlymMiesiacu.setMonth(wZeszlymMiesiacu.getMonth() - 1);
+
+  const dzien = (data: Date) => data.toISOString().slice(0, 10);
+
+  const wstawioneImprezy = await db
+    .insert(schema.events)
+    .values([
+      {
+        companyId: firmaAktywna.id,
+        slug: "zasiew-impreza-widoczna",
+        name: "Wieczór z muzyką na żywo",
+        eventTypeId: okazjaSylwester.id,
+        eventDate: dzien(zaMiesiac),
+        startsAt: "20:00",
+        endsAt: "23:00",
+        ticketPrice: 8000,
+        description:
+          "Koncert zespołu i kolacja w cenie biletu. Sala na sto osób, parking przy obiekcie.",
+        adultsOnly: false,
+      },
+      {
+        companyId: firmaAktywna.id,
+        slug: "zasiew-impreza-oczekujaca",
+        name: "Potańcówka w stodole",
+        eventTypeId: okazjaSylwester.id,
+        eventDate: dzien(wTygodniu),
+        startsAt: "19:00",
+        // Koniec pusty: gramy do ostatniego gościa. To poprawny stan,
+        // a nie brak danych, i zasiew ma go pokrywać.
+        endsAt: null,
+        ticketPrice: null,
+        description:
+          "Wstęp wolny, gramy do ostatniego gościa. Bufet i bar czynne przez cały wieczór.",
+        adultsOnly: true,
+      },
+      {
+        companyId: firmaAktywna.id,
+        slug: "zasiew-impreza-po-dacie",
+        name: "Andrzejki zeszłoroczne",
+        eventTypeId: okazjaSylwester.id,
+        eventDate: dzien(wZeszlymMiesiacu),
+        startsAt: "20:00",
+        endsAt: "23:30",
+        ticketPrice: 12000,
+        description:
+          "Impreza, która już się odbyła. Zostaje pod swoim adresem, znika z zapowiedzi.",
+        adultsOnly: false,
+      },
+    ])
+    .returning();
+
+  const [imprezaWidoczna, imprezaOczekujaca, imprezaPoDacie] = wstawioneImprezy;
+  if (!imprezaWidoczna || !imprezaOczekujaca || !imprezaPoDacie) {
+    throw new Error("Zasiew: nie wstawiono kompletu imprez.");
+  }
+
+  await db.insert(schema.moderationSubmissions).values([
+    {
+      subjectKind: "event" as const,
+      subjectId: imprezaWidoczna.id,
+      status: "approved" as const,
+      decidedAt: new Date(),
+      decidedByUserId: moderator.id,
+    },
+    {
+      subjectKind: "event" as const,
+      subjectId: imprezaPoDacie.id,
+      status: "approved" as const,
+      decidedAt: new Date(),
+      decidedByUserId: moderator.id,
+    },
+    {
+      subjectKind: "event" as const,
+      subjectId: imprezaOczekujaca.id,
+      status: "pending" as const,
+    },
+  ]);
+
   await db.insert(schema.companyClaims).values([
     {
       companyId: firmaDoPrzejecia.id,
