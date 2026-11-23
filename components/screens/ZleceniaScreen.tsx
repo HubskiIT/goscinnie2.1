@@ -5,20 +5,26 @@ import { useActionState, useState } from "react";
 import { KomunikatFormularza } from "@/components/KomunikatFormularza";
 import { PasekFiltrow } from "@/components/PasekFiltrow";
 import { dataDluga, zlote } from "@/content/format";
-import type { Zlecenie } from "@/content/ogloszenia";
 import { wyslijOferte } from "@/lib/akcje/formularze";
 import { type KryteriaZlecen, PARAMETRY_ZLECEN } from "@/lib/filtry";
 import { STAN_POCZATKOWY } from "@/lib/formularze";
+import type { ZlecenieDoPokazania } from "@/lib/zlecenia-widok";
 
 interface ZleceniaScreenProps {
-  zlecenia: readonly Zlecenie[];
+  /**
+   * Zlecenia już przycięte do zakresu widza przez `zlecenieDoPokazania`.
+   * Ekran nie dostaje pól, których ten człowiek nie ma prawa zobaczyć,
+   * więc nie ma tu czego ukrywać ani czym przełączać.
+   */
+  zlecenia: readonly ZlecenieDoPokazania[];
   kryteria: KryteriaZlecen;
+  /** Czy rysować ścieżkę składania oferty. Rozstrzyga o tym strona, nie ekran. */
+  pelnyZakres: boolean;
 }
 
-export function ZleceniaScreen({ zlecenia, kryteria }: ZleceniaScreenProps) {
+export function ZleceniaScreen({ zlecenia, kryteria, pelnyZakres }: ZleceniaScreenProps) {
   const ZLECENIE = zlecenia[0];
   const [stanOferty, akcjaOferty] = useActionState(wyslijOferte, STAN_POCZATKOWY);
-  const [isSubscriber, setIsSubscriber] = useState(true);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [offerPrice, setOfferPrice] = useState("14 400 zł");
   const [offerScope, setOfferScope] = useState(
@@ -33,38 +39,6 @@ export function ZleceniaScreen({ zlecenia, kryteria }: ZleceniaScreenProps) {
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      {/* Role Toggle Bar */}
-      <div className="bg-[#F2E9E2] border-b border-[#E2D5CA] px-6 sm:px-12 md:px-[130px] py-2.5 flex flex-wrap items-center justify-between gap-3 text-[13px]">
-        <div className="flex items-center gap-2 text-[#55485A]">
-          <span className="font-semibold text-[#241C2B]">Tryb podglądu giełdy:</span>
-          <span>Przełącz, aby zobaczyć ekran z perspektywy abonenta lub gościa</span>
-        </div>
-        <div className="inline-flex p-1 bg-white rounded-[10px] border border-[#D9CCC2]">
-          <button
-            type="button"
-            onClick={() => setIsSubscriber(true)}
-            className={`px-3 py-1 rounded-[8px] font-semibold cursor-pointer transition-colors ${
-              isSubscriber
-                ? "bg-[#241C2B] text-white shadow-2xs"
-                : "text-[#6A5C70] hover:text-[#241C2B]"
-            }`}
-          >
-            Firma z abonamentem (Pełny)
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsSubscriber(false)}
-            className={`px-3 py-1 rounded-[8px] font-semibold cursor-pointer transition-colors ${
-              !isSubscriber
-                ? "bg-[#241C2B] text-white shadow-2xs"
-                : "text-[#6A5C70] hover:text-[#241C2B]"
-            }`}
-          >
-            Firma bez abonamentu (Gość)
-          </button>
-        </div>
-      </div>
-
       {/* Title */}
       <section className="shrink-0 px-6 sm:px-12 md:px-[130px] pt-10">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-10">
@@ -163,67 +137,80 @@ export function ZleceniaScreen({ zlecenia, kryteria }: ZleceniaScreenProps) {
                 </div>
                 <div>
                   <div className="text-[12px] text-[#6A5C70] mb-1">Budżet klienta</div>
-                  {isSubscriber ? (
+                  {ZLECENIE.budzet.rodzaj === "jawny" ? (
                     <div className="text-[15px] font-bold text-[#3F5142]">
-                      {ZLECENIE.budzetGrosze === null ? "nie podano" : zlote(ZLECENIE.budzetGrosze)}
+                      {ZLECENIE.budzet.grosze === null
+                        ? "nie podano"
+                        : zlote(ZLECENIE.budzet.grosze)}
                     </div>
                   ) : (
                     <div className="text-[13px] text-[#8B7F91] font-semibold italic">
-                      w abonamencie (402)
+                      w abonamencie
                     </div>
                   )}
                 </div>
               </div>
 
-              {isSubscriber ? (
-                <>
-                  <p className="m-0 mb-5 text-[16px] leading-[1.7] text-[#3E3344] max-w-[78ch]">
-                    Szukamy sali na komunię córki. Osiemdziesięciu gości, w tym dwadzieścioro
-                    dzieci, więc przydałby się kąt do zabawy albo ogród. Zależy nam na sali na
-                    wyłączność i na własnym torcie bez opłaty. Początek około trzynastej, planujemy
-                    do dwudziestej.
+              {ZLECENIE.opis.rodzaj === "caly" && (
+                <p className="m-0 mb-5 text-[16px] leading-[1.7] text-[#3E3344] max-w-[78ch]">
+                  {ZLECENIE.opis.tekst}
+                </p>
+              )}
+
+              {ZLECENIE.opis.rodzaj === "zajawka" && (
+                <div className="relative mb-5">
+                  <p className="m-0 text-[16px] leading-[1.7] text-[#3E3344] max-w-[78ch] select-none">
+                    {ZLECENIE.opis.tekst}
+                    {ZLECENIE.opis.tekst.length < ZLECENIE.opis.znakowWCalosci && "..."}
                   </p>
+                  <div className="absolute inset-x-0 -bottom-1 h-10 bg-gradient-to-b from-transparent to-white" />
+                </div>
+              )}
 
-                  <div className="flex flex-wrap items-center gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setOfferModalOpen(true)}
-                      className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-7 py-3.5 cursor-pointer shadow-xs"
-                    >
-                      Złóż ofertę
-                    </button>
-                    <span className="text-[13px] text-[#6A5C70]">
-                      Jedna oferta na zlecenie. Konkurencja nie widzi Twojej ceny.
-                    </span>
-                  </div>
-                </>
+              {/*
+                Anonim i klient nie dostają opisu w ogóle, więc nie ma tu czego
+                rozmywać gradientem. Zamiast pustego miejsca mówimy wprost,
+                czego brakuje i skąd się to bierze.
+              */}
+              {ZLECENIE.opis.rodzaj === "brak" && (
+                <p className="m-0 mb-5 text-[15px] leading-[1.7] text-[#6A5C70] max-w-[78ch]">
+                  Opis wydarzenia widzą firmy z katalogu. Zlecenia są anonimowe, więc klient opisuje
+                  je raz, a nie każdemu z osobna.
+                </p>
+              )}
+
+              {pelnyZakres ? (
+                <div className="flex flex-wrap items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setOfferModalOpen(true)}
+                    className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-7 py-3.5 cursor-pointer shadow-xs"
+                  >
+                    Złóż ofertę
+                  </button>
+                  <span className="text-[13px] text-[#6A5C70]">
+                    Jedna oferta na zlecenie. Konkurencja nie widzi Twojej ceny.
+                  </span>
+                </div>
               ) : (
-                <>
-                  <div className="relative mb-5">
-                    <p className="m-0 text-[16px] leading-[1.7] text-[#3E3344] max-w-[78ch] select-none">
-                      Szukamy sali na komunię córki. Osiemdziesięciu gości, w tym dwadzieścioro
-                      dzieci, więc przydałby się kąt do...
-                    </p>
-                    <div className="absolute inset-x-0 -bottom-1 h-10 bg-gradient-to-b from-transparent to-white" />
-                  </div>
-
-                  <div className="border border-[#E2D5CA] rounded-[14px] bg-[#F2E9E2] p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div>
-                      <div className="text-[15px] font-bold text-[#241C2B] mb-1">
-                        Widzisz 120 znaków z 380
-                      </div>
-                      <div className="text-[13px] text-[#55485A]">
-                        Pełny opis, budżet i składanie ofert uruchomimy razem z giełdą zleceń.
-                      </div>
+                <div className="border border-[#E2D5CA] rounded-[14px] bg-[#F2E9E2] p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="text-[15px] font-bold text-[#241C2B] mb-1">
+                      {ZLECENIE.opis.rodzaj === "zajawka"
+                        ? `Widzisz ${ZLECENIE.opis.tekst.length} znaków z ${ZLECENIE.opis.znakowWCalosci}`
+                        : "Pełny opis i budżet w abonamencie"}
                     </div>
-                    <Link
-                      href="/dla-firm"
-                      className="shrink-0 text-[14px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[10px] px-5 py-2.5 border-0 cursor-pointer shadow-2xs"
-                    >
-                      Dodaj firmę bezpłatnie
-                    </Link>
+                    <div className="text-[13px] text-[#55485A]">
+                      Pełny opis, budżet i składanie ofert są dla firm z abonamentem.
+                    </div>
                   </div>
-                </>
+                  <Link
+                    href="/dla-firm"
+                    className="shrink-0 text-[14px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[10px] px-5 py-2.5 border-0 cursor-pointer shadow-2xs"
+                  >
+                    Dodaj firmę bezpłatnie
+                  </Link>
+                </div>
               )}
             </article>
           )}
