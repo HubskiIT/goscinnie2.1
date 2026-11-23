@@ -7,7 +7,7 @@ import { ZdjecieFirmy } from "@/components/ZdjecieFirmy";
 import { zlote } from "@/content/format";
 import type { Lokal } from "@/content/ogloszenia";
 import { useKrotkaLista } from "@/hooks/use-krotka-lista";
-import { adresZPrzelaczonym, type KryteriaLokali } from "@/lib/wyszukiwanie";
+import { adresZPrzelaczonym, czySaFiltry, type KryteriaLokali } from "@/lib/wyszukiwanie";
 
 /** Filtry dodatkowe. Okazja dołącza tu po zmianie kierunku z punktu 3 planu. */
 const UDOGODNIENIA = ["ogród", "nocleg dla 40 osób", "sala na wyłączność", "parking"] as const;
@@ -100,6 +100,17 @@ export function LokaleScreen({ lokale, kryteria }: LokaleScreenProps) {
       {/* Main Listing + Aside */}
       <section className="grow px-6 sm:px-12 md:px-[130px] pt-[34px] flex flex-col lg:flex-row gap-[34px] items-start">
         <div className="grow w-full flex flex-col gap-[18px]">
+          {venues.length === 0 ? (
+            <p className="m-0 rounded-[18px] border border-dashed border-[#D9CCC2] bg-[#FBF7F4] p-8 text-center text-[15px] leading-[1.7] text-[#6A5C70]">
+              {czySaFiltry(kryteria)
+                ? "Żaden obiekt nie pasuje do tych filtrów."
+                : "Nie ma jeszcze ani jednego obiektu w katalogu."}{" "}
+              <Link href="/lokale" className="font-semibold text-[#8A5405] underline">
+                {czySaFiltry(kryteria) ? "Wyczyść filtry" : "Odśwież listę"}
+              </Link>
+            </p>
+          ) : null}
+
           {venues.map((venue) => {
             const isShortlisted = shortlist.includes(venue.name);
             return (
