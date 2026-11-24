@@ -8,7 +8,9 @@ import { pobierzLokal } from "@/content/ogloszenia";
 import { widzZZadania } from "@/lib/auth/widz";
 import { pobierzFirmeKatalogu } from "@/lib/db/queries/katalog";
 import { pobierzSzczegolyFirmyPoSlugu } from "@/lib/db/queries/szczegoly";
+import { metadaneBezIndeksu, metadaneStrony } from "@/lib/metadane";
 import { szczegolyNaProfil } from "@/lib/szczegoly-profil";
+import { firma as trasaFirmy } from "@/lib/trasy";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -34,17 +36,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const wynik = await znajdz(slug);
   if (!wynik) return { title: "Nie ma takiej strony" };
   if (wynik.rodzaj === "baza") {
-    return {
-      title: wynik.firma.nazwa,
-      description: `${wynik.firma.nazwa}, ${wynik.firma.miejscowosc.nazwa}. Profil w katalogu Gościnnie.`,
-    };
+    return metadaneStrony({
+      tytul: `${wynik.firma.nazwa}, ${wynik.firma.miejscowosc.nazwa}`,
+      opis: `${wynik.firma.nazwa}, ${wynik.firma.miejscowosc.nazwa}. Sprawdź ofertę i zapytaj o termin.`,
+      sciezka: trasaFirmy(slug),
+    });
   }
+  /*
+   * Ogłoszenie przykładowe z `content/` nie jest niczyją prawdziwą firmą,
+   * więc zostaje dostępne pod linkiem i poza indeksem. Katalog pokazowy
+   * w wynikach wyszukiwania to dokładnie ta cienka treść, przed którą
+   * ostrzega `lib/indeksowanie.ts`.
+   */
   return {
-    title: wynik.lokal.nazwa,
-    description:
+    ...metadaneBezIndeksu(
+      wynik.lokal.nazwa,
       wynik.lokal.status === "visitcard"
         ? "Wpis w katalogu Gościnnie. Firma nie prowadzi jeszcze profilu."
         : "Profil lokalu w katalogu Gościnnie.",
+    ),
+    alternates: { canonical: trasaFirmy(slug) },
   };
 }
 

@@ -6,6 +6,8 @@ import { ImprezaScreen } from "@/components/screens/ImprezaScreen";
 import { pobierzLokal, pobierzImpreze as pobierzPrzyklad } from "@/content/ogloszenia";
 import { widzZZadania } from "@/lib/auth/widz";
 import { pobierzImpreze } from "@/lib/db/queries/imprezy";
+import { metadaneStrony } from "@/lib/metadane";
+import { impreza as trasaImprezy } from "@/lib/trasy";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -83,10 +85,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const wynik = await znajdz(slug);
   if (!wynik) return { title: "Nie ma takiej strony" };
-  return {
-    title: wynik.impreza.nazwa,
-    description: `${wynik.impreza.nazwa} w ${wynik.lokal.nazwa}, ${wynik.lokal.miejscowosc}.`,
-  };
+  return metadaneStrony({
+    tytul: wynik.impreza.nazwa,
+    opis: `${wynik.impreza.nazwa} w ${wynik.lokal.nazwa}, ${wynik.lokal.miejscowosc}.`,
+    sciezka: trasaImprezy(slug),
+  });
 }
 
 export default async function Strona({ params }: Props) {

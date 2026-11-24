@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { NoweZlecenieScreen } from "@/components/screens/NoweZlecenieScreen";
 import { widzZZadania } from "@/lib/auth/widz";
+import { metadaneStrony } from "@/lib/metadane";
+import { TRASY } from "@/lib/trasy";
 
-export const metadata: Metadata = {
-  title: "Wystaw zlecenie",
-  description: "Opisz raz, czego szukasz, a firmy same przyślą oferty. Bezpłatnie.",
-};
+export const metadata: Metadata = metadaneStrony({
+  tytul: "Wystaw zlecenie",
+  opis: "Opisz raz, czego szukasz, a firmy same przyślą oferty. Bezpłatnie i bez podawania numeru telefonu.",
+  sciezka: TRASY.dodajZlecenie,
+});
 
 /**
  * Strona jest dostępna dla niezalogowanych i to jest decyzja, nie przeoczenie:

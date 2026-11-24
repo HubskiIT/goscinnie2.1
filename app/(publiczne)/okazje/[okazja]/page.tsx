@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { pobierzKategorie } from "@/content/kategorie";
 import { OKAZJE, pobierzOkazje_ } from "@/content/okazje";
 import { pobierzRodzajLokalu } from "@/content/rodzaje-lokali";
+import { metadaneStrony } from "@/lib/metadane";
+import { okazja as trasaOkazji } from "@/lib/trasy";
 import { PARAMETRY } from "@/lib/wyszukiwanie";
 
 interface Props {
@@ -18,10 +20,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { okazja: slug } = await params;
   const okazja = pobierzOkazje_(slug);
   if (!okazja) return { title: "Nie ma takiej strony" };
-  return {
-    title: `Lokal na ${okazja.naCo}`,
-    description: `Jakie lokale i jacy usługodawcy pasują na ${okazja.naCo}.`,
-  };
+  return metadaneStrony({
+    tytul: `Lokal na ${okazja.naCo}`,
+    opis: `Jakie lokale i jacy usługodawcy pasują na ${okazja.naCo}. Ceny od, bez prowizji od umów.`,
+    sciezka: trasaOkazji(okazja.slug),
+  });
 }
 
 export default async function Strona({ params }: Props) {

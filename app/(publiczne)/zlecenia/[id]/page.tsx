@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { StanPusty } from "@/components/StanPusty";
+import { metadaneBezIndeksu } from "@/lib/metadane";
 
-export const metadata: Metadata = {
-  title: "Szczegóły zlecenia",
-  description: "Treść zleceń pojawi się razem z danymi. Na razie zobacz całą giełdę.",
-};
+export const metadata: Metadata = metadaneBezIndeksu(
+  "Szczegóły zlecenia",
+  "Treść zleceń pojawi się razem z danymi. Na razie zobacz całą giełdę.",
+);
 
 export default function Strona() {
   return (

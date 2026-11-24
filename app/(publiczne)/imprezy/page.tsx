@@ -6,11 +6,14 @@ import { type Impreza, pobierzLokal } from "@/content/ogloszenia";
 import { widzZZadania } from "@/lib/auth/widz";
 import { type ImprezaPubliczna, pobierzImprezy } from "@/lib/db/queries/imprezy";
 import { odczytajKryteriaImprez, wyszukajImprezy } from "@/lib/filtry";
+import { metadaneStrony } from "@/lib/metadane";
+import { TRASY } from "@/lib/trasy";
 
-export const metadata: Metadata = {
-  title: "Imprezy",
-  description: "Wydarzenia organizowane przez lokale w Twojej okolicy.",
-};
+export const metadata: Metadata = metadaneStrony({
+  tytul: "Imprezy w okolicy",
+  opis: "Wydarzenia organizowane przez lokale w Twojej okolicy, z datą, miejscem i ceną wstępu.",
+  sciezka: TRASY.imprezy,
+});
 
 interface Props {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
