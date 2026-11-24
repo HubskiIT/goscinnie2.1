@@ -18,10 +18,20 @@ import {
 } from "@/lib/indeksowanie";
 
 const POCZATKOWA = process.env.INDEKSOWANIE;
+/*
+ * `APP_URL` też wraca po każdym przypadku. Wartość ustawiona w teście mapy
+ * witryny przeciekłaby do pozostałych plików w tym samym procesie, a stan
+ * dzielony między testami objawia się padaniem w losowych miejscach,
+ * daleko od przyczyny.
+ */
+const POCZATKOWY_ADRES = process.env.APP_URL;
 
 afterEach(() => {
   if (POCZATKOWA === undefined) delete process.env.INDEKSOWANIE;
   else process.env.INDEKSOWANIE = POCZATKOWA;
+
+  if (POCZATKOWY_ADRES === undefined) delete process.env.APP_URL;
+  else process.env.APP_URL = POCZATKOWY_ADRES;
 });
 
 async function naglowkiOdpowiedzi(): Promise<Headers> {
@@ -94,6 +104,27 @@ describe("robots.txt", () => {
 
     expect(pierwsza?.allow).toBe("/");
     expect(pierwsza?.disallow).toContain("/api/");
+  });
+
+  it("przy włączonym indeksowaniu wskazuje mapę witryny adresem bezwzględnym", async () => {
+    process.env.INDEKSOWANIE = WARTOSC_WLACZAJACA;
+    process.env.APP_URL = "https://goscinnie.pl";
+    const { default: robots } = await import("@/app/robots");
+
+    // Bezwzględny, bo robots.txt tak ma w specyfikacji: ścieżki względnej
+    // żaden robot tu nie odczyta.
+    expect(robots().sitemap).toBe("https://goscinnie.pl/sitemap.xml");
+  });
+
+  it("przy wyłączonym indeksowaniu nie zaprasza do mapy witryny", async () => {
+    /*
+     * Zakaz wstępu na całość i jednocześnie spis wszystkich podstron to
+     * sprzeczny komunikat. Przy zamkniętej bramie mapy po prostu nie ma.
+     */
+    delete process.env.INDEKSOWANIE;
+    const { default: robots } = await import("@/app/robots");
+
+    expect(robots().sitemap).toBeUndefined();
   });
 });
 
