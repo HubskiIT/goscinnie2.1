@@ -7,14 +7,17 @@ import { pobierzSzkicFirmy } from "@/lib/db/queries/kreator";
 import { pobierzSzczegolyFirmy } from "@/lib/db/queries/szczegoly";
 import { pobierzZdjeciaFirmy } from "@/lib/db/queries/zdjecia";
 import type { SzkicKreatora } from "@/lib/kreator-krok";
+import { metadaneStrony } from "@/lib/metadane";
 import { wartosciSzczegolowDoFormularza } from "@/lib/szczegoly-formularz";
+import { TRASY } from "@/lib/trasy";
 import { brakiLokalu, brakiUslugodawcy } from "@/lib/validators/szczegoly";
 import { adresZdjecia } from "@/lib/zdjecia/skladowanie";
 
-export const metadata: Metadata = {
-  title: "Dodaj firmę",
-  description: "Dodaj swoją firmę do katalogu Gościnnie.",
-};
+export const metadata: Metadata = metadaneStrony({
+  tytul: "Dodaj firmę do katalogu",
+  opis: "Dodaj swój lokal albo usługi do katalogu Gościnnie. Dodanie firmy i prowadzenie profilu jest bezpłatne.",
+  sciezka: TRASY.rejestracjaFirmy,
+});
 
 /**
  * Kreator nie trzyma stanu w adresie ani w pamięci przeglądarki.

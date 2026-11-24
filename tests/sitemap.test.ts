@@ -16,7 +16,7 @@ import { and, eq, exists, gt, sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import sitemap from "@/app/sitemap";
 import { db } from "@/lib/db";
-import { pobierzSlugiFirmDoSitemapy } from "@/lib/db/queries/katalog";
+import { pobierzFirmeKatalogu, pobierzSlugiFirmDoSitemapy } from "@/lib/db/queries/katalog";
 import { subscriptions } from "@/lib/db/schema/abonament";
 import { companies } from "@/lib/db/schema/katalog";
 import { NiezaimplementowanaGalazUprawnien, type Widz } from "@/lib/permissions";
@@ -168,6 +168,45 @@ describe("treść mapy witryny", () => {
       .filter((s) => s.startsWith("/f/"));
 
     expect(zMapy.sort()).toEqual(zZapytania.sort());
+  });
+
+  it("nie zawiera logowania", async () => {
+    /*
+     * Logowanie ma w metadanych `index: false` (lib/metadane.ts), bo ekran
+     * bez treści dla niezalogowanego nie wnosi do indeksu nic. Adres w mapie
+     * witryny przy znaczniku `noindex` na stronie to sprzeczność: Search
+     * Console zgłasza ją jako błąd pokrycia, a nie jako podpowiedź.
+     */
+    const sciezki = (await sitemap()).map((w) => new URL(w.url).pathname);
+
+    expect(sciezki).not.toContain(TRASY.logowanie);
+  });
+
+  it("każdy profil z mapy otwiera się, a nie oddaje 404", async () => {
+    /*
+     * TO JEST TEST NA BŁĄD, KTÓRY STAŁ NA PRODUKCJI.
+     *
+     * Oba profile zgłoszone w `sitemap.xml` zwracały 404. Warunek widoczności
+     * w katalogu ma bowiem dwa źródła, nie jedno: jawne `where` z
+     * `jestWKatalogu()` oraz **ciche złączenia wewnętrzne** w
+     * `pobierzFirmeKatalogu`, które wymagają żywej kategorii. Mapa witryny
+     * czytała tylko to pierwsze, więc obiecywała strony, których strona
+     * profilu nie była gotowa pokazać.
+     *
+     * Dlatego ten test nie powtarza warunku zapisanego w zapytaniu, bo wtedy
+     * powtórzyłby też pomyłkę. Pyta wprost: skoro adres jest w mapie witryny,
+     * czy pod nim coś jest. Każdy kolejny cichy warunek dorzucony do strony
+     * profilu wywali ten test i to jest poprawny wynik.
+     */
+    const slugi = (await pobierzSlugiFirmDoSitemapy(ANONIM)).map((w) => w.slug);
+    expect(slugi.length).toBeGreaterThan(0);
+
+    const puste: string[] = [];
+    for (const slug of slugi) {
+      if ((await pobierzFirmeKatalogu(ANONIM, slug)) === null) puste.push(slug);
+    }
+
+    expect(puste).toEqual([]);
   });
 
   it("każdy adres jest poprawnym adresem bezwzględnym", async () => {

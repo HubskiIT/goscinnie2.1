@@ -6,6 +6,8 @@ import { pobierzKategorie_ } from "@/content/kategorie";
 import { pobierzUslugodawcow } from "@/content/ogloszenia";
 import { widzZZadania } from "@/lib/auth/widz";
 import { uslugodawcyZBazy } from "@/lib/katalog";
+import { metadaneStrony } from "@/lib/metadane";
+import { uslugodawcyWg } from "@/lib/trasy";
 
 interface Props {
   params: Promise<{ kategoria: string; miejscowosc: string }>;
@@ -20,10 +22,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { kategoria: slugKategorii, miejscowosc } = await params;
   const kategoria = pobierzKategorie_(slugKategorii);
   if (!kategoria) return { title: "Nie ma takiej strony" };
-  return {
-    title: `${kategoria.nazwa}: ${nazwaZeSlugu(miejscowosc)}`,
-    description: `${kategoria.nazwa} w okolicy. Ceny od, bez prowizji od umów.`,
-  };
+  return metadaneStrony({
+    tytul: `${kategoria.nazwa}: ${nazwaZeSlugu(miejscowosc)}`,
+    opis: `${kategoria.nazwa} w ${nazwaZeSlugu(miejscowosc)} i okolicy. Ceny od, bez prowizji od umów.`,
+    sciezka: uslugodawcyWg(kategoria.slug, miejscowosc),
+  });
 }
 
 export default async function Strona({ params }: Props) {

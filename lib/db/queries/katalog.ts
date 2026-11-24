@@ -240,8 +240,43 @@ export async function pobierzSlugiFirmDoSitemapy(
   return db
     .selectDistinct({ slug: companies.slug, zmieniono: companies.updatedAt })
     .from(companies)
-    .where(jestWKatalogu())
+    .where(and(jestWKatalogu(), maWidocznaKategorie()))
     .orderBy(asc(companies.slug));
+}
+
+/**
+ * Firma ma przypisaną żywą kategorię, czyli taką, która nie jest zarchiwizowana.
+ *
+ * DLACZEGO TO MUSI TU BYĆ, CHOĆ `jestWKatalogu()` NIC O KATEGORIACH NIE MÓWI
+ *
+ * Bo `pobierzFirmeKatalogu`, czyli zapytanie stojące pod stroną profilu,
+ * składa firmę przez `innerJoin` z `companyCategories` i `categories`.
+ * Złączenie wewnętrzne jest **cichym warunkiem widoczności**: firma bez
+ * żywej kategorii nie daje ani jednego wiersza, zapytanie zwraca `null`,
+ * a strona `/f/[slug]` woła `notFound()`.
+ *
+ * Mapa witryny tego warunku nie miała, więc taka firma wchodziła do
+ * `sitemap.xml` i oddawała 404. Tak właśnie wyglądało to na produkcji:
+ * oba profile zgłoszone w mapie witryny zwracały 404, a komentarz nad
+ * `pobierzSlugiFirmDoSitemapy` obiecywał „ten sam warunek widoczności
+ * co w katalogu”. Obietnica była szczersza niż kod, bo warunek z katalogu
+ * ma dwa źródła: jawne `where` i niejawne złączenia.
+ *
+ * Zapisane jako `exists`, nie jako złączenie, celowo. Złączenie zwielokrotnia
+ * wiersze firmy o liczbę jej kategorii, a mapa witryny potrzebuje jednego
+ * wiersza na firmę. `selectDistinct` by to posprzątał, ale po policzeniu
+ * duplikatów, czyli płacąc za pracę, którą zaraz wyrzuca.
+ */
+function maWidocznaKategorie() {
+  return exists(
+    db
+      .select({ jeden: sql`1` })
+      .from(companyCategories)
+      .innerJoin(categories, eq(categories.id, companyCategories.categoryId))
+      .where(
+        and(eq(companyCategories.companyId, companies.id), isNull(companyCategories.archivedAt)),
+      ),
+  );
 }
 
 /** Jedna firma z katalogu po slugu. `null`, gdy jej tam nie ma. */

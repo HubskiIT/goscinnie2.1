@@ -8,8 +8,14 @@
  * Dlatego sprawdzamy nie tylko, że nagłówek jest, ale też że domyślną
  * odpowiedzią przy braku zmiennej jest „zamknięte”.
  */
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
-import { indeksowanieWlaczone, NAGLOWEK_ROBOTOW, WARTOSC_WLACZAJACA } from "@/lib/indeksowanie";
+import {
+  indeksowanieWlaczone,
+  NAGLOWEK_ROBOTOW,
+  robotyWMetadanych,
+  WARTOSC_WLACZAJACA,
+} from "@/lib/indeksowanie";
 
 const POCZATKOWA = process.env.INDEKSOWANIE;
 
@@ -88,5 +94,89 @@ describe("robots.txt", () => {
 
     expect(pierwsza?.allow).toBe("/");
     expect(pierwsza?.disallow).toContain("/api/");
+  });
+});
+
+/**
+ * Trzecia bariera: znacznik `robots` w treści strony.
+ *
+ * To ta, która była zepsuta. `app/layout.tsx` miał wpisane na sztywno
+ * `{ index: false, follow: false }` i nie czytał flagi wcale, więc
+ * `INDEKSOWANIE=wlaczone` zdejmowało nagłówek i otwierało robots.txt,
+ * a każda strona dalej niosła `noindex` w `<head>`. Serwis zostawał
+ * zamknięty, tylko już bez śladu w robots.txt, który by to tłumaczył.
+ */
+describe("znacznik robots w metadanych", () => {
+  it("przy wyłączonym indeksowaniu odmawia indeksu", () => {
+    delete process.env.INDEKSOWANIE;
+
+    expect(robotyWMetadanych()).toMatchObject({ index: false, follow: false });
+  });
+
+  it("przy włączonym indeksowaniu wpuszcza i prosi o dużą miniaturę", () => {
+    process.env.INDEKSOWANIE = WARTOSC_WLACZAJACA;
+    const robots = robotyWMetadanych();
+
+    expect(robots).toMatchObject({ index: true, follow: true });
+    // Katalog miejsc sprzedaje się zdjęciem sali, nie samym napisem.
+    expect(robots.googleBot?.["max-image-preview"]).toBe("large");
+  });
+});
+
+/**
+ * Trzy bariery, jedna zmienna.
+ *
+ * Każda sprawdzana **osobno i w obu stanach flagi**, bo bariera, która
+ * flagi nie czyta, wygląda poprawnie dopóki patrzy się na pozostałe.
+ * Dokładnie tak przeszła poprzednia wersja: dwie bariery słuchały zmiennej,
+ * trzecia nie, a test sprawdzał tylko te dwie i był zielony.
+ */
+describe("trzy bariery zgadzają się z flagą", () => {
+  async function stanBarier() {
+    const { default: robots } = await import("@/app/robots");
+    const regula = robots().rules;
+    const pierwsza = Array.isArray(regula) ? regula[0] : regula;
+
+    return {
+      naglowek: (await naglowkiOdpowiedzi()).get(NAGLOWEK_ROBOTOW),
+      robotsTxt: pierwsza?.disallow,
+      metadane: robotyWMetadanych().index,
+    };
+  }
+
+  it("wyłączona flaga zamyka wszystkie trzy", async () => {
+    delete process.env.INDEKSOWANIE;
+    const stan = await stanBarier();
+
+    expect(stan.naglowek).toContain("noindex");
+    expect(stan.robotsTxt).toBe("/");
+    expect(stan.metadane).toBe(false);
+  });
+
+  it("włączona flaga otwiera wszystkie trzy", async () => {
+    process.env.INDEKSOWANIE = WARTOSC_WLACZAJACA;
+    const stan = await stanBarier();
+
+    expect(stan.naglowek).toBeNull();
+    expect(stan.robotsTxt).not.toBe("/");
+    expect(stan.metadane).toBe(true);
+  });
+});
+
+describe("konwencja: layout nie decyduje o indeksowaniu sam", () => {
+  it("app/layout.tsx czyta flagę, zamiast wpisywać odpowiedź na sztywno", () => {
+    /*
+     * Test na treść pliku, a nie na zachowanie, i to jest celowe. Metadanych
+     * layoutu nie da się tu zaimportować, bo moduł ciągnie `next/font/google`,
+     * a sam wynik niczego by nie dowiódł: wartość wpisana na sztywno na „tak”
+     * wygląda w jednym przebiegu identycznie jak wartość czytana z flagi.
+     *
+     * Pilnujemy więc źródła prawdy, nie wyniku: w layoucie nie ma prawa stać
+     * literał, bo wtedy zmienna środowiskowa przestaje cokolwiek znaczyć.
+     */
+    const layout = readFileSync("app/layout.tsx", "utf8");
+
+    expect(layout).toContain("robotyWMetadanych()");
+    expect(layout).not.toMatch(/index:\s*(true|false)/);
   });
 });

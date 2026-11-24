@@ -3,13 +3,16 @@ import { headers } from "next/headers";
 import { LokaleScreen } from "@/components/screens/LokaleScreen";
 import { widzZZadania } from "@/lib/auth/widz";
 import { lokaleZBazy } from "@/lib/katalog";
+import { metadaneStrony } from "@/lib/metadane";
+import { TRASY } from "@/lib/trasy";
 import { odczytajKryteria } from "@/lib/wyszukiwanie";
 import { wyszukajLokale } from "@/lib/wyszukiwanie-serwer";
 
-export const metadata: Metadata = {
-  title: "Lokale i sale",
-  description: "Sale weselne, dworki, restauracje i stodoły na każdą okazję.",
-};
+export const metadata: Metadata = metadaneStrony({
+  tytul: "Sale i lokale na każdą okazję",
+  opis: "Sale weselne, dworki, restauracje i stodoły. Obiekty na wesela, komunie, chrzciny, osiemnastki, przyjęcia firmowe i stypy. Ceny od, bez prowizji.",
+  sciezka: TRASY.lokale,
+});
 
 interface Props {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

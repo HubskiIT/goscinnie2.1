@@ -5,6 +5,8 @@ import { LokaleScreen } from "@/components/screens/LokaleScreen";
 import { pobierzRodzajLokalu } from "@/content/rodzaje-lokali";
 import { widzZZadania } from "@/lib/auth/widz";
 import { lokaleZBazy } from "@/lib/katalog";
+import { metadaneStrony } from "@/lib/metadane";
+import { lokaleWg } from "@/lib/trasy";
 import type { KryteriaLokali } from "@/lib/wyszukiwanie";
 import { wyszukajLokale } from "@/lib/wyszukiwanie-serwer";
 
@@ -22,10 +24,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { rodzaj: slugRodzaju, miejscowosc } = await params;
   const rodzaj = pobierzRodzajLokalu(slugRodzaju);
   if (!rodzaj) return { title: "Nie ma takiej strony" };
-  return {
-    title: `${rodzaj.nazwaMnoga}: ${nazwaZeSlugu(miejscowosc)}`,
-    description: `${rodzaj.nazwaMnoga} w okolicy, z ceną od i bez prowizji od umów.`,
-  };
+  return metadaneStrony({
+    tytul: `${rodzaj.nazwaMnoga}: ${nazwaZeSlugu(miejscowosc)}`,
+    opis: `${rodzaj.nazwaMnoga} w ${nazwaZeSlugu(miejscowosc)} i okolicy, z ceną od i bez prowizji od umów.`,
+    sciezka: lokaleWg(rodzaj.slug, miejscowosc),
+  });
 }
 
 export default async function Strona({ params }: Props) {

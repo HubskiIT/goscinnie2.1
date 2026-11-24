@@ -3,13 +3,16 @@ import { headers } from "next/headers";
 import { ZleceniaScreen } from "@/components/screens/ZleceniaScreen";
 import { widzZZadania } from "@/lib/auth/widz";
 import { odczytajKryteriaZlecen, wyszukajZlecenia } from "@/lib/filtry";
+import { metadaneStrony } from "@/lib/metadane";
 import { widocznoscZlecenia } from "@/lib/permissions";
+import { TRASY } from "@/lib/trasy";
 import { pelnyZakresGieldy, zlecenieDoPokazania } from "@/lib/zlecenia-widok";
 
-export const metadata: Metadata = {
-  title: "Giełda zleceń",
-  description: "Zlecenia od klientów szukających lokalu i usług.",
-};
+export const metadata: Metadata = metadaneStrony({
+  tytul: "Giełda zleceń",
+  opis: "Zlecenia od klientów szukających lokalu i usług. Przeglądaj okazje w swojej okolicy.",
+  sciezka: TRASY.zlecenia,
+});
 
 interface Props {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

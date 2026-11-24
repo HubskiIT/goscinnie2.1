@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { metadaneStrony } from "@/lib/metadane";
 import { CZYM_JESTESMY } from "@/lib/serwis";
+import { TRASY } from "@/lib/trasy";
 
-export const metadata: Metadata = {
-  title: "Dla firm",
-  description: "Dodaj lokal albo usługi do katalogu Gościnnie. Bezpłatnie.",
-};
+export const metadata: Metadata = metadaneStrony({
+  tytul: "Dla firm",
+  opis: "Dodaj lokal albo usługi do katalogu Gościnnie. Dodanie firmy i prowadzenie profilu jest bezpłatne.",
+  sciezka: TRASY.dlaFirm,
+});
 
 const KROKI = [
   {

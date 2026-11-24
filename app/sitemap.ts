@@ -40,7 +40,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     TRASY.dlaFirm,
     ...(PLATNOSCI_WLACZONE ? [TRASY.cennik] : []),
     TRASY.kontakt,
-    TRASY.logowanie,
+    /*
+     * Logowania tu nie ma i nie ma mieć. Ekran, który nie ma treści dla
+     * kogoś niezalogowanego, nie wnosi do indeksu nic, a od teraz ma w
+     * metadanych `index: false` (lib/metadane.ts). Adres w mapie witryny
+     * przy znaczniku `noindex` na stronie to sprzeczność, którą Search
+     * Console zgłasza jako błąd pokrycia.
+     *
+     * Rozdroże rejestracji i obie jego drogi zostają: to strony wejściowe
+     * dla firm i dla klientów, a nie bramki wymagające sesji.
+     */
     TRASY.rejestracja,
     TRASY.rejestracjaKlienta,
     TRASY.rejestracjaFirmy,
