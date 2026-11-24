@@ -4,7 +4,7 @@ import Link from "next/link";
 import { EtykietaPrzykladu } from "@/components/EtykietaPrzykladu";
 import { WyszukiwarkaLokali } from "@/components/WyszukiwarkaLokali";
 import { ZdjecieFirmy } from "@/components/ZdjecieFirmy";
-import { zlote } from "@/content/format";
+import { odmiana, zlote } from "@/content/format";
 import type { Lokal } from "@/content/ogloszenia";
 import { useKrotkaLista } from "@/hooks/use-krotka-lista";
 import { adresZPrzelaczonym, czySaFiltry, type KryteriaLokali } from "@/lib/wyszukiwanie";
@@ -15,9 +15,16 @@ const UDOGODNIENIA = ["ogród", "nocleg dla 40 osób", "sala na wyłączność",
 interface LokaleScreenProps {
   lokale: readonly Lokal[];
   kryteria: KryteriaLokali;
+  /**
+   * Nazwa wyszukiwanej miejscowości albo `null`, gdy nikt jej nie podał.
+   *
+   * Przychodzi gotowa z serwera, bo rejestr TERYT siedzi w spakowanym pliku,
+   * którego nie wysyłamy do przeglądarki, a ten ekran jest kliencki.
+   */
+  okolica: string | null;
 }
 
-export function LokaleScreen({ lokale, kryteria }: LokaleScreenProps) {
+export function LokaleScreen({ lokale, kryteria, okolica }: LokaleScreenProps) {
   const { lista: shortlist, przelacz: toggleShortlist } = useKrotkaLista();
 
   const venues = lokale.map((lokal) => ({
@@ -47,13 +54,14 @@ export function LokaleScreen({ lokale, kryteria }: LokaleScreenProps) {
           >
             Gościnnie
           </Link>{" "}
-          &nbsp;›&nbsp; Sale i lokale &nbsp;›&nbsp; Wrocław i okolice
+          &nbsp;›&nbsp; Sale i lokale
+          {okolica === null ? null : <>&nbsp;›&nbsp; {okolica} i okolice</>}
         </p>
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-10">
           <div>
             <h1 className="m-0 mb-3 font-fraunces font-normal text-[36px] sm:text-[44px] md:text-[48px] tracking-tight">
-              Sale i lokale we Wrocławiu
+              {okolica === null ? "Sale i lokale" : `Sale i lokale: ${okolica}`}
             </h1>
             <p className="m-0 text-[17px] leading-[1.6] text-[#3E3344] max-w-[62ch]">
               Obiekty, które przyjmują wesela, komunie, chrzciny, osiemnastki, przyjęcia firmowe i
@@ -62,9 +70,20 @@ export function LokaleScreen({ lokale, kryteria }: LokaleScreenProps) {
           </div>
           <div className="shrink-0 text-left md:text-right">
             <div className="font-fraunces text-[34px] font-medium">
-              {venues.length} {venues.length === 1 ? "obiekt" : "obiekty"}
+              {venues.length} {odmiana(venues.length, "obiekt", "obiekty", "obiektów")}
             </div>
-            <div className="text-[14px] text-[#6A5C70]">w promieniu 30 km</div>
+            {/*
+             * Promień pokazujemy tylko wtedy, gdy jest od czego go liczyć.
+             * Wcześniej stało tu „w promieniu 30 km” niezależnie od wszystkiego,
+             * także przy pustym polu miejscowości i przy ustawionym suwaku 10 km.
+             */}
+            {okolica === null ? null : (
+              <div className="text-[14px] text-[#6A5C70]">
+                {kryteria.promienKm === 0
+                  ? "tylko ta miejscowość"
+                  : `w promieniu ${kryteria.promienKm} km`}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -232,8 +251,21 @@ export function LokaleScreen({ lokale, kryteria }: LokaleScreenProps) {
               ))}
             </div>
             {shortlist.length > 0 && (
+              /*
+               * Prowadzi do zlecenia, nie do formularza jednego lokalu.
+               *
+               * Stał tu adres `/f/dwor-pod-lipami/zapytanie`, czyli zapytanie
+               * do wpisu przykładowego, wpisany na sztywno jeszcze w prototypie.
+               * Po usunięciu atrap ten adres oddaje 404, a przycisk pokazuje
+               * się dopiero wtedy, gdy ktoś odłożył lokal na bok, więc trafiłby
+               * w niego pierwszy prawdziwy zainteresowany klient.
+               *
+               * Zlecenie jest poprawnym celem także merytorycznie: krótka lista
+               * ma kilka obiektów, a zapytanie do jednego z nich nie jest
+               * zapytaniem do listy.
+               */
               <Link
-                href="/f/dwor-pod-lipami/zapytanie"
+                href="/dodaj-zlecenie"
                 className="mt-3.5 w-full text-[14px] font-semibold text-[#241C2B] bg-white border border-[#241C2B] rounded-[8px] py-2 cursor-pointer hover:bg-[#241C2B] hover:text-white transition-colors"
               >
                 Wyślij zapytanie do listy ({shortlist.length})
@@ -260,37 +292,6 @@ export function LokaleScreen({ lokale, kryteria }: LokaleScreenProps) {
         >
           Wystaw zlecenie
         </Link>
-      </section>
-
-      {/* Przeglądaj dalej */}
-      <section className="shrink-0 px-6 sm:px-12 md:px-[130px] py-12">
-        <h2 className="m-0 mb-5 text-[14px] font-bold tracking-wider uppercase text-[#55485A]">
-          Przeglądaj dalej
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-9 gap-y-3">
-          {[
-            "Sale weselne Wrocław",
-            "Sale na komunię Wrocław",
-            "Sale na chrzciny Wrocław",
-            "Sale na osiemnastkę Wrocław",
-            "Sale na stypy Wrocław",
-            "Sale firmowe Wrocław",
-            "Sale z ogrodem Wrocław",
-            "Sale z noclegiem Wrocław",
-            "Sale weselne Kraków",
-            "Sale weselne Poznań",
-            "Sale weselne Warszawa",
-            "Sale weselne Gdańsk",
-          ].map((tag) => (
-            <Link
-              href="/lokale"
-              key={tag}
-              className="text-left text-[15px] text-[#3E3344] hover:text-[#8A5405] py-2 border-b border-[#EFE5DD] bg-transparent border-t-0 border-x-0 cursor-pointer"
-            >
-              {tag}
-            </Link>
-          ))}
-        </div>
       </section>
     </div>
   );

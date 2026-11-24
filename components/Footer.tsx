@@ -103,7 +103,7 @@ export function Footer({ dark }: FooterProps) {
   // Light beige footer
   return (
     <footer className="shrink-0 box-border px-8 md:px-[130px] pt-[54px] pb-[34px] bg-[#F2E9E2] border-t border-[#E2D5CA]">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-8 md:gap-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 md:gap-10">
         <div>
           <div className="font-fraunces text-[24px] font-semibold text-[#241C2B]">Gościnnie</div>
           <p className="mt-3 mb-0 text-[14px] leading-[1.7] text-[#55485A] max-w-[30ch]">
@@ -172,35 +172,13 @@ export function Footer({ dark }: FooterProps) {
           </Link>
         </div>
 
-        <div>
-          <div className="text-[13px] font-bold tracking-wider uppercase text-[#55485A] mb-4">
-            Popularne
-          </div>
-          <Link
-            href="/lokale"
-            className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
-          >
-            Sale weselne Wrocław
-          </Link>
-          <Link
-            href="/lokale"
-            className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
-          >
-            Sale na komunię Kraków
-          </Link>
-          <Link
-            href="/uslugodawcy"
-            className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
-          >
-            Fotografowie Poznań
-          </Link>
-          <Link
-            href="/imprezy"
-            className="block text-left text-[14px] text-[#3E3344] hover:text-[#241C2B] mb-2.5 bg-transparent border-0 cursor-pointer p-0"
-          >
-            Andrzejki Warszawa
-          </Link>
-        </div>
+        {/*
+         * Kolumna „Popularne” znikła razem z sekcją „Przeglądaj dalej”
+         * w katalogu. Miała cztery odnośniki z nazwami miast, z których każdy
+         * prowadził na stronę ogólną: klikający „Sale weselne Kraków” dostawał
+         * katalog bez Krakowa. Kotwica obiecująca miasto wymaga strony tego
+         * miasta, a trasy /lokale/[rodzaj]/[miejscowosc] czekają na wpisy.
+         */}
 
         <div>
           <div className="text-[13px] font-bold tracking-wider uppercase text-[#55485A] mb-4">
@@ -218,14 +196,23 @@ export function Footer({ dark }: FooterProps) {
           >
             Zgłoś treść
           </Link>
-          <span className="block text-[14px] text-[#8B7F91] mb-2.5">Regulamin</span>
-          <span className="block text-[14px] text-[#8B7F91]">Polityka prywatności</span>
+          {/*
+           * Regulamin i polityka prywatności wrócą tu jako odnośniki, gdy
+           * dokumenty powstaną. Stały tu jako szary tekst bez odnośnika, co
+           * dla odwiedzającego wygląda na zepsuty serwis, a nie na pracę w toku.
+           * Lepiej nie obiecywać pozycji, której nie da się otworzyć.
+           */}
         </div>
       </div>
 
       <div className="mt-[38px] pt-[22px] border-t border-[#E2D5CA] flex flex-col sm:flex-row justify-between gap-2 text-[13px] text-[#6A5C70]">
+        {/*
+         * Obok daty stała notatka „Dwie pozycje bez odnośnika czekają na
+         * dokumenty prawne”. To była wiadomość do siebie samego, wystawiona
+         * w stopce każdej strony serwisu, który ma już przyjmować prawdziwych
+         * klientów.
+         */}
         <span>© 2026 Gościnnie</span>
-        <span>Dwie pozycje bez odnośnika czekają na dokumenty prawne.</span>
       </div>
     </footer>
   );

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { LokaleScreen } from "@/components/screens/LokaleScreen";
+import { nazwaMiejscowosci } from "@/content/miejscowosci";
 import { pobierzRodzajLokalu } from "@/content/rodzaje-lokali";
 import { widzZZadania } from "@/lib/auth/widz";
 import { lokaleZBazy } from "@/lib/katalog";
@@ -14,19 +15,13 @@ interface Props {
   params: Promise<{ rodzaj: string; miejscowosc: string }>;
 }
 
-/** Adres w stylu /lokale/sale-weselne/wroclaw to wejście z wyszukiwarki. */
-function nazwaZeSlugu(slug: string): string {
-  const bez = slug.replaceAll("-", " ");
-  return bez.charAt(0).toUpperCase() + bez.slice(1);
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { rodzaj: slugRodzaju, miejscowosc } = await params;
   const rodzaj = pobierzRodzajLokalu(slugRodzaju);
   if (!rodzaj) return { title: "Nie ma takiej strony" };
   return metadaneStrony({
-    tytul: `${rodzaj.nazwaMnoga}: ${nazwaZeSlugu(miejscowosc)}`,
-    opis: `${rodzaj.nazwaMnoga} w ${nazwaZeSlugu(miejscowosc)} i okolicy, z ceną od i bez prowizji od umów.`,
+    tytul: `${rodzaj.nazwaMnoga}: ${nazwaMiejscowosci(miejscowosc)}`,
+    opis: `${rodzaj.nazwaMnoga} w ${nazwaMiejscowosci(miejscowosc)} i okolicy, z ceną od i bez prowizji od umów.`,
     sciezka: lokaleWg(rodzaj.slug, miejscowosc),
   });
 }
@@ -38,12 +33,18 @@ export default async function Strona({ params }: Props) {
 
   const kryteria: KryteriaLokali = {
     rodzaj: rodzaj.slug,
-    miejscowosc: nazwaZeSlugu(miejscowosc),
+    miejscowosc: nazwaMiejscowosci(miejscowosc),
     promienKm: 25,
     goscie: null,
     termin: null,
     udogodnienia: [],
   };
   const zBazy = await lokaleZBazy(await widzZZadania(await headers()));
-  return <LokaleScreen lokale={wyszukajLokale(kryteria, zBazy)} kryteria={kryteria} />;
+  return (
+    <LokaleScreen
+      lokale={wyszukajLokale(kryteria, zBazy)}
+      kryteria={kryteria}
+      okolica={kryteria.miejscowosc}
+    />
+  );
 }

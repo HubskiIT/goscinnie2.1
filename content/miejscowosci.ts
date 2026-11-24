@@ -73,6 +73,25 @@ export function pobierzMiejscowosc(slug: string): Miejscowosc | undefined {
 }
 
 /**
+ * Nazwa miejscowości do pokazania człowiekowi, wyliczona ze slugu z adresu.
+ *
+ * Najpierw rejestr TERYT, dopiero potem slug z podmienionymi myślnikami.
+ * Kolejność ma znaczenie, bo sama podmiana myślników gubi wielkie litery
+ * w nazwach złożonych: „zielona-gora” daje „Zielona gora”, a nie „Zielona Góra”,
+ * i w ogóle nie przywraca znaków diakrytycznych, bo w slugu ich nie ma.
+ *
+ * Zapas istnieje, bo nazwa trafia do nagłówka i do tytułu strony, a adres
+ * z nieznanym slugiem ma pokazać cokolwiek sensownego zamiast pustego miejsca.
+ */
+export function nazwaMiejscowosci(slug: string): string {
+  const zRejestru = pobierzMiejscowosc(slug);
+  if (zRejestru) return zRejestru.nazwa;
+
+  const bez = slug.replaceAll("-", " ");
+  return bez.charAt(0).toUpperCase() + bez.slice(1);
+}
+
+/**
  * Podpowiedzi do pola miejscowości. Najpierw nazwy zaczynające się od frazy,
  * potem zawierające ją, a w obu grupach miasta przed wsiami.
  */
