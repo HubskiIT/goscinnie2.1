@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { cena, type Okres, type Plan } from "@/content/cennik";
 import type { KlasaCenowa } from "@/content/kategorie";
+import { adresSesji } from "@/lib/adres";
 import { auth } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import type { StanFormularza } from "@/lib/formularze";
@@ -192,10 +193,18 @@ export async function utworzPlatnosc(
 
     // Tworzymy zamówienie w PayU
     const posId = process.env.PAYU_POS_ID;
-    const notifyUrl =
-      process.env.PAYU_NOTIFY_URL ?? `${process.env.BETTER_AUTH_URL}/api/webhooks/payu`;
-    const continueUrl =
-      process.env.PAYU_CONTINUE_URL ?? `${process.env.BETTER_AUTH_URL}/panel/platnosc/sukces`;
+    /*
+     * Zapas przez `adresSesji()`, nie przez `process.env.BETTER_AUTH_URL`.
+     *
+     * Wcześniej brak zmiennej dawał tu dosłownie `undefined/api/webhooks/payu`,
+     * bo interpolacja `undefined` do napisu nie jest błędem, tylko napisem.
+     * PayU dostawałby adres zwrotny, pod który nigdy nie zapuka, i to bez
+     * żadnego wyjątku po naszej stronie: płatność przechodzi, powiadomienie
+     * nie wraca, abonament się nie włącza.
+     */
+    const adres = adresSesji();
+    const notifyUrl = process.env.PAYU_NOTIFY_URL ?? `${adres}/api/webhooks/payu`;
+    const continueUrl = process.env.PAYU_CONTINUE_URL ?? `${adres}/panel/platnosc/sukces`;
 
     if (!posId) {
       throw new Error("Brak PAYU_POS_ID w zmiennych środowiskowych.");

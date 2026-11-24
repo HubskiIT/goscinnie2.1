@@ -54,6 +54,30 @@ export function adresAplikacji(srodowisko: SrodowiskoAdresu = process.env): stri
   }
 }
 
+/**
+ * Adres, pod którym biblioteka sesji wystawia swoje punkty końcowe.
+ *
+ * DLACZEGO NIE `process.env.BETTER_AUTH_URL ?? "http://localhost:3000"`
+ *
+ * Bo tak było i na Vercelu ten zapas jest zawsze zły. Zmienna jest ustawiona
+ * tylko dla produkcji, więc każde wdrożenie podglądowe dostawało adres
+ * `http://localhost:3000`: biblioteka budowała z niego odnośniki w mailach
+ * i sprawdzała po nim pochodzenie żądania, choć strona stała pod adresem
+ * `*.vercel.app`. Awaria tego rodzaju nie krzyczy, tylko cicho psuje
+ * logowanie na każdej gałęzi.
+ *
+ * Zapas schodzi więc na `adresAplikacji()`, które zna `VERCEL_URL`, czyli
+ * adres nadany przez Vercela temu konkretnemu wdrożeniu. Dzięki temu podgląd
+ * działa bez ustawiania czegokolwiek per gałąź, a produkcja, która ma
+ * `BETTER_AUTH_URL` wpisane wprost, zachowuje się dokładnie jak dotąd.
+ *
+ * Pusta wartość traktowana jak brak: zmienna skasowana w panelu do pustego
+ * pola nie ma znaczyć „adres to pusty napis”.
+ */
+export function adresSesji(srodowisko: SrodowiskoAdresu = process.env): string {
+  return srodowisko.BETTER_AUTH_URL?.trim() || adresAplikacji(srodowisko);
+}
+
 /** Dokłada `https://`, gdy adres nie ma własnego protokołu. */
 function zProtokolemNaPoczatku(adres: string): string {
   // Protokół w rozumieniu URL: litera, potem litery, cyfry, plus, kropka, minus.

@@ -17,6 +17,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { emailOTP } from "better-auth/plugins";
+import { adresSesji } from "@/lib/adres";
 import { db } from "@/lib/db";
 import { accounts, sessions, verifications } from "@/lib/db/schema/sesje";
 import { users } from "@/lib/db/schema/tozsamosc";
@@ -79,7 +80,7 @@ function utworzAuth() {
 
   return betterAuth({
     secret: sekret,
-    baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+    baseURL: adresSesji(),
 
     database: drizzleAdapter(db, {
       provider: "pg",

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { adresAplikacji } from "@/lib/adres";
 import { indeksowanieWlaczone } from "@/lib/indeksowanie";
 
 /**
@@ -29,5 +30,18 @@ export default function robots(): MetadataRoute.Robots {
        */
       disallow: ["/api/", "/panel/", "/moje", "/wiadomosci", "/weryfikacja", "/nowe-haslo"],
     },
+    /*
+     * Wskazanie mapy witryny, wyłącznie w gałęzi otwartej.
+     *
+     * Adres musi być bezwzględny, bo robots.txt tak ma w specyfikacji i
+     * ścieżki względnej nikt tu nie odczyta. Stąd `adresAplikacji()`,
+     * a nie wpisany na stałe `https://goscinnie.pl/sitemap.xml`: ten sam
+     * kod ma dawać poprawny adres na produkcji, na podglądzie i lokalnie.
+     *
+     * W gałęzi zamkniętej tej linii nie ma i to jest celowe. Robot, który
+     * ma zakaz wstępu na całość, nie powinien dostawać jednocześnie
+     * zaproszenia do spisu wszystkich podstron.
+     */
+    sitemap: new URL("/sitemap.xml", adresAplikacji()).href,
   };
 }
