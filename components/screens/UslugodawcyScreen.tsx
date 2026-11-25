@@ -248,11 +248,20 @@ export function UslugodawcyScreen({
                     </div>
                     <div className="text-[12px] text-[#6A5C70]">{p.unit}</div>
                   </div>
+                  {/*
+                   * Jeden odnośnik, do profilu tego usługodawcy.
+                   *
+                   * Gałąź dla wpisów przykładowych prowadziła na sztywno do
+                   * `/f/dwor-pod-lipami/zapytanie`, czyli do atrapy, której już
+                   * nie ma: adres oddaje 404. Sama gałąź też jest martwa, bo
+                   * firmy z bazy mają `przykladowe: false` (lib/katalog.ts),
+                   * a tablice atrap są puste i pilnuje tego tests/bez-atrap.
+                   */}
                   <Link
-                    href={p.przykladowe ? "/f/dwor-pod-lipami/zapytanie" : `/f/${p.slug}`}
+                    href={`/f/${p.slug}`}
                     className="text-[14px] font-semibold text-[#241C2B] border-[1.5px] border-[#241C2B] rounded-[10px] px-4 py-2 hover:bg-[#241C2B] hover:text-white transition-colors cursor-pointer bg-transparent"
                   >
-                    {p.przykladowe ? "Zapytaj" : "Zobacz profil"}
+                    Zobacz profil
                   </Link>
                 </div>
               </div>

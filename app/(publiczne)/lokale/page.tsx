@@ -23,5 +23,16 @@ export default async function Strona({ searchParams }: Props) {
   // żeby ten sam adres w nowej karcie dał ten sam wynik.
   const kryteria = odczytajKryteria(await searchParams);
   const zBazy = await lokaleZBazy(await widzZZadania(await headers()));
-  return <LokaleScreen lokale={wyszukajLokale(kryteria, zBazy)} kryteria={kryteria} />;
+  return (
+    <LokaleScreen
+      lokale={wyszukajLokale(kryteria, zBazy)}
+      kryteria={kryteria}
+      /*
+       * Wprost z kryteriów, bez przechodzenia przez rejestr: pole wyszukiwarki
+       * przyjmuje nazwę wpisaną przez człowieka, nie slug. Na stronach
+       * miejskich, gdzie w adresie stoi slug, nazwę rozwija `nazwaMiejscowosci`.
+       */
+      okolica={kryteria.miejscowosc}
+    />
+  );
 }

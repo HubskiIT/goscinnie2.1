@@ -122,16 +122,18 @@ export function WpisBezProfiluScreen({ lokal }: WpisBezProfiluScreenProps) {
             Jak wygląda pełny profil po przejęciu?
           </h3>
           <p className="text-[15px] text-[#6A5C70] mb-5">
-            Zobacz różnicę pomiędzy wpisem nieprzejętym a zweryfikowanym profilem lokalu w naszym
-            katalogu.
+            Po przejęciu wpis dostaje opis, zdjęcia, cenę od i pojemność sali, a zapytania od
+            klientów trafiają prosto do Ciebie.
           </p>
+          {/*
+           * Stał tu przycisk „Zobacz przykładowy profil” prowadzący do wpisu
+           * przykładowego. Po usunięciu atrap ten adres oddaje 404, a ekran
+           * ogląda właściciel lokalu, którego dopiero namawiamy na przejęcie
+           * wpisu: nieczynny odnośnik jest wtedy najgorszym pierwszym wrażeniem.
+           * Wróci, gdy będzie do czego prowadzić, czyli gdy w katalogu stanie
+           * pierwszy pełny profil.
+           */}
           <div className="flex flex-wrap gap-4">
-            <Link
-              href="/f/dwor-pod-lipami"
-              className="text-[14px] font-semibold text-[#241C2B] bg-[#F2E9E2] hover:bg-[#EADFD6] transition-colors border-0 rounded-[10px] px-5 py-2.5 cursor-pointer"
-            >
-              Zobacz przykładowy profil →
-            </Link>
             <Link
               href="/dla-firm"
               className="text-[14px] font-semibold text-[#6A5C70] hover:text-[#241C2B] bg-transparent border border-[#D9CCC2] rounded-[10px] px-5 py-2.5 cursor-pointer"
