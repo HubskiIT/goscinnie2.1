@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { ImprezaDoPokazania, LokalImprezy } from "@/components/screens/ImprezaScreen";
 import { ImprezaScreen } from "@/components/screens/ImprezaScreen";
 import { pobierzLokal, pobierzImpreze as pobierzPrzyklad } from "@/content/ogloszenia";
+import { adresAplikacji } from "@/lib/adres";
 import { widzZZadania } from "@/lib/auth/widz";
 import { pobierzImpreze } from "@/lib/db/queries/imprezy";
 import { metadaneStrony } from "@/lib/metadane";
@@ -97,5 +98,36 @@ export default async function Strona({ params }: Props) {
   const wynik = await znajdz(slug);
   if (!wynik) notFound();
 
-  return <ImprezaScreen impreza={wynik.impreza} lokal={wynik.lokal} />;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    name: wynik.impreza.nazwa,
+    description: wynik.impreza.opis,
+    startDate: `${wynik.impreza.data}T${wynik.impreza.godzinaOd}`,
+    url: new URL(trasaImprezy(slug), adresAplikacji()).toString(),
+    location: {
+      "@type": "Place",
+      name: wynik.lokal.nazwa,
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: wynik.lokal.miejscowosc,
+        addressCountry: "PL",
+      },
+    },
+    offers: {
+      "@type": "Offer",
+      price:
+        wynik.impreza.cenaBiletuGrosze !== null
+          ? Math.round(wynik.impreza.cenaBiletuGrosze / 100)
+          : 0,
+      priceCurrency: "PLN",
+    },
+  };
+
+  return (
+    <>
+      <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
+      <ImprezaScreen impreza={wynik.impreza} lokal={wynik.lokal} />
+    </>
+  );
 }

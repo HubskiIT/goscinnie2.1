@@ -1,10 +1,11 @@
 import type { MetadataRoute } from "next";
 import { OKAZJE } from "@/content/okazje";
 import { adresAplikacji } from "@/lib/adres";
+import { pobierzImprezy } from "@/lib/db/queries/imprezy";
 import { pobierzSlugiFirmDoSitemapy } from "@/lib/db/queries/katalog";
 import type { Widz } from "@/lib/permissions";
 import { PLATNOSCI_WLACZONE } from "@/lib/serwis";
-import { firma, okazja, TRASY } from "@/lib/trasy";
+import { firma, impreza, okazja, TRASY } from "@/lib/trasy";
 
 /**
  * Mapa witryny.
@@ -64,10 +65,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
    * Tańszy błąd wygrywa.
    */
   let profile: { slug: string; zmieniono: Date }[] = [];
+  let imprezy: { slug: string }[] = [];
   try {
-    profile = await pobierzSlugiFirmDoSitemapy(ANONIM);
+    [profile, imprezy] = await Promise.all([
+      pobierzSlugiFirmDoSitemapy(ANONIM),
+      pobierzImprezy(ANONIM, { okazja: null, miejscowosc: null, od: null, do: null }),
+    ]);
   } catch (blad) {
-    console.error("Mapa witryny: nie udało się pobrać profili firm:", blad);
+    console.error("Mapa witryny: nie udało się pobrać danych:", blad);
   }
 
   return [
@@ -78,6 +83,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...profile.map((p) => ({
       url: new URL(firma(p.slug), adres).toString(),
       lastModified: p.zmieniono,
+    })),
+    ...imprezy.map((i) => ({
+      url: new URL(impreza(i.slug), adres).toString(),
+      lastModified: teraz,
     })),
   ];
 }

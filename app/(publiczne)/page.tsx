@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { MainScreen } from "@/components/screens/MainScreen";
+import { adresAplikacji } from "@/lib/adres";
 import { widzZZadania } from "@/lib/auth/widz";
 import { pobierzImprezy } from "@/lib/db/queries/imprezy";
 import { lokaleZBazy } from "@/lib/katalog";
@@ -26,5 +27,23 @@ export default async function Strona() {
     pobierzImprezy(widz, { okazja: null, miejscowosc: null, od: null, do: null }),
   ]);
 
-  return <MainScreen lokale={lokale.slice(0, 6)} imprezy={imprezy.slice(0, 6)} />;
+  const adres = adresAplikacji();
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Gościnnie",
+    url: adres,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${adres}/lokale?miejscowosc={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  };
+
+  return (
+    <>
+      <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
+      <MainScreen lokale={lokale.slice(0, 6)} imprezy={imprezy.slice(0, 6)} />
+    </>
+  );
 }

@@ -5,6 +5,8 @@ import { ProfilFirmyScreen } from "@/components/screens/ProfilFirmyScreen";
 import { ProfilScreen } from "@/components/screens/ProfilScreen";
 import { WpisBezProfiluScreen } from "@/components/screens/WpisBezProfiluScreen";
 import { pobierzLokal } from "@/content/ogloszenia";
+import { pobierzRodzajLokalu } from "@/content/rodzaje-lokali";
+import { adresAplikacji } from "@/lib/adres";
 import { widzZZadania } from "@/lib/auth/widz";
 import { pobierzProfilFirmy } from "@/lib/db/queries/firmy";
 import { pobierzFirmeKatalogu } from "@/lib/db/queries/katalog";
@@ -77,13 +79,38 @@ export default async function Strona({ params }: Props) {
       pobierzProfilFirmy(widz, wynik.firma.slug),
     ]);
 
+    const f = wynik.firma;
+    const czyLokal = Boolean(pobierzRodzajLokalu(f.kategoria));
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": czyLokal ? "EventVenue" : "LocalBusiness",
+      name: f.nazwa,
+      description: f.opis,
+      url: new URL(trasaFirmy(f.slug), adresAplikacji()).toString(),
+      ...(f.glowneZdjecie ? { image: f.glowneZdjecie } : {}),
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: f.miejscowosc.nazwa,
+        addressRegion: f.miejscowosc.wojewodztwo,
+        addressCountry: "PL",
+      },
+      ...(f.cenaOd !== null
+        ? {
+            priceRange: `od ${Math.round(f.cenaOd / 100)} zł`,
+          }
+        : {}),
+    };
+
     return (
-      <ProfilFirmyScreen
-        firma={wynik.firma}
-        szczegoly={szczegolyNaProfil(szczegoly)}
-        wolneTerminy={profil?.wolneTerminy ?? []}
-        wezwanieDoPrzejecia={profil?.widocznosc.wezwanieDoPrzejecia ?? false}
-      />
+      <>
+        <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
+        <ProfilFirmyScreen
+          firma={wynik.firma}
+          szczegoly={szczegolyNaProfil(szczegoly)}
+          wolneTerminy={profil?.wolneTerminy ?? []}
+          wezwanieDoPrzejecia={profil?.widocznosc.wezwanieDoPrzejecia ?? false}
+        />
+      </>
     );
   }
   // Firma, która nie przejęła jeszcze wpisu, dostaje wersję "przejmij profil".
