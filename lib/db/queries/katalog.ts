@@ -244,6 +244,28 @@ export async function pobierzSlugiFirmDoSitemapy(
     .orderBy(asc(companies.slug));
 }
 
+/** Aktywne kombinacje (kategoria + miejscowość) do lokalnych stron SEO w sitemap.xml. */
+export async function pobierzAktywneTrasyKatalogu(
+  widz: Widz,
+): Promise<{ rodzaj: "venue" | "service" | null; kategoria: string; miejscowosc: string }[]> {
+  upewnijSieZeGalazUprawnienIstnieje(widz, "pobierzAktywneTrasyKatalogu");
+
+  return db
+    .selectDistinct({
+      rodzaj: companies.kind,
+      kategoria: categories.slug,
+      miejscowosc: cities.slug,
+    })
+    .from(companies)
+    .innerJoin(cities, eq(cities.id, companies.cityId))
+    .innerJoin(
+      companyCategories,
+      and(eq(companyCategories.companyId, companies.id), isNull(companyCategories.archivedAt)),
+    )
+    .innerJoin(categories, eq(categories.id, companyCategories.categoryId))
+    .where(jestWKatalogu());
+}
+
 /**
  * Firma ma przypisaną żywą kategorię, czyli taką, która nie jest zarchiwizowana.
  *

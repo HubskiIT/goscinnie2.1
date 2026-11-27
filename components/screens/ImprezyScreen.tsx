@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { EtykietaPrzykladu } from "@/components/EtykietaPrzykladu";
+import { LejekKonwersji } from "@/components/LejekKonwersji";
 import { PasekFiltrow } from "@/components/PasekFiltrow";
 import { type KryteriaImprez, PARAMETRY_IMPREZ } from "@/lib/filtry";
 
@@ -247,24 +248,7 @@ export function ImprezyScreen({ imprezy, kryteria }: ImprezyScreenProps) {
         </div>
       </section>
 
-      {/* Business Banner */}
-      <section className="shrink-0 mx-6 sm:mx-12 md:mx-[130px] my-9 border border-[#E2D5CA] rounded-[20px] bg-white p-8 md:p-10 flex flex-col md:flex-row items-center gap-6 md:gap-10 shadow-sm">
-        <div className="grow">
-          <h2 className="m-0 mb-2.5 font-fraunces font-medium text-[27px]">
-            Masz lokal i robisz andrzejki?
-          </h2>
-          <p className="m-0 text-[16px] leading-[1.65] text-[#3E3344] max-w-[74ch]">
-            Wystawianie imprez w profilu uruchomimy wkrótce. Już teraz możesz bezpłatnie dodać lokal
-            do katalogu.
-          </p>
-        </div>
-        <Link
-          href="/rejestracja-firmy"
-          className="shrink-0 text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-4 cursor-pointer"
-        >
-          Dodaj lokal
-        </Link>
-      </section>
+      <LejekKonwersji />
     </div>
   );
 }

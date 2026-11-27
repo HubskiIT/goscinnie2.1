@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PrzejmijProfilBox } from "@/components/PrzejmijProfilBox";
+import { UdostepnijPrzycisk } from "@/components/UdostepnijPrzycisk";
 import { ZdjecieFirmy } from "@/components/ZdjecieFirmy";
 import { dataDluga, zlote } from "@/content/format";
 import { pobierzKategorie_ } from "@/content/kategorie";
@@ -173,12 +174,15 @@ export function ProfilFirmyScreen({
             <p className="m-0 mb-5 text-[15px] leading-[1.6] text-[#6A5C70]">
               Wyślij bezpłatne zapytanie bezpośrednio do {firma.nazwa}. Zero prowizji.
             </p>
-            <Link
-              href={`/f/${firma.slug}/zapytanie`}
-              className="block text-center text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[12px] px-5 py-3.5"
-            >
-              Zapytaj o termin i wycenę
-            </Link>
+            <div className="flex flex-col gap-3">
+              <Link
+                href={`/f/${firma.slug}/zapytanie`}
+                className="block text-center text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[12px] px-5 py-3.5"
+              >
+                Zapytaj o termin i wycenę
+              </Link>
+              <UdostepnijPrzycisk tytul={firma.nazwa} />
+            </div>
 
             {wolneTerminy.length > 0 && (
               <div className="mt-6 pt-5 border-t border-[#EFE5DD]">

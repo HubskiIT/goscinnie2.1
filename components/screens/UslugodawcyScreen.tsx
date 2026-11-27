@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { EtykietaPrzykladu } from "@/components/EtykietaPrzykladu";
+import { LejekKonwersji } from "@/components/LejekKonwersji";
 import { ZdjecieFirmy } from "@/components/ZdjecieFirmy";
 import { zlote } from "@/content/format";
 import { pobierzKategorie } from "@/content/kategorie";
@@ -291,6 +292,8 @@ export function UslugodawcyScreen({
           ))}
         </div>
       </section>
+
+      <LejekKonwersji />
     </div>
   );
 }

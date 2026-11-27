@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { OKAZJE } from "@/content/okazje";
 import { adresAplikacji } from "@/lib/adres";
 import { pobierzImprezy } from "@/lib/db/queries/imprezy";
-import { pobierzSlugiFirmDoSitemapy } from "@/lib/db/queries/katalog";
+import { pobierzAktywneTrasyKatalogu, pobierzSlugiFirmDoSitemapy } from "@/lib/db/queries/katalog";
 import type { Widz } from "@/lib/permissions";
 import { PLATNOSCI_WLACZONE } from "@/lib/serwis";
 import { firma, impreza, okazja, TRASY } from "@/lib/trasy";
@@ -66,17 +66,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
    */
   let profile: { slug: string; zmieniono: Date }[] = [];
   let imprezy: { slug: string }[] = [];
+  let trasyKatalogu: {
+    rodzaj: "venue" | "service" | null;
+    kategoria: string;
+    miejscowosc: string;
+  }[] = [];
   try {
-    [profile, imprezy] = await Promise.all([
+    [profile, imprezy, trasyKatalogu] = await Promise.all([
       pobierzSlugiFirmDoSitemapy(ANONIM),
       pobierzImprezy(ANONIM, { okazja: null, miejscowosc: null, od: null, do: null }),
+      pobierzAktywneTrasyKatalogu(ANONIM),
     ]);
   } catch (blad) {
     console.error("Mapa witryny: nie udało się pobrać danych:", blad);
   }
 
+  const stronyLokalne = trasyKatalogu.map((t) =>
+    t.rodzaj === "service"
+      ? `/uslugodawcy/${t.kategoria}/${t.miejscowosc}`
+      : `/lokale/${t.kategoria}/${t.miejscowosc}`,
+  );
+
   return [
     ...sciezki.map((sciezka) => ({
+      url: new URL(sciezka, adres).toString(),
+      lastModified: teraz,
+    })),
+    ...stronyLokalne.map((sciezka) => ({
       url: new URL(sciezka, adres).toString(),
       lastModified: teraz,
     })),
