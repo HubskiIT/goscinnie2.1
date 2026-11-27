@@ -117,17 +117,25 @@ export function LokaleScreen({ lokale, kryteria, okolica }: LokaleScreenProps) {
       </section>
 
       {/* Main Listing + Aside */}
-      <section className="grow px-6 sm:px-12 md:px-[130px] pt-[34px] flex flex-col lg:flex-row gap-[34px] items-start">
+      <section className="grow px-6 sm:px-12 md:px-[130px] pt-[34px] pb-16 flex flex-col lg:flex-row gap-[34px] items-start">
         <div className="grow w-full flex flex-col gap-[18px]">
           {venues.length === 0 ? (
-            <p className="m-0 rounded-[18px] border border-dashed border-[#D9CCC2] bg-[#FBF7F4] p-8 text-center text-[15px] leading-[1.7] text-[#6A5C70]">
-              {czySaFiltry(kryteria)
-                ? "Żaden obiekt nie pasuje do tych filtrów."
-                : "Nie ma jeszcze ani jednego obiektu w katalogu."}{" "}
-              <Link href="/lokale" className="font-semibold text-[#8A5405] underline">
-                {czySaFiltry(kryteria) ? "Wyczyść filtry" : "Odśwież listę"}
+            <div className="m-0 rounded-[18px] border border-dashed border-[#D9CCC2] bg-white p-8 text-center text-[15px] leading-[1.7] text-[#6A5C70]">
+              <p className="m-0 mb-4">
+                {czySaFiltry(kryteria)
+                  ? "Żaden obiekt nie pasuje do tych filtrów."
+                  : "Nie ma jeszcze ani jednego obiektu w katalogu."}{" "}
+                <Link href="/lokale" className="font-semibold text-[#8A5405] underline">
+                  {czySaFiltry(kryteria) ? "Wyczyść filtry" : "Odśwież listę"}
+                </Link>
+              </p>
+              <Link
+                href="/rejestracja-firmy"
+                className="inline-block text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[12px] px-6 py-3"
+              >
+                Dodaj swój lokal bezpłatnie
               </Link>
-            </p>
+            </div>
           ) : null}
 
           {venues.map((venue) => {
@@ -135,12 +143,12 @@ export function LokaleScreen({ lokale, kryteria, okolica }: LokaleScreenProps) {
             return (
               <article
                 key={venue.slug}
-                className="border border-[#E2D5CA] rounded-[18px] bg-white flex flex-col sm:flex-row overflow-hidden"
+                className="border border-[#E2D5CA] rounded-[18px] bg-white flex flex-col sm:flex-row overflow-hidden shadow-2xs hover:shadow-sm transition-shadow"
               >
                 <ZdjecieFirmy
                   adres={venue.zdjecie}
                   nazwaFirmy={venue.name}
-                  className="w-full sm:w-[272px] h-[180px] sm:h-full shrink-0"
+                  className="w-full sm:w-[272px] h-[190px] sm:h-auto sm:min-h-[220px] shrink-0"
                 />
 
                 <div className="grow p-6 flex flex-col">
@@ -222,7 +230,7 @@ export function LokaleScreen({ lokale, kryteria, okolica }: LokaleScreenProps) {
         </div>
 
         {/* Aside: krótka lista */}
-        <aside className="w-full lg:w-[422px] shrink-0">
+        <aside className="w-full lg:w-[422px] shrink-0 lg:sticky lg:top-6">
           {/* Shortlist widget */}
           <div className="mt-[18px] border border-[#E2D5CA] rounded-[18px] bg-[#F2E9E2] p-[22px]">
             <div className="text-[16px] font-bold mb-2">Krótka lista ({shortlist.length})</div>

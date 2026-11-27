@@ -171,7 +171,9 @@ export function ImprezyScreen({ imprezy, kryteria }: ImprezyScreenProps) {
                 <div className="mt-auto pt-3 flex items-end justify-between gap-3 border-t border-[#EFE5DD]">
                   <div>
                     <div className="font-fraunces text-[22px] font-medium">{e.price}</div>
-                    <div className="text-[13px] text-[#6A5C70]">od osoby</div>
+                    {e.price !== "wstęp wolny" && (
+                      <div className="text-[13px] text-[#6A5C70]">od osoby</div>
+                    )}
                   </div>
 
                   <Link
@@ -185,30 +187,28 @@ export function ImprezyScreen({ imprezy, kryteria }: ImprezyScreenProps) {
             </article>
           ))}
         </div>
-
-        <div className="mt-5 border border-dashed border-[#D9CCC2] rounded-[16px] p-6 text-center bg-[#FBF7F4]">
-          <p className="m-0 mb-3.5 text-[15px] text-[#3E3344] max-w-2xl mx-auto">
-            Każda impreza ma własny adres, więc hasło w stylu andrzejki Wrocław 2026 może prowadzić
-            prosto tutaj. Terminy po dacie znikają z listy, ale strony zostają i przekierowują do
-            kolejnej edycji.
-          </p>
-          <button
-            type="button"
-            disabled
-            className="text-[15px] font-semibold text-[#241C2B] bg-white border-[1.5px] border-[#241C2B] rounded-[10px] px-6 py-3 cursor-pointer"
-          >
-            Pokaż następne 18
-          </button>
-        </div>
       </section>
 
-      {/* Rozkład roku & Jak lokal dodaje imprezę */}
-      <section className="shrink-0 px-6 sm:px-12 md:px-[130px] pt-10 flex flex-col lg:flex-row gap-5 items-stretch">
-        <div className="grow border border-[#E2D5CA] rounded-[20px] bg-white p-7 sm:p-8 shadow-sm">
-          <h2 className="m-0 mb-2 font-fraunces font-medium text-[26px]">Rozkład roku</h2>
-          <p className="m-0 text-[15px] leading-[1.6] text-[#6A5C70]">
-            Sezon imprez otwartych nie pokrywa się z weselnym. To są dwa różne szczyty w ciągu roku.
-          </p>
+      {/* Jak lokal dodaje imprezę */}
+      <section className="shrink-0 px-6 sm:px-12 md:px-[130px] pt-10 pb-16 flex flex-col lg:flex-row gap-5 items-stretch">
+        <div className="grow border border-[#E2D5CA] rounded-[20px] bg-white p-7 sm:p-8 shadow-sm flex flex-col justify-between gap-4">
+          <div>
+            <h2 className="m-0 mb-2 font-fraunces font-medium text-[26px]">
+              Organizujesz imprezę otwartą?
+            </h2>
+            <p className="m-0 text-[15px] leading-[1.6] text-[#6A5C70] max-w-[54ch]">
+              Dodaj sylwestra, andrzejki, bal karnawałowy lub kolację tematyczną w swoim lokalu.
+              Goście trafią prosto na stronę wydarzenia, a serwis nie pobiera prowizji od biletów.
+            </p>
+          </div>
+          <div>
+            <Link
+              href="/panel/imprezy"
+              className="inline-block text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[12px] px-6 py-3"
+            >
+              Dodaj imprezę w panelu lokalu
+            </Link>
+          </div>
         </div>
 
         <div className="w-full lg:w-[400px] shrink-0 border border-[#E2D5CA] rounded-[20px] bg-[#F2E9E2] p-7 sm:p-8">

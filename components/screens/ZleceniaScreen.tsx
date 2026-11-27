@@ -127,8 +127,19 @@ export function ZleceniaScreen({ zlecenia, kryteria, pelnyZakres }: ZleceniaScre
               >
                 <div className="flex items-start justify-between gap-5 mb-5">
                   <h3 className="m-0 font-fraunces font-medium text-[23px]">
-                    {zlecenie.okazja}, {zlecenie.liczbaGosci} osób, powiat {zlecenie.powiat}
+                    <Link
+                      href={`/zlecenia/${zlecenie.id}`}
+                      className="text-[#241C2B] hover:text-[#8A5405]"
+                    >
+                      {zlecenie.okazja}, {zlecenie.liczbaGosci} osób, powiat {zlecenie.powiat}
+                    </Link>
                   </h3>
+                  <Link
+                    href={`/zlecenia/${zlecenie.id}`}
+                    className="shrink-0 text-[13px] font-semibold text-[#8A5405] underline"
+                  >
+                    Szczegóły →
+                  </Link>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 py-4 border-y border-[#EFE5DD] mb-5">

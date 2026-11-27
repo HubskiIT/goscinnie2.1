@@ -29,12 +29,15 @@ export function UslugodawcyScreen({
 
   const filteredProviders = useMemo(() => {
     const fraza = searchInput.trim().toLowerCase();
+    const miejscowosc = locationInput.trim().toLowerCase();
     return uslugodawcy
       .filter((u) => slugKategorii === undefined || u.kategoriaGlowna === slugKategorii)
       .map((u) => ({
         slug: u.slug,
         name: u.nazwa,
         category: kategorie.find((k) => k.slug === u.kategoriaGlowna)?.nazwa ?? "",
+        city: u.miejscowosc.nazwa,
+        powiat: u.miejscowosc.powiat,
         base:
           u.zasiegDojazduKm === null
             ? `Baza: ${u.miejscowosc.nazwa}, powiat ${u.miejscowosc.powiat}`
@@ -47,6 +50,13 @@ export function UslugodawcyScreen({
         zdjecie: u.zdjecie ?? null,
       }))
       .filter((u) => {
+        if (
+          miejscowosc &&
+          !u.city.toLowerCase().includes(miejscowosc) &&
+          !u.powiat.toLowerCase().includes(miejscowosc)
+        ) {
+          return false;
+        }
         if (!fraza) return true;
         return (
           u.name.toLowerCase().includes(fraza) ||
@@ -55,7 +65,7 @@ export function UslugodawcyScreen({
           u.description.toLowerCase().includes(fraza)
         );
       });
-  }, [searchInput, kategorie, slugKategorii, uslugodawcy]);
+  }, [searchInput, locationInput, kategorie, slugKategorii, uslugodawcy]);
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen font-figtree">
@@ -148,12 +158,13 @@ export function UslugodawcyScreen({
           <div className="hidden sm:block w-[1px] h-9 bg-[#D9CCC2]" />
 
           {/* Lokalizacja */}
-          <div className="w-full sm:w-[170px] shrink-0 px-4 py-2 text-[15px] font-semibold text-[#241C2B] flex items-center justify-between sm:justify-start">
+          <div className="w-full sm:w-[190px] shrink-0 px-4 py-2 text-[15px] font-semibold text-[#241C2B] flex items-center justify-between sm:justify-start">
             <input
               type="text"
               value={locationInput}
               onChange={(e) => setLocationInput(e.target.value)}
-              className="w-full text-[15px] font-semibold text-[#241C2B] bg-transparent border-0 focus:outline-none"
+              placeholder="Miejscowość..."
+              className="w-full text-[15px] font-semibold text-[#241C2B] bg-transparent border-0 focus:outline-none placeholder:font-normal placeholder:text-[#6A5C70]"
             />
           </div>
 
@@ -184,10 +195,13 @@ export function UslugodawcyScreen({
               {filteredProviders.length === 1 ? "wykonawcę" : "wykonawców"}
             </strong>
           </div>
-          {searchInput ? (
+          {searchInput || locationInput ? (
             <button
               type="button"
-              onClick={() => setSearchInput("")}
+              onClick={() => {
+                setSearchInput("");
+                setLocationInput("");
+              }}
               className="text-[13px] text-[#8A5405] hover:text-[#241C2B] font-semibold underline bg-transparent border-0 cursor-pointer"
             >
               Wyczyść wyszukiwanie
@@ -196,11 +210,19 @@ export function UslugodawcyScreen({
         </div>
 
         {filteredProviders.length === 0 ? (
-          <p className="m-0 rounded-[18px] border border-dashed border-[#D9CCC2] bg-[#FBF7F4] p-8 text-center text-[15px] leading-[1.7] text-[#6A5C70]">
-            {searchInput.trim() === ""
-              ? "Nie ma jeszcze ani jednego usługodawcy w tej kategorii."
-              : "Żaden usługodawca nie pasuje do tego wyszukiwania."}
-          </p>
+          <div className="m-0 rounded-[18px] border border-dashed border-[#D9CCC2] bg-white p-8 text-center text-[15px] leading-[1.7] text-[#6A5C70]">
+            <p className="m-0 mb-4">
+              {searchInput.trim() === "" && locationInput.trim() === ""
+                ? "Nie ma jeszcze ani jednego usługodawcy w tej kategorii."
+                : "Żaden usługodawca nie pasuje do tego wyszukiwania."}
+            </p>
+            <Link
+              href="/rejestracja-firmy"
+              className="inline-block text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[12px] px-6 py-3"
+            >
+              Dodaj swoją usługę bezpłatnie
+            </Link>
+          </div>
         ) : null}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
