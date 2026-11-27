@@ -386,6 +386,12 @@ export function Header({ variant, zalogowany = false, moderator = false }: Heade
                 </Link>
               )}
               <Link
+                href="/wiadomosci"
+                className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] cursor-pointer bg-transparent border-0 hidden md:inline"
+              >
+                Wiadomości
+              </Link>
+              <Link
                 href="/panel"
                 className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] cursor-pointer bg-transparent border-0 hidden sm:inline"
               >

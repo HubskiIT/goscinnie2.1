@@ -108,6 +108,14 @@ export function MojeScreen({
                   <p className="m-0 mt-4 text-[15px] leading-[1.65] text-[#55485A]">
                     {zlecenie.opis}
                   </p>
+                  <div className="mt-4 pt-3 border-t border-[#EFE5DD]">
+                    <Link
+                      href={`/zlecenia/${zlecenie.id}`}
+                      className="text-[14px] font-bold text-[#8A5405] underline hover:text-[#241C2B]"
+                    >
+                      Zobacz oferty i krótką listę →
+                    </Link>
+                  </div>
                 </article>
               ))}
 

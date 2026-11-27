@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { PrzejmijProfilBox } from "@/components/PrzejmijProfilBox";
 import { ZdjecieFirmy } from "@/components/ZdjecieFirmy";
-import { zlote } from "@/content/format";
+import { dataDluga, zlote } from "@/content/format";
 import { pobierzKategorie_ } from "@/content/kategorie";
 import { pobierzRodzajLokalu } from "@/content/rodzaje-lokali";
 import type { FirmaWKatalogu } from "@/lib/db/queries/katalog";
@@ -15,6 +16,8 @@ interface ProfilFirmyScreenProps {
    */
   szczegoly?: readonly GrupaOdpowiedzi[];
   firma: FirmaWKatalogu;
+  wolneTerminy?: readonly string[];
+  wezwanieDoPrzejecia?: boolean;
 }
 
 /**
@@ -29,7 +32,12 @@ interface ProfilFirmyScreenProps {
  * miejsce żadnego komunikatu: profil ma wtedy po prostu mniej sekcji, a nie
  * dziurę z napisem o tym, czego właściciel nie zrobił.
  */
-export function ProfilFirmyScreen({ firma, szczegoly = [] }: ProfilFirmyScreenProps) {
+export function ProfilFirmyScreen({
+  firma,
+  szczegoly = [],
+  wolneTerminy = [],
+  wezwanieDoPrzejecia = false,
+}: ProfilFirmyScreenProps) {
   const rodzajLokalu = pobierzRodzajLokalu(firma.kategoria);
   const kategoria = rodzajLokalu ?? pobierzKategorie_(firma.kategoria);
   const powrot = rodzajLokalu
@@ -162,10 +170,36 @@ export function ProfilFirmyScreen({ firma, szczegoly = [] }: ProfilFirmyScreenPr
         <aside className="w-full lg:w-[360px] shrink-0">
           <div className="border border-[#E2D5CA] rounded-[20px] bg-white p-6">
             <h2 className="m-0 mb-2 font-fraunces font-medium text-[22px]">Zapytaj o termin</h2>
-            <p className="m-0 text-[15px] leading-[1.6] text-[#6A5C70]">
-              Wysyłanie zapytań do firm przez Gościnnie uruchamiamy w najbliższym czasie.
+            <p className="m-0 mb-5 text-[15px] leading-[1.6] text-[#6A5C70]">
+              Wyślij bezpłatne zapytanie bezpośrednio do {firma.nazwa}. Zero prowizji.
             </p>
+            <Link
+              href={`/f/${firma.slug}/zapytanie`}
+              className="block text-center text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[12px] px-5 py-3.5"
+            >
+              Zapytaj o termin i wycenę
+            </Link>
+
+            {wolneTerminy.length > 0 && (
+              <div className="mt-6 pt-5 border-t border-[#EFE5DD]">
+                <div className="text-[13px] font-bold uppercase tracking-wider text-[#6A5C70] mb-2.5">
+                  Najbliższe wolne terminy
+                </div>
+                <ul className="m-0 p-0 list-none flex flex-wrap gap-2">
+                  {wolneTerminy.map((termin) => (
+                    <li
+                      key={termin}
+                      className="text-[13px] font-semibold text-[#3F5142] bg-[#E7EDE7] rounded-[8px] px-3 py-1"
+                    >
+                      {dataDluga(termin)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
+
+          {wezwanieDoPrzejecia && <PrzejmijProfilBox slug={firma.slug} nazwaFirmy={firma.nazwa} />}
         </aside>
       </div>
     </div>

@@ -22,6 +22,7 @@ import {
 import { moderationSubmissions } from "@/lib/db/schema/moderacja";
 import {
   mozeEdytowacProfil,
+  mozeModerowac,
   mozeZglosicPrzejecie,
   type PowodOdmowy,
   type StatusProfilu,
@@ -360,4 +361,25 @@ async function wolneTerminyFirmy(companyId: string): Promise<string[]> {
     .limit(WOLNYCH_TERMINOW);
 
   return wiersze.map((w) => w.dzien);
+}
+
+/** Dodanie wolnego terminu do kalendarza firmy (przez członka firmy lub moderatora). */
+export async function dodajWolnyTerminFirmy(
+  widz: Widz,
+  companyId: string,
+  data: string,
+): Promise<Wynik<null>> {
+  upewnijSieZeGalazUprawnienIstnieje(widz, "dodajWolnyTerminFirmy");
+  if (widz.rodzaj === "anonim") return { ok: false, powod: "brak-dostepu" };
+
+  const czlonek = await czyNalezy(widz.userId, companyId);
+  const wolno = mozeEdytowacProfil(widz, czlonek).wolno || mozeModerowac(widz).wolno;
+  if (!wolno) return { ok: false, powod: "brak-dostepu" };
+
+  await db
+    .insert(availability)
+    .values({ companyId, date: data, status: "free" })
+    .onConflictDoNothing();
+
+  return { ok: true, dane: null };
 }

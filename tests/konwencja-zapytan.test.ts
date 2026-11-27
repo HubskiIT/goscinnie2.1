@@ -25,6 +25,7 @@ import * as zapytaniaKreatora from "@/lib/db/queries/kreator";
 import * as zapytaniaModeracji from "@/lib/db/queries/moderacja";
 import * as zapytaniaZlecen from "@/lib/db/queries/requests";
 import * as zapytaniaSzczegolow from "@/lib/db/queries/szczegoly";
+import * as zapytaniaZapytan from "@/lib/db/queries/zapytania";
 import * as zapytaniaZdjec from "@/lib/db/queries/zdjecia";
 import { NiezaimplementowanaGalazUprawnien, type Widz } from "@/lib/permissions";
 
@@ -88,6 +89,7 @@ const MODULY: Array<[string, Record<string, unknown>]> = [
   ["moderacja", zapytaniaModeracji],
   ["szczegoly", zapytaniaSzczegolow],
   ["imprezy", zapytaniaImprez],
+  ["zapytania", zapytaniaZapytan],
 ];
 
 function funkcyjneEksporty(): Array<[string, DowolneZapytanie]> {

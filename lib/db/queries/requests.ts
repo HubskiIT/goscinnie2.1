@@ -15,7 +15,7 @@ import { OKAZJA_INNA } from "@/content/okazje";
 import { db } from "@/lib/db";
 import { cities } from "@/lib/db/schema/geografia";
 import { bids, requests } from "@/lib/db/schema/gielda";
-import { eventTypes } from "@/lib/db/schema/katalog";
+import { companies, eventTypes } from "@/lib/db/schema/katalog";
 import { moderationSubmissions } from "@/lib/db/schema/moderacja";
 import { users } from "@/lib/db/schema/tozsamosc";
 import {
@@ -612,4 +612,30 @@ export async function pobierzMojeZlecenia(widz: Widz): Promise<ZlecenieAutora[]>
     .orderBy(desc(requests.createdAt));
 
   return wiersze;
+}
+
+/** Adresy e-mail aktywnych firm w tym samym powiecie do powiadomienia o nowym zleceniu. */
+export async function pobierzOdbiorcowPowiadomieniaOZleceniu(
+  widz: Widz,
+  cityId: string,
+): Promise<string[]> {
+  upewnijSieZeGalazUprawnienIstnieje(widz, "pobierzOdbiorcowPowiadomieniaOZleceniu");
+  if (widz.rodzaj === "anonim") return [];
+
+  const [miasto] = await db
+    .select({ powiat: cities.powiat })
+    .from(cities)
+    .where(eq(cities.id, cityId))
+    .limit(1);
+  if (!miasto) return [];
+
+  const firmy = await db
+    .select({ email: users.email })
+    .from(companies)
+    .innerJoin(cities, eq(cities.id, companies.cityId))
+    .innerJoin(users, eq(users.id, companies.ownerUserId))
+    .where(and(eq(companies.status, "active"), eq(cities.powiat, miasto.powiat)))
+    .limit(20);
+
+  return [...new Set(firmy.map((f) => f.email))];
 }

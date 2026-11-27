@@ -6,6 +6,7 @@ import { ProfilScreen } from "@/components/screens/ProfilScreen";
 import { WpisBezProfiluScreen } from "@/components/screens/WpisBezProfiluScreen";
 import { pobierzLokal } from "@/content/ogloszenia";
 import { widzZZadania } from "@/lib/auth/widz";
+import { pobierzProfilFirmy } from "@/lib/db/queries/firmy";
 import { pobierzFirmeKatalogu } from "@/lib/db/queries/katalog";
 import { pobierzSzczegolyFirmyPoSlugu } from "@/lib/db/queries/szczegoly";
 import { metadaneBezIndeksu, metadaneStrony } from "@/lib/metadane";
@@ -71,9 +72,19 @@ export default async function Strona({ params }: Props) {
      * trafieniu w nieistniejący slug.
      */
     const widz = await widzZZadania(await headers());
-    const szczegoly = await pobierzSzczegolyFirmyPoSlugu(widz, wynik.firma.slug);
+    const [szczegoly, profil] = await Promise.all([
+      pobierzSzczegolyFirmyPoSlugu(widz, wynik.firma.slug),
+      pobierzProfilFirmy(widz, wynik.firma.slug),
+    ]);
 
-    return <ProfilFirmyScreen firma={wynik.firma} szczegoly={szczegolyNaProfil(szczegoly)} />;
+    return (
+      <ProfilFirmyScreen
+        firma={wynik.firma}
+        szczegoly={szczegolyNaProfil(szczegoly)}
+        wolneTerminy={profil?.wolneTerminy ?? []}
+        wezwanieDoPrzejecia={profil?.widocznosc.wezwanieDoPrzejecia ?? false}
+      />
+    );
   }
   // Firma, która nie przejęła jeszcze wpisu, dostaje wersję "przejmij profil".
   if (wynik.lokal.status === "visitcard") return <WpisBezProfiluScreen lokal={wynik.lokal} />;

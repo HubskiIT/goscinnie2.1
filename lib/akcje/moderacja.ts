@@ -22,6 +22,7 @@ import {
   edytujFirmeModeratora,
   pobierzAdresataDecyzji,
   rozstrzygnij,
+  rozstrzygnijPrzejecie,
   utworzImprezeModeratora,
   utworzOgloszenieModeratora,
   utworzZlecenieModeratora,
@@ -350,4 +351,58 @@ export async function dodajZdjecieModeratoraAkcja(
   revalidatePath("/uslugodawcy");
 
   return { status: "informacja", tresc: "Zdjęcie zostało dodane do profilu firmy." };
+}
+
+export async function rozstrzygnijPrzejecieAkcja(
+  _poprzedni: StanFormularza,
+  dane: FormData,
+): Promise<StanFormularza> {
+  const wniosekId = dane.get("wniosekId");
+  const decyzja = dane.get("decyzja");
+  if (
+    typeof wniosekId !== "string" ||
+    !/^[0-9a-f-]{36}$/i.test(wniosekId) ||
+    (decyzja !== "zatwierdz" && decyzja !== "odrzuc")
+  ) {
+    return { status: "bledy", bledy: { _: ["Nieprawidłowe dane wniosku."] }, wartosci: {} };
+  }
+
+  const widz = await widzZZadania(await headers());
+  const wynik = await rozstrzygnijPrzejecie(widz, wniosekId, decyzja);
+  if (!wynik.ok) {
+    return {
+      status: "informacja",
+      waga: "ostrzezenie",
+      tresc: "Wniosku już nie ma albo brak uprawnień.",
+    };
+  }
+
+  try {
+    const nadawca = await pobierzNadawce();
+    await nadawca.wyslij({
+      do: wynik.dane.wnioskujacyEmail,
+      temat:
+        decyzja === "zatwierdz"
+          ? `Przejęcie profilu „${wynik.dane.nazwaFirmy}” zatwierdzone`
+          : `Wniosek o przejęcie profilu „${wynik.dane.nazwaFirmy}”`,
+      html:
+        decyzja === "zatwierdz"
+          ? `<p>Twój wniosek o przejęcie profilu <strong>${wynik.dane.nazwaFirmy}</strong> został zatwierdzony. Możesz już zarządzać nim w <a href="${adresAplikacji()}/panel">panelu firmy</a>.</p>`
+          : `<p>Twój wniosek o przejęcie profilu <strong>${wynik.dane.nazwaFirmy}</strong> nie został zatwierdzony. Jeśli to pomyłka, skontaktuj się z nami.</p>`,
+    });
+  } catch {
+    // Awaria poczty nie cofa decyzji.
+  }
+
+  revalidatePath("/moderacja");
+  revalidatePath("/lokale");
+  revalidatePath("/uslugodawcy");
+
+  return {
+    status: "informacja",
+    tresc:
+      decyzja === "zatwierdz"
+        ? `Przekazano profil „${wynik.dane.nazwaFirmy}” użytkownikowi ${wynik.dane.wnioskujacyEmail}.`
+        : `Odrzucono wniosek o przejęcie „${wynik.dane.nazwaFirmy}”.`,
+  };
 }

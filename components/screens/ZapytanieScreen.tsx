@@ -1,231 +1,162 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
+import { BladPola } from "@/components/BladPola";
 import { KomunikatFormularza } from "@/components/KomunikatFormularza";
-import { zlote } from "@/content/format";
-import { type Lokal, pobierzLokale } from "@/content/ogloszenia";
-import { wyslijZapytanie } from "@/lib/akcje/formularze";
-import { STAN_POCZATKOWY } from "@/lib/formularze";
+import { wyslijZapytanieDoFirmy } from "@/lib/akcje/zapytania";
+import { STAN_POCZATKOWY, wartoscPola } from "@/lib/formularze";
 
 interface ZapytanieScreenProps {
-  lokal: Lokal;
+  firma: {
+    slug: string;
+    nazwa: string;
+    miasto: string;
+    powiat: string;
+  };
+  zalogowany: boolean;
 }
 
-export function ZapytanieScreen({ lokal }: ZapytanieScreenProps) {
-  const [stan, akcja] = useActionState(wyslijZapytanie, STAN_POCZATKOWY);
-  const [recipients, setRecipients] = useState(() =>
-    pobierzLokale()
-      .filter((lokal) => lokal.status === "active")
-      .map((lokal, indeks) => ({
-        id: indeks + 1,
-        name: lokal.nazwa,
-        loc: `${lokal.miejscowosc.nazwa}, ${lokal.miejscowosc.odlegloscOdCentrumKm} km`,
-        price: lokal.cenaOdGrosze === null ? "Cena niepodana" : `od ${zlote(lokal.cenaOdGrosze)}`,
-        checked: true,
-      })),
-  );
+const KLASA_POLA =
+  "text-[15px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border";
+const KLASA_ETYKIETY = "block text-[14px] font-semibold text-[#3E3344] mb-1.5";
 
-  const toggleRecipient = (id: number) => {
-    setRecipients((prev) => prev.map((r) => (r.id === id ? { ...r, checked: !r.checked } : r)));
-  };
-
-  const checkedCount = recipients.filter((r) => r.checked).length;
+export function ZapytanieScreen({ firma, zalogowany }: ZapytanieScreenProps) {
+  const [stan, akcja, czeka] = useActionState(wyslijZapytanieDoFirmy, STAN_POCZATKOWY);
 
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-[#FBF7F4] text-[#241C2B] flex flex-col min-h-screen">
-      <section className="grow px-6 sm:px-12 md:px-[130px] pt-12 flex flex-col lg:flex-row gap-11 items-start pb-16">
-        <div className="grow w-full">
-          <p className="m-0 mb-3.5 text-[14px] text-[#6A5C70]">
-            <Link
-              href="/lokale"
-              className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
-            >
-              Sale i lokale
-            </Link>{" "}
-            &nbsp;›&nbsp;{" "}
-            <Link
-              href={`/f/${lokal.slug}`}
-              className="text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
-            >
-              {lokal.nazwa}
-            </Link>{" "}
-            &nbsp;›&nbsp; Zapytanie
-          </p>
+      <section className="grow px-6 sm:px-12 md:px-[130px] pt-12 pb-16 max-w-[920px]">
+        <p className="m-0 mb-3.5 text-[14px] text-[#6A5C70]">
+          <Link href="/lokale" className="text-[#6A5C70] hover:text-[#241C2B]">
+            Katalog
+          </Link>{" "}
+          &nbsp;›&nbsp;{" "}
+          <Link href={`/f/${firma.slug}`} className="text-[#6A5C70] hover:text-[#241C2B]">
+            {firma.nazwa}
+          </Link>{" "}
+          &nbsp;›&nbsp; Zapytanie
+        </p>
 
-          <h1 className="m-0 mb-2.5 font-fraunces font-normal text-[36px] sm:text-[44px] tracking-tight">
-            Zapytaj o ofertę
-          </h1>
-          <p className="m-0 mb-8 text-[17px] leading-[1.6] text-[#3E3344] max-w-[64ch]">
-            Jedno zapytanie możesz wysłać do pięciu miejsc naraz. Każde z nich odpowiada osobno i
-            nie wie, do kogo jeszcze napisałeś.
-          </p>
+        <h1 className="m-0 mb-2.5 font-fraunces font-normal text-[36px] sm:text-[44px] tracking-tight">
+          Zapytaj o termin i wycenę
+        </h1>
+        <p className="m-0 mb-8 text-[17px] leading-[1.6] text-[#3E3344] max-w-[64ch]">
+          Wiadomość trafi bezpośrednio do <strong>{firma.nazwa}</strong> ({firma.miasto}, powiat{" "}
+          {firma.powiat}). Odpowiedź zobaczysz w zakładce Wiadomości oraz na swoim e-mailu.
+        </p>
 
-          <form
-            action={akcja}
-            className="border border-[#D9CCC2] rounded-[20px] bg-white p-7 sm:p-8 shadow-sm"
-          >
-            <div className="flex flex-col sm:flex-row gap-4 mb-5">
-              <div className="grow flex flex-col gap-2">
-                <label htmlFor="q-okazja" className="text-[14px] font-semibold text-[#3E3344]">
-                  Okazja
+        {!zalogowany && (
+          <div className="mb-6 rounded-[14px] border border-[#E2D5CA] bg-[#FEF4E4] p-5 flex flex-wrap items-center justify-between gap-4">
+            <p className="m-0 text-[15px] text-[#241C2B]">
+              Aby wysłać zapytanie i odebrać odpowiedź od firmy, zaloguj się na swoje konto.
+            </p>
+            <Link
+              href={`/logowanie?powrot=${encodeURIComponent(`/f/${firma.slug}/zapytanie`)}`}
+              className="text-[14px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] rounded-[10px] px-5 py-2.5"
+            >
+              Zaloguj się
+            </Link>
+          </div>
+        )}
+
+        <div className="border border-[#E2D5CA] rounded-[20px] bg-white p-6 sm:p-9 shadow-xs">
+          <KomunikatFormularza stan={stan} />
+
+          <form action={akcja} className="mt-4 flex flex-col gap-5">
+            <input type="hidden" name="companySlug" value={firma.slug} />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="zap-imie" className={KLASA_ETYKIETY}>
+                  Twoje imię
                 </label>
                 <input
-                  id="q-okazja"
-                  name="q-okazja"
-                  type="text"
-                  defaultValue="Komunia"
-                  className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
+                  id="zap-imie"
+                  name="imie"
+                  required
+                  defaultValue={wartoscPola(stan, "imie")}
+                  placeholder="np. Anna"
+                  className={KLASA_POLA}
                 />
+                <BladPola stan={stan} pole="imie" />
               </div>
-              <div className="grow flex flex-col gap-2">
-                <label htmlFor="q-data" className="text-[14px] font-semibold text-[#3E3344]">
-                  Termin
+
+              <div>
+                <label htmlFor="zap-tel" className={KLASA_ETYKIETY}>
+                  Telefon (opcjonalnie)
                 </label>
                 <input
-                  id="q-data"
-                  name="q-data"
-                  type="text"
-                  defaultValue="12.06.2027"
-                  className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
+                  id="zap-tel"
+                  name="telefon"
+                  type="tel"
+                  defaultValue={wartoscPola(stan, "telefon")}
+                  placeholder="np. 600 100 200"
+                  className={KLASA_POLA}
                 />
-              </div>
-              <div className="w-full sm:w-[160px] flex flex-col gap-2">
-                <label htmlFor="q-osoby" className="text-[14px] font-semibold text-[#3E3344]">
-                  Osób
-                </label>
-                <input
-                  id="q-osoby"
-                  name="q-osoby"
-                  type="text"
-                  defaultValue="80"
-                  className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
-                />
+                <BladPola stan={stan} pole="telefon" />
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 mb-5">
-              <label htmlFor="q-tresc" className="text-[14px] font-semibold text-[#3E3344]">
-                Wiadomość
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="zap-data" className={KLASA_ETYKIETY}>
+                  Planowana data (opcjonalnie)
+                </label>
+                <input
+                  id="zap-data"
+                  name="dataWydarzenia"
+                  type="date"
+                  defaultValue={wartoscPola(stan, "dataWydarzenia")}
+                  className={KLASA_POLA}
+                />
+                <BladPola stan={stan} pole="dataWydarzenia" />
+              </div>
+
+              <div>
+                <label htmlFor="zap-goscie" className={KLASA_ETYKIETY}>
+                  Szacowana liczba osób (opcjonalnie)
+                </label>
+                <input
+                  id="zap-goscie"
+                  name="liczbaOsob"
+                  type="number"
+                  min="1"
+                  defaultValue={wartoscPola(stan, "liczbaOsob")}
+                  placeholder="np. 80"
+                  className={KLASA_POLA}
+                />
+                <BladPola stan={stan} pole="liczbaOsob" />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="zap-wiadomosc" className={KLASA_ETYKIETY}>
+                Wiadomość do firmy
               </label>
               <textarea
-                id="q-tresc"
-                name="q-tresc"
-                rows={4}
-                defaultValue="Dzień dobry, czy mają Państwo wolny ten termin i czy sala jest wtedy na wyłączność? Interesuje nas też, czy można przynieść własny tort."
-                className="text-[16px] leading-[1.7] text-[#241C2B] border-[1.5px] border-[#D9CCC2] rounded-[10px] p-4 w-full box-border"
+                id="zap-wiadomosc"
+                name="wiadomosc"
+                required
+                rows={5}
+                defaultValue={wartoscPola(stan, "wiadomosc")}
+                placeholder="Opisz krótko, jakiego terminu, menu lub usługi szukasz..."
+                className={KLASA_POLA}
               />
+              <BladPola stan={stan} pole="wiadomosc" />
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <div className="grow flex flex-col gap-2">
-                <label htmlFor="q-imie" className="text-[14px] font-semibold text-[#3E3344]">
-                  Imię
-                </label>
-                <input
-                  id="q-imie"
-                  name="q-imie"
-                  type="text"
-                  defaultValue="Anna"
-                  className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
-                />
-              </div>
-              <div className="grow flex flex-col gap-2">
-                <label htmlFor="q-mail" className="text-[14px] font-semibold text-[#3E3344]">
-                  Adres e-mail
-                </label>
-                <input
-                  id="q-mail"
-                  name="q-mail"
-                  type="email"
-                  defaultValue="anna.kowalska@example.com"
-                  className="text-[16px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] p-3.5 w-full box-border"
-                />
-              </div>
-            </div>
-
-            <div className="border border-[#E2D5CA] rounded-[12px] bg-[#F2E9E2] p-4 sm:px-[18px] flex gap-3 mb-6">
-              <svg
-                aria-hidden="true"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#5E7360"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="shrink-0 mt-0.5"
-              >
-                <rect x="5" y="11" width="14" height="9" rx="2" />
-                <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-              </svg>
-              <div className="text-[14px] leading-[1.65] text-[#55485A]">
-                Numeru telefonu nie pytamy i nie potrzebujemy. Jeśli wpiszesz go w treści, zostanie
-                zasłonięty do momentu, w którym sam dodasz tę firmę do krótkiej listy.
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="mb-4">
-                <KomunikatFormularza stan={stan} />
-              </div>
-
+            <div>
               <button
                 type="submit"
-                className="text-[16px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-8 py-4 cursor-pointer shadow-sm"
+                disabled={czeka}
+                className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] disabled:opacity-60 border-0 rounded-[12px] px-7 py-3.5 cursor-pointer shadow-xs"
               >
-                Wyślij do {checkedCount}{" "}
-                {checkedCount === 1 ? "miejsca" : checkedCount < 5 ? "miejsc" : "miejsc"}
+                {czeka ? "Wysyłanie..." : "Wyślij zapytanie"}
               </button>
-              <span className="text-[14px] text-[#6A5C70]">Za darmo i bez zobowiązań</span>
             </div>
           </form>
         </div>
-
-        {/* Aside: Shortlist selection */}
-        <aside className="w-full lg:w-[400px] shrink-0">
-          <div className="border border-[#D9CCC2] rounded-[20px] bg-[#FBF7F4] p-6 shadow-sm">
-            <div className="text-[16px] font-bold mb-1.5">Wyślij również do</div>
-            <p className="m-0 mb-4 text-[14px] leading-[1.6] text-[#6A5C70]">
-              Z Twojej krótkiej listy. Odznacz te, które mają nie dostać zapytania.
-            </p>
-
-            <div className="flex flex-col gap-2.5">
-              {recipients.map((r) => (
-                <button
-                  type="button"
-                  key={r.id}
-                  onClick={() => toggleRecipient(r.id)}
-                  className={`text-left border rounded-[14px] bg-white p-3.5 px-4 flex items-center gap-3.5 cursor-pointer transition-all ${
-                    r.checked ? "border-[#241C2B] shadow-sm" : "border-[#E2D5CA] opacity-60"
-                  }`}
-                >
-                  <span
-                    className={`w-[22px] h-[22px] rounded-[6px] text-[#FBF7F4] text-[13px] flex items-center justify-center shrink-0 ${
-                      r.checked ? "bg-[#241C2B]" : "border-[1.5px] border-[#D9CCC2]"
-                    }`}
-                  >
-                    {r.checked ? "✓" : ""}
-                  </span>
-                  <span className="w-[54px] h-[54px] rounded-[10px] bg-[#E4D9CF] shrink-0 flex items-center justify-center font-bold text-[#241C2B]">
-                    {r.name.charAt(0)}
-                  </span>
-                  <div className="grow">
-                    <div className="text-[15px] font-semibold">{r.name}</div>
-                    <div className="text-[13px] text-[#6A5C70]">{r.loc}</div>
-                  </div>
-                  <div className="text-[15px] font-semibold shrink-0">{r.price}</div>
-                </button>
-              ))}
-            </div>
-
-            <p className="mt-4 mb-0 text-[13px] leading-[1.65] text-[#6A5C70]">
-              Limit to pięć miejsc na jedno zapytanie. Więcej nie pomaga, a utrudnia porównanie
-              odpowiedzi.
-            </p>
-          </div>
-        </aside>
       </section>
     </div>
   );

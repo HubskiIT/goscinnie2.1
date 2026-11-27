@@ -6,6 +6,7 @@ import { widzZZadania } from "@/lib/auth/widz";
 import {
   pobierzKolejke,
   pobierzStatystykiModeracji,
+  pobierzWnioskiPrzejecia,
   pobierzWszystkieFirmyModeratora,
 } from "@/lib/db/queries/moderacja";
 
@@ -28,13 +29,21 @@ export const metadata: Metadata = {
  */
 export default async function Strona() {
   const widz = await widzZZadania(await headers());
-  const [kolejka, statystyki, firmy] = await Promise.all([
+  const [kolejka, statystyki, firmy, przejecia] = await Promise.all([
     pobierzKolejke(widz),
     pobierzStatystykiModeracji(widz),
     pobierzWszystkieFirmyModeratora(widz),
+    pobierzWnioskiPrzejecia(widz),
   ]);
 
-  if (!kolejka.ok || !statystyki.ok || !firmy.ok) notFound();
+  if (!kolejka.ok || !statystyki.ok || !firmy.ok || !przejecia.ok) notFound();
 
-  return <ModeracjaScreen pozycje={kolejka.dane} statystyki={statystyki.dane} firmy={firmy.dane} />;
+  return (
+    <ModeracjaScreen
+      pozycje={kolejka.dane}
+      statystyki={statystyki.dane}
+      firmy={firmy.dane}
+      przejecia={przejecia.dane}
+    />
+  );
 }

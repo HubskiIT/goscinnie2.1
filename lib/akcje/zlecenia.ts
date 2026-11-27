@@ -14,9 +14,15 @@
  */
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { adresAplikacji } from "@/lib/adres";
 import { widzZZadania } from "@/lib/auth/widz";
-import { type OdmowaZlecenia, utworzZlecenie } from "@/lib/db/queries/requests";
+import {
+  type OdmowaZlecenia,
+  pobierzOdbiorcowPowiadomieniaOZleceniu,
+  utworzZlecenie,
+} from "@/lib/db/queries/requests";
 import { bledyZod, type StanFormularza } from "@/lib/formularze";
+import { pobierzNadawce } from "@/lib/poczta";
 import { TRASY } from "@/lib/trasy";
 import { daneNowegoZlecenia } from "@/lib/validators/zlecenia";
 
@@ -67,6 +73,24 @@ export async function dodajZlecenie(
       bledy: { [pole]: [KOMUNIKAT_ODMOWY[zapis.powod]] },
       wartosci: {},
     };
+  }
+
+  try {
+    const odbiorcy = await pobierzOdbiorcowPowiadomieniaOZleceniu(widz, wynik.data.cityId);
+    if (odbiorcy.length > 0) {
+      const nadawca = await pobierzNadawce();
+      await Promise.allSettled(
+        odbiorcy.map((email) =>
+          nadawca.wyslij({
+            do: email,
+            temat: `Nowe zlecenie (${wynik.data.liczbaOsob} osób) w Twoim powiecie — Gościnnie`,
+            html: `<p>W Twoim powiecie pojawiło się nowe zlecenie na <strong>${wynik.data.liczbaOsob} osób</strong> (${wynik.data.dataWydarzenia}).</p><p><a href="${adresAplikacji()}/zlecenia/${zapis.dane.id}">Zobacz szczegóły i złóż ofertę</a></p>`,
+          }),
+        ),
+      );
+    }
+  } catch {
+    // Awaria poczty nie cofa wystawionego zlecenia.
   }
 
   // Poza blokiem warunkowym: przekierowanie w Next.js działa przez wyjątek.

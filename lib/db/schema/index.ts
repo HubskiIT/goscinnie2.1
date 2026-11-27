@@ -8,3 +8,4 @@ export * from "./sesje";
 export * from "./szczegoly";
 export * from "./tozsamosc";
 export * from "./typy";
+export * from "./zapytania";

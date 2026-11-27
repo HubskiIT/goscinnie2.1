@@ -12,10 +12,12 @@
  * polem, które da się podmienić, czyli drogą do zapisywania w cudzej firmie,
  * a dodatkowo gubiłby się przy odświeżeniu strony.
  */
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ZodType } from "zod";
 import { widzZZadania } from "@/lib/auth/widz";
+import { dodajWolnyTerminFirmy } from "@/lib/db/queries/firmy";
 import {
   opublikujSzkic,
   pobierzSzkicFirmy,
@@ -325,4 +327,32 @@ export async function zapiszKrokSzczegolowUslugodawcy(
   if (!wynik.ok) return odmowa(wynik.powod);
 
   return { status: "zapisano" };
+}
+
+export async function dodajWolnyTermin(
+  _poprzedni: StanFormularza,
+  dane: FormData,
+): Promise<StanFormularza> {
+  const companyId = dane.get("companyId");
+  const data = dane.get("data");
+  if (
+    typeof companyId !== "string" ||
+    !/^[0-9a-f-]{36}$/i.test(companyId) ||
+    typeof data !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(data)
+  ) {
+    return {
+      status: "bledy",
+      bledy: { _: ["Podaj poprawną datę wolnego terminu."] },
+      wartosci: {},
+    };
+  }
+
+  const widz = await widzKreatora();
+  const zapis = await dodajWolnyTerminFirmy(widz, companyId, data);
+  if (!zapis.ok) return odmowa(zapis.powod);
+
+  revalidatePath("/moderacja");
+  revalidatePath("/panel");
+  return { status: "informacja", tresc: `Dodano wolny termin: ${data}.` };
 }

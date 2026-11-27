@@ -15,14 +15,17 @@ import {
   dodajZdjecieModeratoraAkcja,
   dodajZlecenieModeratora,
   edytujFirme,
+  rozstrzygnijPrzejecieAkcja,
   rozstrzygnijZgloszenie,
   zmienStatusFirmy,
 } from "@/lib/akcje/moderacja";
+import { dodajWolnyTermin } from "@/lib/akcje/profil";
 import type {
   FirmaDlaModeratora,
   PozycjaKolejki,
   RodzajPrzedmiotu,
   StatystykiModeracji,
+  WniosekPrzejeciaDlaModeratora,
 } from "@/lib/db/queries/moderacja";
 import { STAN_POCZATKOWY, wartoscPola } from "@/lib/formularze";
 import { MAKS_ZNAKOW_POWODU } from "@/lib/validators/moderacja";
@@ -31,9 +34,10 @@ interface ModeracjaScreenProps {
   pozycje: readonly PozycjaKolejki[];
   statystyki: StatystykiModeracji;
   firmy: readonly FirmaDlaModeratora[];
+  przejecia: readonly WniosekPrzejeciaDlaModeratora[];
 }
 
-type Zakladka = "kolejka" | "firmy" | "dodaj-ogloszenie" | "imprezy-zlecenia";
+type Zakladka = "kolejka" | "firmy" | "przejecia" | "dodaj-ogloszenie" | "imprezy-zlecenia";
 
 const NAZWA_RODZAJU: Record<RodzajPrzedmiotu, string> = {
   company: "Nowa firma",
@@ -53,7 +57,7 @@ const KLASA_POLA =
   "text-[15px] text-[#241C2B] bg-white border-[1.5px] border-[#D9CCC2] rounded-[10px] px-3.5 py-2.5 w-full box-border";
 const KLASA_ETYKIETY = "block text-[13px] font-semibold text-[#3E3344] mb-1";
 
-export function ModeracjaScreen({ pozycje, statystyki, firmy }: ModeracjaScreenProps) {
+export function ModeracjaScreen({ pozycje, statystyki, firmy, przejecia }: ModeracjaScreenProps) {
   const [zakladka, setZakladka] = useState<Zakladka>("kolejka");
 
   const [stanDecyzji, akcjaDecyzji, czekaDecyzja] = useActionState(
@@ -79,6 +83,14 @@ export function ModeracjaScreen({ pozycje, statystyki, firmy }: ModeracjaScreenP
   const [stanEdycji, akcjaEdycji, czekaEdycja] = useActionState(edytujFirme, STAN_POCZATKOWY);
   const [stanZdjecia, akcjaZdjecia, czekaZdjecie] = useActionState(
     dodajZdjecieModeratoraAkcja,
+    STAN_POCZATKOWY,
+  );
+  const [stanPrzejecia, akcjaPrzejecia, czekaPrzejecie] = useActionState(
+    rozstrzygnijPrzejecieAkcja,
+    STAN_POCZATKOWY,
+  );
+  const [stanTerminu, akcjaTerminu, czekaTermin] = useActionState(
+    dodajWolnyTermin,
     STAN_POCZATKOWY,
   );
 
@@ -152,6 +164,11 @@ export function ModeracjaScreen({ pozycje, statystyki, firmy }: ModeracjaScreenP
             aktywna={zakladka === "firmy"}
             onClick={() => setZakladka("firmy")}
             etykieta={`Katalog firm (${firmy.length})`}
+          />
+          <PrzyciskZakladki
+            aktywna={zakladka === "przejecia"}
+            onClick={() => setZakladka("przejecia")}
+            etykieta={`Przejęcia (${przejecia.length})`}
           />
           <PrzyciskZakladki
             aktywna={zakladka === "dodaj-ogloszenie"}
@@ -281,6 +298,7 @@ export function ModeracjaScreen({ pozycje, statystyki, firmy }: ModeracjaScreenP
             <KomunikatFormularza stan={stanStatusu} />
             <KomunikatFormularza stan={stanEdycji} />
             <KomunikatFormularza stan={stanZdjecia} />
+            <KomunikatFormularza stan={stanTerminu} />
 
             <div className="mt-4 flex flex-wrap gap-3 items-center">
               <input
@@ -506,8 +524,91 @@ export function ModeracjaScreen({ pozycje, statystyki, firmy }: ModeracjaScreenP
                             {czekaZdjecie ? "Wysyłanie..." : "Wgraj zdjęcie"}
                           </button>
                         </form>
+
+                        <form
+                          action={akcjaTerminu}
+                          className="flex flex-wrap items-end gap-3 lg:col-span-2 pt-3 border-t border-[#EFE5DD]"
+                        >
+                          <input type="hidden" name="companyId" value={firma.id} />
+                          <div>
+                            <label htmlFor={`term-${firma.id}`} className={KLASA_ETYKIETY}>
+                              Dodaj wolny termin do kalendarza
+                            </label>
+                            <input
+                              id={`term-${firma.id}`}
+                              name="data"
+                              type="date"
+                              required
+                              className={KLASA_POLA}
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={czekaTermin}
+                            className="text-[14px] font-semibold text-[#3F5142] bg-[#E7EDE7] hover:bg-[#d5e2d7] disabled:opacity-60 border-0 rounded-[10px] px-4 py-2.5 cursor-pointer"
+                          >
+                            {czekaTermin ? "Dodawanie..." : "Dodaj wolny termin"}
+                          </button>
+                        </form>
                       </div>
                     )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {/* ZAKŁADKA: PRZEJĘCIA */}
+        {zakladka === "przejecia" && (
+          <div>
+            <KomunikatFormularza stan={stanPrzejecia} />
+            {przejecia.length === 0 ? (
+              <p className="m-0 mt-6 rounded-[18px] border border-dashed border-[#D9CCC2] bg-white p-8 text-center text-[15px] text-[#6A5C70]">
+                Brak oczekujących wniosków o przejęcie profili.
+              </p>
+            ) : (
+              <ul className="m-0 mt-6 list-none p-0 flex flex-col gap-4">
+                {przejecia.map((p) => (
+                  <li key={p.id} className="border border-[#E2D5CA] rounded-[18px] bg-white p-6">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
+                      <Link
+                        href={`/f/${p.slugFirmy}`}
+                        className="font-fraunces text-[22px] text-[#241C2B]"
+                      >
+                        {p.nazwaFirmy}
+                      </Link>
+                      <span className="text-[13px] text-[#6A5C70]">
+                        Wnioskuje: {p.wnioskujacyEmail}
+                      </span>
+                    </div>
+                    <p className="m-0 mb-4 text-[14px] text-[#3E3344] bg-[#FBF7F4] rounded-[10px] p-3.5">
+                      {p.uzasadnienie}
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <form action={akcjaPrzejecia}>
+                        <input type="hidden" name="wniosekId" value={p.id} />
+                        <input type="hidden" name="decyzja" value="zatwierdz" />
+                        <button
+                          type="submit"
+                          disabled={czekaPrzejecie}
+                          className="text-[14px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] disabled:opacity-60 border-0 rounded-[10px] px-5 py-2.5 cursor-pointer"
+                        >
+                          Zatwierdź i przekaż profil
+                        </button>
+                      </form>
+                      <form action={akcjaPrzejecia}>
+                        <input type="hidden" name="wniosekId" value={p.id} />
+                        <input type="hidden" name="decyzja" value="odrzuc" />
+                        <button
+                          type="submit"
+                          disabled={czekaPrzejecie}
+                          className="text-[14px] font-semibold text-[#8A3B1E] bg-white border border-[#8A3B1E] hover:bg-[#8A3B1E] hover:text-white disabled:opacity-60 rounded-[10px] px-5 py-2.5 cursor-pointer"
+                        >
+                          Odrzuć
+                        </button>
+                      </form>
+                    </div>
                   </li>
                 ))}
               </ul>

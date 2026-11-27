@@ -20,6 +20,7 @@ import {
   categories,
   companies,
   companyCategories,
+  companyClaims,
   companyMembers,
   companyVerification,
   eventTypes,
@@ -1087,4 +1088,96 @@ export async function edytujFirmeModeratora(
   if (!zmieniona) return { ok: false, powod: "brak-dostepu" };
 
   return { ok: true, dane: zmieniona };
+}
+
+export type WniosekPrzejeciaDlaModeratora = {
+  id: string;
+  companyId: string;
+  nazwaFirmy: string;
+  slugFirmy: string;
+  wnioskujacyEmail: string;
+  uzasadnienie: string;
+  utworzono: Date;
+};
+
+/** Oczekujące wnioski o przejęcie profili w katalogu. */
+export async function pobierzWnioskiPrzejecia(
+  widz: Widz,
+): Promise<WynikModeracji<WniosekPrzejeciaDlaModeratora[]>> {
+  const rozstrzygniecie = mozeModerowac(widz);
+  if (!rozstrzygniecie.wolno) return { ok: false, powod: rozstrzygniecie.powod };
+
+  const wiersze = await db
+    .select({
+      id: companyClaims.id,
+      companyId: companies.id,
+      nazwaFirmy: companies.name,
+      slugFirmy: companies.slug,
+      wnioskujacyEmail: users.email,
+      uzasadnienie: companyClaims.uzasadnienie,
+      utworzono: companyClaims.createdAt,
+    })
+    .from(companyClaims)
+    .innerJoin(companies, eq(companies.id, companyClaims.companyId))
+    .innerJoin(users, eq(users.id, companyClaims.userId))
+    .where(eq(companyClaims.status, "pending"))
+    .orderBy(asc(companyClaims.createdAt));
+
+  return { ok: true, dane: wiersze };
+}
+
+/** Zatwierdzenie lub odrzucenie wniosku o przejęcie profilu. */
+export async function rozstrzygnijPrzejecie(
+  widz: Widz,
+  wniosekId: string,
+  decyzja: "zatwierdz" | "odrzuc",
+): Promise<WynikModeracji<{ nazwaFirmy: string; wnioskujacyEmail: string }>> {
+  const rozstrzygniecie = mozeModerowac(widz);
+  if (!rozstrzygniecie.wolno) return { ok: false, powod: rozstrzygniecie.powod };
+  if (widz.rodzaj !== "moderator") return { ok: false, powod: "brak-dostepu" };
+
+  const [wniosek] = await db
+    .select({
+      id: companyClaims.id,
+      companyId: companyClaims.companyId,
+      userId: companyClaims.userId,
+      nazwaFirmy: companies.name,
+      wnioskujacyEmail: users.email,
+    })
+    .from(companyClaims)
+    .innerJoin(companies, eq(companies.id, companyClaims.companyId))
+    .innerJoin(users, eq(users.id, companyClaims.userId))
+    .where(and(eq(companyClaims.id, wniosekId), eq(companyClaims.status, "pending")))
+    .limit(1);
+
+  if (!wniosek) return { ok: false, powod: "brak-dostepu" };
+
+  const teraz = new Date();
+  await db.transaction(async (tx) => {
+    await tx
+      .update(companyClaims)
+      .set({
+        status: decyzja === "zatwierdz" ? "approved" : "rejected",
+        rozpatrzonoO: teraz,
+        updatedAt: teraz,
+      })
+      .where(eq(companyClaims.id, wniosek.id));
+
+    if (decyzja === "zatwierdz") {
+      await tx
+        .update(companies)
+        .set({ ownerUserId: wniosek.userId, status: "active", updatedAt: teraz })
+        .where(eq(companies.id, wniosek.companyId));
+
+      await tx
+        .insert(companyMembers)
+        .values({ companyId: wniosek.companyId, userId: wniosek.userId, role: "owner" })
+        .onConflictDoNothing();
+    }
+  });
+
+  return {
+    ok: true,
+    dane: { nazwaFirmy: wniosek.nazwaFirmy, wnioskujacyEmail: wniosek.wnioskujacyEmail },
+  };
 }
