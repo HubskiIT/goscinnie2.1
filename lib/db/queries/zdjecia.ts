@@ -15,6 +15,7 @@ import type { Wynik } from "@/lib/db/queries/wynik";
 import { companyMembers, companyPhotos } from "@/lib/db/schema/katalog";
 import {
   mozeEdytowacProfil,
+  mozeModerowac,
   upewnijSieZeGalazUprawnienIstnieje,
   type Widz,
 } from "@/lib/permissions";
@@ -90,22 +91,20 @@ export type OdmowaZdjecia = "brak-dostepu" | "limit-zdjec";
  * kolizja na niej znaczy, że coś jest nie tak z zapytaniem, a nie z wejściem.
  * Cicha zamiana takiej kolizji na „udało się” ukryłaby prawdziwy błąd.
  */
-export async function dodajZdjecie(
-  widz: Widz,
+type DaneNowegoZdjecia = {
+  sciezka: string;
+  szerokosc: number;
+  wysokosc: number;
+  /** Klucz jednej próby wysyłki, sprawdzony Zodem w akcji. */
+  kluczWysylki: string;
+};
+
+async function wstawZdjecieDoBazy(
   companyId: string,
-  zdjecie: {
-    sciezka: string;
-    szerokosc: number;
-    wysokosc: number;
-    /** Klucz jednej próby wysyłki, sprawdzony Zodem w akcji. */
-    kluczWysylki: string;
-  },
+  zdjecie: DaneNowegoZdjecia,
 ): Promise<
   { ok: true; dane: { id: string; pozycja: number } } | { ok: false; powod: OdmowaZdjecia }
 > {
-  const dostep = await dostepDoZdjec(widz, companyId);
-  if (!dostep.ok) return { ok: false, powod: "brak-dostepu" };
-
   const wstawione = await db.execute<{ id: string; position: number }>(sql`
     insert into company_photos (company_id, path, position, width, height, upload_key)
     select
@@ -133,16 +132,6 @@ export async function dodajZdjecie(
   const wiersz = wstawione[0];
   if (wiersz) return { ok: true, dane: { id: wiersz.id, pozycja: Number(wiersz.position) } };
 
-  /*
-   * Brak wiersza ma teraz dwie możliwe przyczyny i trzeba je rozdzielić,
-   * bo znaczą co innego dla człowieka przy formularzu:
-   *
-   *   1. ta próba już się zapisała, czyli to powtórka tego samego żądania,
-   *   2. wszystkie pozycje są zajęte, czyli limit zdjęć.
-   *
-   * Bez tego rozdzielenia powtórka pokazywałaby „masz już 10 zdjęć”, nawet
-   * przy jednym zdjęciu w galerii.
-   */
   const [juzZapisane] = await db
     .select({ id: companyPhotos.id, pozycja: companyPhotos.position })
     .from(companyPhotos)
@@ -160,6 +149,33 @@ export async function dodajZdjecie(
   }
 
   return { ok: false, powod: "limit-zdjec" };
+}
+
+export async function dodajZdjecie(
+  widz: Widz,
+  companyId: string,
+  zdjecie: DaneNowegoZdjecia,
+): Promise<
+  { ok: true; dane: { id: string; pozycja: number } } | { ok: false; powod: OdmowaZdjecia }
+> {
+  const dostep = await dostepDoZdjec(widz, companyId);
+  if (!dostep.ok) return { ok: false, powod: "brak-dostepu" };
+
+  return wstawZdjecieDoBazy(companyId, zdjecie);
+}
+
+/** Dodanie zdjęcia dowolnej firmy przez moderatora. */
+export async function dodajZdjecieModeratora(
+  widz: Widz,
+  companyId: string,
+  zdjecie: DaneNowegoZdjecia,
+): Promise<
+  { ok: true; dane: { id: string; pozycja: number } } | { ok: false; powod: OdmowaZdjecia }
+> {
+  const rozstrzygniecie = mozeModerowac(widz);
+  if (!rozstrzygniecie.wolno) return { ok: false, powod: "brak-dostepu" };
+
+  return wstawZdjecieDoBazy(companyId, zdjecie);
 }
 
 /**

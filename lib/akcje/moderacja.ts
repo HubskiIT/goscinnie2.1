@@ -19,6 +19,7 @@ import { adresAplikacji } from "@/lib/adres";
 import { widzZZadania } from "@/lib/auth/widz";
 import {
   type Decyzja,
+  edytujFirmeModeratora,
   pobierzAdresataDecyzji,
   rozstrzygnij,
   utworzImprezeModeratora,
@@ -26,16 +27,22 @@ import {
   utworzZlecenieModeratora,
   zmienStatusFirmyModerator,
 } from "@/lib/db/queries/moderacja";
+import { dodajZdjecieModeratora } from "@/lib/db/queries/zdjecia";
 import { bledyZod, type StanFormularza } from "@/lib/formularze";
 import { pobierzNadawce } from "@/lib/poczta";
 import { decyzjaModeracjiWpisu } from "@/lib/poczta/szablony";
+import { KONTAKT_EMAIL } from "@/lib/serwis";
 import {
   daneDecyzjiModeracji,
+  daneEdycjiFirmyModeratora,
   daneNowegoOgloszeniaModeratora,
   daneNowejImprezyModeratora,
   daneZmianyStatusuFirmy,
 } from "@/lib/validators/moderacja";
 import { daneNowegoZlecenia } from "@/lib/validators/zlecenia";
+import { MAKS_ZDJEC } from "@/lib/zdjecia/granice";
+import { przygotujZdjecie } from "@/lib/zdjecia/obrobka";
+import { sciezkaZdjecia, wyslijZdjecie } from "@/lib/zdjecia/skladowanie";
 
 export async function rozstrzygnijZgloszenie(
   _poprzedni: StanFormularza,
@@ -247,4 +254,100 @@ export async function dodajZlecenieModeratora(
       adres: `/zlecenia/${zapis.dane.id}`,
     },
   };
+}
+
+export async function edytujFirme(
+  _poprzedni: StanFormularza,
+  dane: FormData,
+): Promise<StanFormularza> {
+  const wejscie = Object.fromEntries(dane.entries());
+  const wynik = daneEdycjiFirmyModeratora.safeParse(wejscie);
+  if (!wynik.success) return bledyZod(wynik.error, wejscie);
+
+  const widz = await widzZZadania(await headers());
+  const zapis = await edytujFirmeModeratora(widz, wynik.data);
+  if (!zapis.ok) {
+    return {
+      status: "bledy",
+      bledy: { _: ["Nie udało się zapisać zmian firmy."] },
+      wartosci: {},
+    };
+  }
+
+  revalidatePath("/moderacja");
+  revalidatePath("/lokale");
+  revalidatePath("/uslugodawcy");
+  revalidatePath(`/f/${zapis.dane.slug}`);
+
+  return {
+    status: "informacja",
+    tresc: `Zapisano zmiany w „${zapis.dane.nazwa}”.`,
+  };
+}
+
+export async function dodajZdjecieModeratoraAkcja(
+  _poprzedni: StanFormularza,
+  dane: FormData,
+): Promise<StanFormularza> {
+  const companyId = dane.get("companyId");
+  const plik = dane.get("zdjecie");
+
+  if (typeof companyId !== "string" || !/^[0-9a-f-]{36}$/i.test(companyId)) {
+    return { status: "bledy", bledy: { _: ["Nieprawidłowa firma."] }, wartosci: {} };
+  }
+  if (!(plik instanceof File) || plik.size === 0) {
+    return { status: "bledy", bledy: { _: ["Wybierz plik ze zdjęciem."] }, wartosci: {} };
+  }
+
+  const widz = await widzZZadania(await headers());
+  if (widz.rodzaj !== "moderator") {
+    return { status: "bledy", bledy: { _: ["Brak uprawnień moderatora."] }, wartosci: {} };
+  }
+
+  const obrobione = await przygotujZdjecie(Buffer.from(await plik.arrayBuffer()), plik.type);
+  if (!obrobione.ok) {
+    return {
+      status: "bledy",
+      bledy: { _: ["Nieobsługiwany lub zbyt duży plik zdjęcia."] },
+      wartosci: {},
+    };
+  }
+
+  const sciezka = sciezkaZdjecia(companyId, Date.now());
+  const wyslane = await wyslijZdjecie(sciezka, obrobione.zdjecie.dane);
+  if (!wyslane.ok) {
+    console.error(`Moderator photo upload error for ${companyId}:`, wyslane.blad.opis);
+    return {
+      status: "bledy",
+      bledy: { _: [`Nie udało się wysłać zdjęcia. Napisz na ${KONTAKT_EMAIL}.`] },
+      wartosci: {},
+    };
+  }
+
+  const zapis = await dodajZdjecieModeratora(widz, companyId, {
+    sciezka,
+    szerokosc: obrobione.zdjecie.szerokosc,
+    wysokosc: obrobione.zdjecie.wysokosc,
+    kluczWysylki: crypto.randomUUID(),
+  });
+
+  if (!zapis.ok) {
+    return {
+      status: "bledy",
+      bledy: {
+        _: [
+          zapis.powod === "limit-zdjec"
+            ? `Firma ma już maksymalną liczbę ${MAKS_ZDJEC} zdjęć.`
+            : "Brak uprawnień do dodania zdjęcia.",
+        ],
+      },
+      wartosci: {},
+    };
+  }
+
+  revalidatePath("/moderacja");
+  revalidatePath("/lokale");
+  revalidatePath("/uslugodawcy");
+
+  return { status: "informacja", tresc: "Zdjęcie zostało dodane do profilu firmy." };
 }

@@ -23,13 +23,14 @@ interface ZleceniaScreenProps {
 }
 
 export function ZleceniaScreen({ zlecenia, kryteria, pelnyZakres }: ZleceniaScreenProps) {
-  const ZLECENIE = zlecenia[0];
   const [stanOferty, akcjaOferty] = useActionState(wyslijOferte, STAN_POCZATKOWY);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
+  const [wybraneZlecenie, setWybraneZlecenie] = useState<ZlecenieDoPokazania | null>(null);
   const [offerPrice, setOfferPrice] = useState("14 400 zł");
   const [offerScope, setOfferScope] = useState(
     "Menu komunijne 180 zł/osobę, sala balowa na wyłączność, ogród z placem zabaw, własny tort bez opłaty.",
   );
+  const ZLECENIE = wybraneZlecenie ?? zlecenia[0];
 
   const sąFiltry =
     kryteria.okazja !== null ||
@@ -101,118 +102,129 @@ export function ZleceniaScreen({ zlecenia, kryteria, pelnyZakres }: ZleceniaScre
       {/* Listing and Aside */}
       <section className="grow px-6 sm:px-12 md:px-[130px] pt-7 flex flex-col lg:flex-row gap-[34px] items-start pb-16">
         <div className="grow w-full flex flex-col gap-[18px]">
-          {ZLECENIE === undefined ? (
-            <p className="m-0 rounded-[18px] border border-dashed border-[#D9CCC2] bg-[#FBF7F4] p-8 text-center text-[15px] leading-[1.7] text-[#6A5C70]">
-              {sąFiltry
-                ? "Żadne zlecenie nie pasuje do tych filtrów."
-                : "Nie ma jeszcze żadnego zlecenia na giełdzie."}{" "}
-              <Link href="/zlecenia" className="font-semibold text-[#8A5405] underline">
-                {sąFiltry ? "Wyczyść filtry" : "Odśwież listę"}
+          {zlecenia.length === 0 ? (
+            <div className="m-0 rounded-[18px] border border-dashed border-[#D9CCC2] bg-white p-8 text-center text-[15px] leading-[1.7] text-[#6A5C70]">
+              <p className="m-0 mb-4">
+                {sąFiltry
+                  ? "Żadne zlecenie nie pasuje do tych filtrów."
+                  : "Nie ma jeszcze żadnego zlecenia na giełdzie."}{" "}
+                <Link href="/zlecenia" className="font-semibold text-[#8A5405] underline">
+                  {sąFiltry ? "Wyczyść filtry" : "Odśwież listę"}
+                </Link>
+              </p>
+              <Link
+                href="/dodaj-zlecenie"
+                className="inline-block text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[12px] px-6 py-3"
+              >
+                Wystaw pierwsze zlecenie
               </Link>
-            </p>
+            </div>
           ) : (
-            <article className="border border-[#E2D5CA] rounded-[18px] bg-white p-6 sm:p-7 shadow-xs">
-              <div className="flex items-start justify-between gap-5 mb-5">
-                <h3 className="m-0 font-fraunces font-medium text-[23px]">
-                  {ZLECENIE.okazja}, {ZLECENIE.liczbaGosci} osób, powiat {ZLECENIE.powiat}
-                </h3>
-              </div>
+            zlecenia.map((zlecenie) => (
+              <article
+                key={zlecenie.id}
+                className="border border-[#E2D5CA] rounded-[18px] bg-white p-6 sm:p-7 shadow-xs"
+              >
+                <div className="flex items-start justify-between gap-5 mb-5">
+                  <h3 className="m-0 font-fraunces font-medium text-[23px]">
+                    {zlecenie.okazja}, {zlecenie.liczbaGosci} osób, powiat {zlecenie.powiat}
+                  </h3>
+                </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 py-4 border-y border-[#EFE5DD] mb-5">
-                <div>
-                  <div className="text-[12px] text-[#6A5C70] mb-1">Okazja</div>
-                  <div className="text-[15px] font-semibold">{ZLECENIE.okazja}</div>
-                </div>
-                <div>
-                  <div className="text-[12px] text-[#6A5C70] mb-1">Data wydarzenia</div>
-                  <div className="text-[15px] font-semibold">{dataDluga(ZLECENIE.data)}</div>
-                </div>
-                <div>
-                  <div className="text-[12px] text-[#6A5C70] mb-1">Liczba osób</div>
-                  <div className="text-[15px] font-semibold">{ZLECENIE.liczbaGosci}</div>
-                </div>
-                <div>
-                  <div className="text-[12px] text-[#6A5C70] mb-1">Lokalizacja</div>
-                  <div className="text-[15px] font-semibold">powiat {ZLECENIE.powiat}</div>
-                </div>
-                <div>
-                  <div className="text-[12px] text-[#6A5C70] mb-1">Budżet klienta</div>
-                  {ZLECENIE.budzet.rodzaj === "jawny" ? (
-                    <div className="text-[15px] font-bold text-[#3F5142]">
-                      {ZLECENIE.budzet.grosze === null
-                        ? "nie podano"
-                        : zlote(ZLECENIE.budzet.grosze)}
-                    </div>
-                  ) : (
-                    <div className="text-[13px] text-[#8B7F91] font-semibold italic">
-                      w abonamencie
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {ZLECENIE.opis.rodzaj === "caly" && (
-                <p className="m-0 mb-5 text-[16px] leading-[1.7] text-[#3E3344] max-w-[78ch]">
-                  {ZLECENIE.opis.tekst}
-                </p>
-              )}
-
-              {ZLECENIE.opis.rodzaj === "zajawka" && (
-                <div className="relative mb-5">
-                  <p className="m-0 text-[16px] leading-[1.7] text-[#3E3344] max-w-[78ch] select-none">
-                    {ZLECENIE.opis.tekst}
-                    {ZLECENIE.opis.tekst.length < ZLECENIE.opis.znakowWCalosci && "..."}
-                  </p>
-                  <div className="absolute inset-x-0 -bottom-1 h-10 bg-gradient-to-b from-transparent to-white" />
-                </div>
-              )}
-
-              {/*
-                Anonim i klient nie dostają opisu w ogóle, więc nie ma tu czego
-                rozmywać gradientem. Zamiast pustego miejsca mówimy wprost,
-                czego brakuje i skąd się to bierze.
-              */}
-              {ZLECENIE.opis.rodzaj === "brak" && (
-                <p className="m-0 mb-5 text-[15px] leading-[1.7] text-[#6A5C70] max-w-[78ch]">
-                  Opis wydarzenia widzą firmy z katalogu. Zlecenia są anonimowe, więc klient opisuje
-                  je raz, a nie każdemu z osobna.
-                </p>
-              )}
-
-              {pelnyZakres ? (
-                <div className="flex flex-wrap items-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setOfferModalOpen(true)}
-                    className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-7 py-3.5 cursor-pointer shadow-xs"
-                  >
-                    Złóż ofertę
-                  </button>
-                  <span className="text-[13px] text-[#6A5C70]">
-                    Jedna oferta na zlecenie. Konkurencja nie widzi Twojej ceny.
-                  </span>
-                </div>
-              ) : (
-                <div className="border border-[#E2D5CA] rounded-[14px] bg-[#F2E9E2] p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 py-4 border-y border-[#EFE5DD] mb-5">
                   <div>
-                    <div className="text-[15px] font-bold text-[#241C2B] mb-1">
-                      {ZLECENIE.opis.rodzaj === "zajawka"
-                        ? `Widzisz ${ZLECENIE.opis.tekst.length} znaków z ${ZLECENIE.opis.znakowWCalosci}`
-                        : "Pełny opis i budżet w abonamencie"}
-                    </div>
-                    <div className="text-[13px] text-[#55485A]">
-                      Pełny opis, budżet i składanie ofert są dla firm z abonamentem.
-                    </div>
+                    <div className="text-[12px] text-[#6A5C70] mb-1">Okazja</div>
+                    <div className="text-[15px] font-semibold">{zlecenie.okazja}</div>
                   </div>
-                  <Link
-                    href="/dla-firm"
-                    className="shrink-0 text-[14px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[10px] px-5 py-2.5 border-0 cursor-pointer shadow-2xs"
-                  >
-                    Dodaj firmę bezpłatnie
-                  </Link>
+                  <div>
+                    <div className="text-[12px] text-[#6A5C70] mb-1">Data wydarzenia</div>
+                    <div className="text-[15px] font-semibold">{dataDluga(zlecenie.data)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[12px] text-[#6A5C70] mb-1">Liczba osób</div>
+                    <div className="text-[15px] font-semibold">{zlecenie.liczbaGosci}</div>
+                  </div>
+                  <div>
+                    <div className="text-[12px] text-[#6A5C70] mb-1">Lokalizacja</div>
+                    <div className="text-[15px] font-semibold">powiat {zlecenie.powiat}</div>
+                  </div>
+                  <div>
+                    <div className="text-[12px] text-[#6A5C70] mb-1">Budżet klienta</div>
+                    {zlecenie.budzet.rodzaj === "jawny" ? (
+                      <div className="text-[15px] font-bold text-[#3F5142]">
+                        {zlecenie.budzet.grosze === null
+                          ? "nie podano"
+                          : zlote(zlecenie.budzet.grosze)}
+                      </div>
+                    ) : (
+                      <div className="text-[13px] text-[#8B7F91] font-semibold italic">
+                        w abonamencie
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </article>
+
+                {zlecenie.opis.rodzaj === "caly" && (
+                  <p className="m-0 mb-5 text-[16px] leading-[1.7] text-[#3E3344] max-w-[78ch]">
+                    {zlecenie.opis.tekst}
+                  </p>
+                )}
+
+                {zlecenie.opis.rodzaj === "zajawka" && (
+                  <div className="relative mb-5">
+                    <p className="m-0 text-[16px] leading-[1.7] text-[#3E3344] max-w-[78ch] select-none">
+                      {zlecenie.opis.tekst}
+                      {zlecenie.opis.tekst.length < zlecenie.opis.znakowWCalosci && "..."}
+                    </p>
+                    <div className="absolute inset-x-0 -bottom-1 h-10 bg-gradient-to-b from-transparent to-white" />
+                  </div>
+                )}
+
+                {zlecenie.opis.rodzaj === "brak" && (
+                  <p className="m-0 mb-5 text-[15px] leading-[1.7] text-[#6A5C70] max-w-[78ch]">
+                    Opis wydarzenia widzą firmy z katalogu. Zlecenia są anonimowe, więc klient
+                    opisuje je raz, a nie każdemu z osobna.
+                  </p>
+                )}
+
+                {pelnyZakres ? (
+                  <div className="flex flex-wrap items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWybraneZlecenie(zlecenie);
+                        setOfferModalOpen(true);
+                      }}
+                      className="text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors border-0 rounded-[12px] px-7 py-3.5 cursor-pointer shadow-xs"
+                    >
+                      Złóż ofertę
+                    </button>
+                    <span className="text-[13px] text-[#6A5C70]">
+                      Jedna oferta na zlecenie. Konkurencja nie widzi Twojej ceny.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="border border-[#E2D5CA] rounded-[14px] bg-[#F2E9E2] p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <div className="text-[15px] font-bold text-[#241C2B] mb-1">
+                        {zlecenie.opis.rodzaj === "zajawka"
+                          ? `Widzisz ${zlecenie.opis.tekst.length} znaków z ${zlecenie.opis.znakowWCalosci}`
+                          : "Pełny opis i budżet w abonamencie"}
+                      </div>
+                      <div className="text-[13px] text-[#55485A]">
+                        Pełny opis, budżet i składanie ofert są dla firm z abonamentem.
+                      </div>
+                    </div>
+                    <Link
+                      href="/dla-firm"
+                      className="shrink-0 text-[14px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[10px] px-5 py-2.5 border-0 cursor-pointer shadow-2xs"
+                    >
+                      Dodaj firmę bezpłatnie
+                    </Link>
+                  </div>
+                )}
+              </article>
+            ))
           )}
         </div>
 

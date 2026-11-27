@@ -34,6 +34,7 @@ import {
 } from "@/lib/permissions";
 import { DARMOWY_DOSTEP_DO } from "@/lib/serwis";
 import type {
+  DaneEdycjiFirmyModeratora,
   DaneNowegoOgloszeniaModeratora,
   DaneNowejImprezyModeratora,
 } from "@/lib/validators/moderacja";
@@ -567,6 +568,10 @@ export type FirmaDlaModeratora = {
   id: string;
   nazwa: string;
   slug: string;
+  opis: string;
+  cenaOd: number | null;
+  pojemnoscMin: number | null;
+  pojemnoscMax: number | null;
   status: "draft" | "active" | "visitcard" | "suspended";
   rodzaj: "venue" | "service" | null;
   kategoria: string | null;
@@ -574,6 +579,7 @@ export type FirmaDlaModeratora = {
   wlascicielEmail: string;
   zaakceptowana: boolean;
   maAktywnyAbonament: boolean;
+  liczbaZdjec: number;
   utworzono: Date;
 };
 
@@ -604,6 +610,10 @@ export async function pobierzWszystkieFirmyModeratora(
       id: companies.id,
       nazwa: companies.name,
       slug: companies.slug,
+      opis: companies.description,
+      cenaOd: companies.priceFrom,
+      pojemnoscMin: companies.capacityMin,
+      pojemnoscMax: companies.capacityMax,
       status: companies.status,
       rodzaj: companies.kind,
       kategoria: categories.name,
@@ -620,6 +630,11 @@ export async function pobierzWszystkieFirmyModeratora(
         where ${subscriptions.companyId} = ${companies.id}
           and ${subscriptions.status} = 'active'
           and ${subscriptions.expiresAt} > now()
+      )`,
+      liczbaZdjec: sql<number>`(
+        select count(*)::int from company_photos
+        where company_photos.company_id = ${companies.id}
+          and company_photos.archived_at is null
       )`,
       utworzono: companies.createdAt,
     })
@@ -1045,4 +1060,31 @@ export async function utworzZlecenieModeratora(
   });
 
   return { ok: true, dane: wstawione };
+}
+
+/** Szybka edycja podstawowych danych firmy przez moderatora. */
+export async function edytujFirmeModeratora(
+  widz: Widz,
+  dane: DaneEdycjiFirmyModeratora,
+): Promise<WynikModeracji<{ nazwa: string; slug: string }>> {
+  const rozstrzygniecie = mozeModerowac(widz);
+  if (!rozstrzygniecie.wolno) return { ok: false, powod: rozstrzygniecie.powod };
+  if (widz.rodzaj !== "moderator") return { ok: false, powod: "brak-dostepu" };
+
+  const [zmieniona] = await db
+    .update(companies)
+    .set({
+      name: dane.nazwa,
+      description: dane.opis,
+      priceFrom: dane.cenaOd,
+      capacityMin: dane.pojemnoscMin,
+      capacityMax: dane.pojemnoscMax,
+      updatedAt: new Date(),
+    })
+    .where(eq(companies.id, dane.companyId))
+    .returning({ nazwa: companies.name, slug: companies.slug });
+
+  if (!zmieniona) return { ok: false, powod: "brak-dostepu" };
+
+  return { ok: true, dane: zmieniona };
 }

@@ -103,14 +103,22 @@ export function ImprezyScreen({ imprezy, kryteria }: ImprezyScreenProps) {
       {/* Events Grid */}
       <section className="grow px-6 sm:px-12 md:px-[130px] pt-7">
         {events.length === 0 ? (
-          <p className="m-0 rounded-[18px] border border-dashed border-[#D9CCC2] bg-[#FBF7F4] p-8 text-center text-[15px] leading-[1.7] text-[#6A5C70]">
-            {sąFiltry
-              ? "Żadna impreza nie pasuje do tych filtrów."
-              : "Nie ma jeszcze żadnej zapowiedzianej imprezy."}{" "}
-            <Link href="/imprezy" className="font-semibold text-[#8A5405] underline">
-              {sąFiltry ? "Wyczyść filtry" : "Odśwież listę"}
+          <div className="m-0 rounded-[18px] border border-dashed border-[#D9CCC2] bg-white p-8 text-center text-[15px] leading-[1.7] text-[#6A5C70]">
+            <p className="m-0 mb-4">
+              {sąFiltry
+                ? "Żadna impreza nie pasuje do tych filtrów."
+                : "Nie ma jeszcze żadnej zapowiedzianej imprezy."}{" "}
+              <Link href="/imprezy" className="font-semibold text-[#8A5405] underline">
+                {sąFiltry ? "Wyczyść filtry" : "Odśwież listę"}
+              </Link>
+            </p>
+            <Link
+              href="/rejestracja-firmy"
+              className="inline-block text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[12px] px-6 py-3"
+            >
+              Dodaj swój lokal, aby zapowiadać imprezy
             </Link>
-          </p>
+          </div>
         ) : null}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

@@ -338,15 +338,27 @@ export function RejestracjaFirmyScreen({
           </div>
         </div>
 
-        <div className="grid grid-cols-5 gap-2.5 mb-10">
-          {NAZWY_KROKOW.map((nazwa, numer) => (
-            <div
-              key={nazwa}
-              className={`h-2 rounded-full transition-colors ${
-                KROKI.indexOf(step) >= numer ? "bg-[#241C2B]" : "bg-[#E2D5CA]"
-              }`}
-            />
-          ))}
+        <div className="grid grid-cols-6 gap-2.5 mb-10">
+          {NAZWY_KROKOW.map((nazwa, numer) => {
+            const nrKroku = (numer + 1) as Krok;
+            const aktywny = KROKI.indexOf(step) >= numer;
+            const klikalny =
+              nrKroku < step &&
+              !(zalogowany && nrKroku === 1) &&
+              (nrKroku !== 5 || szkic?.rodzaj != null);
+            return (
+              <button
+                key={nazwa}
+                type="button"
+                disabled={!klikalny}
+                onClick={() => klikalny && setStep(nrKroku)}
+                title={`${nrKroku}. ${nazwa}`}
+                className={`h-2 rounded-full transition-colors border-0 p-0 ${
+                  aktywny ? "bg-[#241C2B]" : "bg-[#E2D5CA]"
+                } ${klikalny ? "cursor-pointer hover:bg-[#55485A]" : "cursor-default"}`}
+              />
+            );
+          })}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
@@ -428,7 +440,13 @@ export function RejestracjaFirmyScreen({
                   <ListaWymaganHasla id="wymagania-hasla" />
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-[#EFE5DD] flex justify-end">
+                <div className="mt-8 pt-6 border-t border-[#EFE5DD] flex flex-wrap items-center justify-between gap-4">
+                  <Link
+                    href="/logowanie"
+                    className="text-[14px] font-semibold text-[#8A5405] underline hover:text-[#241C2B]"
+                  >
+                    Masz już konto? Zaloguj się
+                  </Link>
                   <button
                     type="submit"
                     disabled={czeka}
@@ -833,7 +851,7 @@ export function RejestracjaFirmyScreen({
             {/* KROK 6: Publikacja */}
             {step === 6 && (
               <form onSubmit={handleSubmitKrok6}>
-                <h2 className="font-fraunces text-[24px] font-medium mb-2">5. Publikacja</h2>
+                <h2 className="font-fraunces text-[24px] font-medium mb-2">6. Publikacja</h2>
                 <p className="text-[14px] text-[#6A5C70] mb-6">
                   Potwierdź dane i opublikuj profil w katalogu.
                 </p>
@@ -883,7 +901,7 @@ export function RejestracjaFirmyScreen({
                 <div className="mt-8 pt-6 border-t border-[#EFE5DD] flex justify-between">
                   <button
                     type="button"
-                    onClick={() => setStep(4)}
+                    onClick={() => setStep(5)}
                     className="text-[14px] font-semibold text-[#6A5C70] hover:text-[#241C2B] bg-transparent border-0 cursor-pointer p-0"
                   >
                     ← Wstecz

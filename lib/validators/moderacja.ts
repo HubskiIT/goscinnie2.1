@@ -102,3 +102,10 @@ export const daneNowejImprezyModeratora = daneNowejImprezy.safeExtend({
 });
 
 export type DaneNowejImprezyModeratora = z.infer<typeof daneNowejImprezyModeratora>;
+
+export const daneEdycjiFirmyModeratora = daneOpisu.safeExtend({
+  companyId: z.uuid({ message: "Nieprawidłowa firma." }),
+  cenaOd: kwotaZlotowkiOpcjonalna("Cena"),
+});
+
+export type DaneEdycjiFirmyModeratora = z.infer<typeof daneEdycjiFirmyModeratora>;

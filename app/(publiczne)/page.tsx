@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { MainScreen } from "@/components/screens/MainScreen";
+import { widzZZadania } from "@/lib/auth/widz";
+import { pobierzImprezy } from "@/lib/db/queries/imprezy";
+import { lokaleZBazy } from "@/lib/katalog";
 import { TRASY } from "@/lib/trasy";
 
 /*
@@ -15,6 +19,12 @@ export const metadata: Metadata = {
   openGraph: { url: TRASY.glowna },
 };
 
-export default function Strona() {
-  return <MainScreen />;
+export default async function Strona() {
+  const widz = await widzZZadania(await headers());
+  const [lokale, imprezy] = await Promise.all([
+    lokaleZBazy(widz),
+    pobierzImprezy(widz, { okazja: null, miejscowosc: null, od: null, do: null }),
+  ]);
+
+  return <MainScreen lokale={lokale.slice(0, 6)} imprezy={imprezy.slice(0, 6)} />;
 }

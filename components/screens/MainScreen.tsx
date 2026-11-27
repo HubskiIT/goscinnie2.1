@@ -2,10 +2,12 @@ import { CalendarDays, ClipboardList, Receipt, Send, Sparkles, Store } from "luc
 import Link from "next/link";
 import { EtykietaPrzykladu } from "@/components/EtykietaPrzykladu";
 import { WyszukiwarkaLokali } from "@/components/WyszukiwarkaLokali";
+import { ZdjecieFirmy } from "@/components/ZdjecieFirmy";
 import { dataDluga, dzienTygodnia, zlote } from "@/content/format";
-import { pobierzImprezy, pobierzLokal, pobierzLokale } from "@/content/ogloszenia";
+import type { Lokal } from "@/content/ogloszenia";
 import { pobierzOkazje } from "@/content/okazje";
 import { pobierzRodzajeLokali } from "@/content/rodzaje-lokali";
+import type { ImprezaPubliczna } from "@/lib/db/queries/imprezy";
 
 /**
  * Hero zostaje wyszukiwarką lokali, bo z tym przychodzi większość odwiedzających.
@@ -58,9 +60,12 @@ const KONKRETY = [
   },
 ] as const;
 
-export function MainScreen() {
-  const lokale = pobierzLokale().filter((lokal) => lokal.status === "active");
-  const imprezy = pobierzImprezy();
+interface MainScreenProps {
+  lokale?: readonly Lokal[];
+  imprezy?: readonly ImprezaPubliczna[];
+}
+
+export function MainScreen({ lokale = [], imprezy = [] }: MainScreenProps) {
   const rodzaje = pobierzRodzajeLokali();
 
   return (
@@ -189,12 +194,15 @@ export function MainScreen() {
                 href={`/f/${lokal.slug}`}
                 className="text-left border border-[#E2D5CA] rounded-[16px] overflow-hidden bg-white flex flex-col hover:shadow-lg transition-all"
               >
-                <div className="h-[180px] bg-[#E4D9CF]" />
+                <ZdjecieFirmy
+                  adres={lokal.zdjecie ?? null}
+                  nazwaFirmy={lokal.nazwa}
+                  className="h-[180px] w-full"
+                />
                 <div className="p-[22px] flex flex-col gap-2.5">
                   <div className="font-fraunces text-[22px]">{lokal.nazwa}</div>
                   <div className="text-[14px] text-[#6A5C70]">
-                    {lokal.miejscowosc.nazwa} &nbsp;·&nbsp; {lokal.miejscowosc.odlegloscOdCentrumKm}{" "}
-                    km od centrum
+                    {lokal.miejscowosc.nazwa} &nbsp;·&nbsp; powiat {lokal.miejscowosc.powiat}
                   </div>
                   {lokal.przykladowe ? (
                     <div>
@@ -225,7 +233,24 @@ export function MainScreen() {
               </Link>
             ))}
           </div>
-        ) : null}
+        ) : (
+          <div className="rounded-[18px] border border-dashed border-[#D9CCC2] bg-white p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <div className="font-fraunces text-[22px] text-[#241C2B] mb-1">
+                Katalog właśnie powstaje
+              </div>
+              <p className="m-0 text-[15px] text-[#6A5C70]">
+                Prowadzisz salę, restaurację lub usługi na uroczystości? Dodaj swój wpis bezpłatnie.
+              </p>
+            </div>
+            <Link
+              href="/rejestracja-firmy"
+              className="shrink-0 text-[15px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] transition-colors rounded-[12px] px-6 py-3"
+            >
+              Dodaj firmę bezpłatnie
+            </Link>
+          </div>
+        )}
       </section>
 
       {/* Imprezy */}
@@ -246,35 +271,31 @@ export function MainScreen() {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[26px]">
-            {imprezy.map((impreza) => {
-              const lokal = pobierzLokal(impreza.lokalSlug);
-              return (
-                <Link
-                  key={impreza.slug}
-                  href={`/imprezy/${impreza.slug}`}
-                  className="border border-[#E2D5CA] rounded-[16px] bg-[#FBF7F4] hover:bg-white hover:shadow-md transition-all p-6 flex flex-col gap-2.5"
-                >
-                  <span className="text-[14px] font-semibold text-[#8A5405]">
-                    {dzienTygodnia(impreza.data)}, {dataDluga(impreza.data)}
-                  </span>
-                  <span className="font-fraunces text-[22px] leading-[1.3]">{impreza.nazwa}</span>
-                  {lokal === undefined ? null : (
-                    <span className="text-[14px] text-[#6A5C70]">
-                      {lokal.nazwa} &nbsp;·&nbsp; {lokal.miejscowosc.nazwa}
-                    </span>
+            {imprezy.map((impreza) => (
+              <Link
+                key={impreza.slug}
+                href={`/imprezy/${impreza.slug}`}
+                className="border border-[#E2D5CA] rounded-[16px] bg-[#FBF7F4] hover:bg-white hover:shadow-md transition-all p-6 flex flex-col gap-2.5"
+              >
+                <span className="text-[14px] font-semibold text-[#8A5405]">
+                  {dzienTygodnia(impreza.data)}, {dataDluga(impreza.data)}
+                </span>
+                <span className="font-fraunces text-[22px] leading-[1.3]">{impreza.nazwa}</span>
+                <span className="text-[14px] text-[#6A5C70]">
+                  {impreza.lokal.nazwa} &nbsp;·&nbsp; {impreza.lokal.miejscowosc}
+                </span>
+                <span className="mt-1 text-[15px]">
+                  {impreza.cenaBiletuGrosze === null ? (
+                    <strong className="text-[18px]">wstęp wolny</strong>
+                  ) : (
+                    <>
+                      <strong className="text-[18px]">{zlote(impreza.cenaBiletuGrosze)}</strong> od
+                      osoby
+                    </>
                   )}
-                  {impreza.przykladowe ? (
-                    <div>
-                      <EtykietaPrzykladu />
-                    </div>
-                  ) : null}
-                  <span className="mt-1 text-[15px]">
-                    <strong className="text-[18px]">{zlote(impreza.cenaBiletuGrosze)}</strong> od
-                    osoby
-                  </span>
-                </Link>
-              );
-            })}
+                </span>
+              </Link>
+            ))}
           </div>
         </section>
       ) : null}

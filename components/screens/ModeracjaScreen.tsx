@@ -12,7 +12,9 @@ import { pobierzRodzajeLokali } from "@/content/rodzaje-lokali";
 import {
   dodajImprezeModeratora,
   dodajOgloszenieModeratora,
+  dodajZdjecieModeratoraAkcja,
   dodajZlecenieModeratora,
+  edytujFirme,
   rozstrzygnijZgloszenie,
   zmienStatusFirmy,
 } from "@/lib/akcje/moderacja";
@@ -74,8 +76,14 @@ export function ModeracjaScreen({ pozycje, statystyki, firmy }: ModeracjaScreenP
     dodajZlecenieModeratora,
     STAN_POCZATKOWY,
   );
+  const [stanEdycji, akcjaEdycji, czekaEdycja] = useActionState(edytujFirme, STAN_POCZATKOWY);
+  const [stanZdjecia, akcjaZdjecia, czekaZdjecie] = useActionState(
+    dodajZdjecieModeratoraAkcja,
+    STAN_POCZATKOWY,
+  );
 
   const [odsylany, setOdsylany] = useState<string | null>(null);
+  const [edytowanaFirmaId, setEdytowanaFirmaId] = useState<string | null>(null);
   const [szukajFirmy, setSzukajFirmy] = useState("");
   const [filtrStatusu, setFiltrStatusu] = useState<string>("wszystkie");
   const [okazjaImprezy, setOkazjaImprezy] = useState<string>(OKAZJE[0]?.slug ?? "sylwester");
@@ -271,6 +279,8 @@ export function ModeracjaScreen({ pozycje, statystyki, firmy }: ModeracjaScreenP
         {zakladka === "firmy" && (
           <div>
             <KomunikatFormularza stan={stanStatusu} />
+            <KomunikatFormularza stan={stanEdycji} />
+            <KomunikatFormularza stan={stanZdjecia} />
 
             <div className="mt-4 flex flex-wrap gap-3 items-center">
               <input
@@ -302,80 +312,202 @@ export function ModeracjaScreen({ pozycje, statystyki, firmy }: ModeracjaScreenP
                 {przefiltrowaneFirmy.map((firma) => (
                   <li
                     key={firma.id}
-                    className="border border-[#E2D5CA] rounded-[16px] bg-white p-5 flex flex-wrap items-center justify-between gap-4"
+                    className="border border-[#E2D5CA] rounded-[16px] bg-white p-5"
                   >
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span className="font-fraunces text-[20px] font-medium">
-                          {firma.nazwa || "(szkic bez nazwy)"}
-                        </span>
-                        <span className="px-2.5 py-0.5 rounded-full text-[12px] font-bold bg-[#F2E9E2] text-[#3E3344]">
-                          {ETYKIETA_STATUSU[firma.status]}
-                        </span>
-                        {firma.zaakceptowana ? (
-                          <span className="px-2.5 py-0.5 rounded-full text-[12px] font-bold bg-[#E7EDE7] text-[#3F5142]">
-                            W katalogu
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <span className="font-fraunces text-[20px] font-medium">
+                            {firma.nazwa || "(szkic bez nazwy)"}
                           </span>
+                          <span className="px-2.5 py-0.5 rounded-full text-[12px] font-bold bg-[#F2E9E2] text-[#3E3344]">
+                            {ETYKIETA_STATUSU[firma.status]}
+                          </span>
+                          {firma.zaakceptowana ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[12px] font-bold bg-[#E7EDE7] text-[#3F5142]">
+                              W katalogu
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 rounded-full text-[12px] font-bold bg-[#FEF4E4] text-[#8A5405]">
+                              Niezaakceptowana
+                            </span>
+                          )}
+                          <span className="px-2.5 py-0.5 rounded-full text-[12px] font-semibold bg-[#FBF7F4] border border-[#E2D5CA] text-[#6A5C70]">
+                            Zdjęcia: {firma.liczbaZdjec}
+                          </span>
+                        </div>
+                        <div className="text-[13px] text-[#6A5C70]">
+                          {firma.kategoria ?? "Brak kategorii"} • {firma.miejscowosc} • właściciel:{" "}
+                          {firma.wlascicielEmail}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                          href={`/f/${firma.slug}`}
+                          className="text-[13px] font-semibold text-[#8A5405] underline px-2 py-1"
+                        >
+                          Zobacz profil
+                        </Link>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEdytowanaFirmaId(edytowanaFirmaId === firma.id ? null : firma.id)
+                          }
+                          className="text-[13px] font-semibold text-[#241C2B] bg-white border border-[#D9CCC2] hover:bg-[#F2E9E2] rounded-[10px] px-3 py-2 cursor-pointer transition-colors"
+                        >
+                          {edytowanaFirmaId === firma.id ? "Zamknij edycję" : "Edytuj / Zdjęcia"}
+                        </button>
+
+                        {(!firma.zaakceptowana || firma.status === "draft") && (
+                          <form action={akcjaStatusu}>
+                            <input type="hidden" name="companyId" value={firma.id} />
+                            <input type="hidden" name="akcja" value="zatwierdz" />
+                            <button
+                              type="submit"
+                              disabled={czekaStatus}
+                              className="text-[13px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] disabled:opacity-60 border-0 rounded-[10px] px-3.5 py-2 cursor-pointer"
+                            >
+                              Zatwierdź i opublikuj
+                            </button>
+                          </form>
+                        )}
+
+                        {firma.status !== "suspended" ? (
+                          <form action={akcjaStatusu}>
+                            <input type="hidden" name="companyId" value={firma.id} />
+                            <input type="hidden" name="akcja" value="zawies" />
+                            <button
+                              type="submit"
+                              disabled={czekaStatus}
+                              className="text-[13px] font-semibold text-[#8A3B1E] bg-white border border-[#8A3B1E] hover:bg-[#8A3B1E] hover:text-white disabled:opacity-60 rounded-[10px] px-3.5 py-2 cursor-pointer transition-colors"
+                            >
+                              Zawieś
+                            </button>
+                          </form>
                         ) : (
-                          <span className="px-2.5 py-0.5 rounded-full text-[12px] font-bold bg-[#FEF4E4] text-[#8A5405]">
-                            Niezaakceptowana
-                          </span>
+                          <form action={akcjaStatusu}>
+                            <input type="hidden" name="companyId" value={firma.id} />
+                            <input type="hidden" name="akcja" value="przywroc" />
+                            <button
+                              type="submit"
+                              disabled={czekaStatus}
+                              className="text-[13px] font-semibold text-[#3F5142] bg-[#E7EDE7] hover:bg-[#d5e2d7] disabled:opacity-60 border-0 rounded-[10px] px-3.5 py-2 cursor-pointer"
+                            >
+                              Przywróć
+                            </button>
+                          </form>
                         )}
                       </div>
-                      <div className="text-[13px] text-[#6A5C70]">
-                        {firma.kategoria ?? "Brak kategorii"} • {firma.miejscowosc} • właściciel:{" "}
-                        {firma.wlascicielEmail}
+                    </div>
+
+                    {edytowanaFirmaId === firma.id && (
+                      <div className="mt-5 pt-5 border-t border-[#EFE5DD] grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <form action={akcjaEdycji} className="flex flex-col gap-3">
+                          <input type="hidden" name="companyId" value={firma.id} />
+                          <div className="text-[14px] font-bold text-[#241C2B]">
+                            Edycja danych wpisu
+                          </div>
+                          <div>
+                            <label htmlFor={`ed-nazwa-${firma.id}`} className={KLASA_ETYKIETY}>
+                              Nazwa
+                            </label>
+                            <input
+                              id={`ed-nazwa-${firma.id}`}
+                              name="nazwa"
+                              required
+                              defaultValue={firma.nazwa}
+                              className={KLASA_POLA}
+                            />
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <label htmlFor={`ed-cena-${firma.id}`} className={KLASA_ETYKIETY}>
+                                Cena od (zł)
+                              </label>
+                              <input
+                                id={`ed-cena-${firma.id}`}
+                                name="cenaOd"
+                                type="number"
+                                min="0"
+                                defaultValue={
+                                  firma.cenaOd !== null ? Math.round(firma.cenaOd / 100) : ""
+                                }
+                                className={KLASA_POLA}
+                              />
+                            </div>
+                            <div>
+                              <label htmlFor={`ed-pmin-${firma.id}`} className={KLASA_ETYKIETY}>
+                                Poj. min
+                              </label>
+                              <input
+                                id={`ed-pmin-${firma.id}`}
+                                name="pojemnoscMin"
+                                type="number"
+                                min="1"
+                                defaultValue={firma.pojemnoscMin ?? ""}
+                                className={KLASA_POLA}
+                              />
+                            </div>
+                            <div>
+                              <label htmlFor={`ed-pmax-${firma.id}`} className={KLASA_ETYKIETY}>
+                                Poj. max
+                              </label>
+                              <input
+                                id={`ed-pmax-${firma.id}`}
+                                name="pojemnoscMax"
+                                type="number"
+                                min="1"
+                                defaultValue={firma.pojemnoscMax ?? ""}
+                                className={KLASA_POLA}
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label htmlFor={`ed-opis-${firma.id}`} className={KLASA_ETYKIETY}>
+                              Opis
+                            </label>
+                            <textarea
+                              id={`ed-opis-${firma.id}`}
+                              name="opis"
+                              required
+                              rows={3}
+                              defaultValue={firma.opis}
+                              className={KLASA_POLA}
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={czekaEdycja}
+                            className="text-[14px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] disabled:opacity-60 border-0 rounded-[10px] px-4 py-2.5 cursor-pointer self-start"
+                          >
+                            {czekaEdycja ? "Zapisywanie..." : "Zapisz zmiany"}
+                          </button>
+                        </form>
+
+                        <form action={akcjaZdjecia} className="flex flex-col gap-3">
+                          <input type="hidden" name="companyId" value={firma.id} />
+                          <div className="text-[14px] font-bold text-[#241C2B]">
+                            Dodaj zdjęcie do galerii (aktualnie: {firma.liczbaZdjec}/10)
+                          </div>
+                          <input
+                            name="zdjecie"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/heic"
+                            required
+                            className="text-[14px] text-[#3E3344] border border-dashed border-[#D9CCC2] rounded-[10px] p-4 bg-[#FBF7F4]"
+                          />
+                          <button
+                            type="submit"
+                            disabled={czekaZdjecie}
+                            className="text-[14px] font-semibold text-white bg-[#241C2B] hover:bg-[#3E3344] disabled:opacity-60 border-0 rounded-[10px] px-4 py-2.5 cursor-pointer self-start"
+                          >
+                            {czekaZdjecie ? "Wysyłanie..." : "Wgraj zdjęcie"}
+                          </button>
+                        </form>
                       </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link
-                        href={`/f/${firma.slug}`}
-                        className="text-[13px] font-semibold text-[#8A5405] underline px-2 py-1"
-                      >
-                        Zobacz profil
-                      </Link>
-
-                      {(!firma.zaakceptowana || firma.status === "draft") && (
-                        <form action={akcjaStatusu}>
-                          <input type="hidden" name="companyId" value={firma.id} />
-                          <input type="hidden" name="akcja" value="zatwierdz" />
-                          <button
-                            type="submit"
-                            disabled={czekaStatus}
-                            className="text-[13px] font-bold text-[#241C2B] bg-[#F0A62E] hover:bg-[#e29922] disabled:opacity-60 border-0 rounded-[10px] px-3.5 py-2 cursor-pointer"
-                          >
-                            Zatwierdź i opublikuj
-                          </button>
-                        </form>
-                      )}
-
-                      {firma.status !== "suspended" ? (
-                        <form action={akcjaStatusu}>
-                          <input type="hidden" name="companyId" value={firma.id} />
-                          <input type="hidden" name="akcja" value="zawies" />
-                          <button
-                            type="submit"
-                            disabled={czekaStatus}
-                            className="text-[13px] font-semibold text-[#8A3B1E] bg-white border border-[#8A3B1E] hover:bg-[#8A3B1E] hover:text-white disabled:opacity-60 rounded-[10px] px-3.5 py-2 cursor-pointer transition-colors"
-                          >
-                            Zawieś
-                          </button>
-                        </form>
-                      ) : (
-                        <form action={akcjaStatusu}>
-                          <input type="hidden" name="companyId" value={firma.id} />
-                          <input type="hidden" name="akcja" value="przywroc" />
-                          <button
-                            type="submit"
-                            disabled={czekaStatus}
-                            className="text-[13px] font-semibold text-[#3F5142] bg-[#E7EDE7] hover:bg-[#d5e2d7] disabled:opacity-60 border-0 rounded-[10px] px-3.5 py-2 cursor-pointer"
-                          >
-                            Przywróć
-                          </button>
-                        </form>
-                      )}
-                    </div>
+                    )}
                   </li>
                 ))}
               </ul>
