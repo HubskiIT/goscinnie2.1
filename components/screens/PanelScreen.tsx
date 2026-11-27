@@ -118,6 +118,14 @@ export function PanelScreen({ firmy, poPublikacji, moderator }: PanelScreenProps
         </ul>
       )}
 
+      {firmy.length > 0 ? (
+        <div className="mt-6">
+          <Link href="/rejestracja-firmy?nowa=1" className={PRZYCISK_OBRYS}>
+            Dodaj kolejne ogłoszenie
+          </Link>
+        </div>
+      ) : null}
+
       <form action={wylogujSie} className="mt-10">
         <button
           type="submit"

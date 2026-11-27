@@ -68,6 +68,7 @@ export function RejestracjaFirmyScreen({
   szkic = null,
   zdjecia = [],
   zalogowany = false,
+  nowa = false,
   wartosciSzczegolow = {},
   wCenie = [],
 }: {
@@ -76,6 +77,8 @@ export function RejestracjaFirmyScreen({
   zdjecia?: readonly ZdjecieDoPokazania[];
   /** Czy krok pierwszy, czyli zakładanie konta, jest już za nami. */
   zalogowany?: boolean;
+  /** Czy zakładamy kolejną firmę zamiast wracać do już opublikowanej. */
+  nowa?: boolean;
   /**
    * Zapisane odpowiedzi kroku piątego, przełożone na napisy przez
    * `wartosciSzczegolowDoFormularza`. Czytane na serwerze razem ze
@@ -181,6 +184,7 @@ export function RejestracjaFirmyScreen({
       // a przeglądarka nie ma skąd znać identyfikatorów.
       formData.append("kategoria", category);
       formData.append("rodzaj", accountType);
+      if (nowa) formData.append("nowa", "1");
 
       const wynik = await zapiszKrokKategoria(STAN_POCZATKOWY, formData);
       setStanKroku(wynik);

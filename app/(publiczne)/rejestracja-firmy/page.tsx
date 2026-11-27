@@ -27,9 +27,14 @@ export const metadata: Metadata = metadaneStrony({
  * skończył, z wypełnionymi polami. Wcześniej stan żył wyłącznie w `useState`,
  * więc odświeżenie w kroku czwartym kasowało wszystko i zaczynało od konta.
  */
-export default async function Strona() {
+export default async function Strona({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const widz = await widzZZadania(await headers());
-  const szkic = await pobierzSzkicFirmy(widz);
+  const nowa = (await searchParams).nowa === "1";
+  const szkic = await pobierzSzkicFirmy(widz, nowa);
 
   /*
    * Szczegóły i braki liczy serwer, nie komponent.
@@ -86,6 +91,7 @@ export default async function Strona() {
       szkic={doKreatora}
       zdjecia={zdjecia}
       zalogowany={widz.rodzaj !== "anonim"}
+      nowa={nowa}
       wartosciSzczegolow={szczegoly ? wartosciSzczegolowDoFormularza(szczegoly) : {}}
       wCenie={szczegoly?.rodzaj === "service" ? szczegoly.wCenie : []}
     />

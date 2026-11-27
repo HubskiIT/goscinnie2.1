@@ -3,7 +3,11 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { ModeracjaScreen } from "@/components/screens/ModeracjaScreen";
 import { widzZZadania } from "@/lib/auth/widz";
-import { pobierzKolejke } from "@/lib/db/queries/moderacja";
+import {
+  pobierzKolejke,
+  pobierzStatystykiModeracji,
+  pobierzWszystkieFirmyModeratora,
+} from "@/lib/db/queries/moderacja";
 
 export const metadata: Metadata = {
   title: "Moderacja",
@@ -24,9 +28,13 @@ export const metadata: Metadata = {
  */
 export default async function Strona() {
   const widz = await widzZZadania(await headers());
-  const kolejka = await pobierzKolejke(widz);
+  const [kolejka, statystyki, firmy] = await Promise.all([
+    pobierzKolejke(widz),
+    pobierzStatystykiModeracji(widz),
+    pobierzWszystkieFirmyModeratora(widz),
+  ]);
 
-  if (!kolejka.ok) notFound();
+  if (!kolejka.ok || !statystyki.ok || !firmy.ok) notFound();
 
-  return <ModeracjaScreen pozycje={kolejka.dane} />;
+  return <ModeracjaScreen pozycje={kolejka.dane} statystyki={statystyki.dane} firmy={firmy.dane} />;
 }

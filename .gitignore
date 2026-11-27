@@ -63,3 +63,4 @@ scripts/dane/
 
 # Lokalne zmienne srodowiskowe
 .env.local
+.env*

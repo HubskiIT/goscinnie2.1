@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Header } from "@/components/Header";
 import { widzZZadania } from "@/lib/auth/widz";
+import { mozeModerowac } from "@/lib/permissions";
 
 /**
  * Panel jest tylko dla zalogowanych.
@@ -25,7 +26,7 @@ export default async function LayoutPanelu({ children }: { children: React.React
 
   return (
     <>
-      <Header zalogowany />
+      <Header zalogowany moderator={mozeModerowac(widz).wolno} />
       {children}
     </>
   );

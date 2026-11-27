@@ -116,7 +116,8 @@ export async function zapiszKrokKategoria(
   if (!wejscie.ok) return wejscie.stan;
 
   const widz = await widzKreatora();
-  const wynik = await zapiszKategorieSzkicu(widz, wejscie.dane.kategoria);
+  const nowa = dane.get("nowa") === "1";
+  const wynik = await zapiszKategorieSzkicu(widz, wejscie.dane.kategoria, nowa);
 
   if (!wynik.ok) {
     /*

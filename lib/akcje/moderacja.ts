@@ -17,11 +17,25 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { adresAplikacji } from "@/lib/adres";
 import { widzZZadania } from "@/lib/auth/widz";
-import { type Decyzja, pobierzAdresataDecyzji, rozstrzygnij } from "@/lib/db/queries/moderacja";
+import {
+  type Decyzja,
+  pobierzAdresataDecyzji,
+  rozstrzygnij,
+  utworzImprezeModeratora,
+  utworzOgloszenieModeratora,
+  utworzZlecenieModeratora,
+  zmienStatusFirmyModerator,
+} from "@/lib/db/queries/moderacja";
 import { bledyZod, type StanFormularza } from "@/lib/formularze";
 import { pobierzNadawce } from "@/lib/poczta";
 import { decyzjaModeracjiWpisu } from "@/lib/poczta/szablony";
-import { daneDecyzjiModeracji } from "@/lib/validators/moderacja";
+import {
+  daneDecyzjiModeracji,
+  daneNowegoOgloszeniaModeratora,
+  daneNowejImprezyModeratora,
+  daneZmianyStatusuFirmy,
+} from "@/lib/validators/moderacja";
+import { daneNowegoZlecenia } from "@/lib/validators/zlecenia";
 
 export async function rozstrzygnijZgloszenie(
   _poprzedni: StanFormularza,
@@ -99,5 +113,138 @@ export async function rozstrzygnijZgloszenie(
       decyzja.rodzaj === "zgoda"
         ? `„${adresat.dane.nazwaFirmy}” jest w katalogu. Właściciel dostał powiadomienie.`
         : `„${adresat.dane.nazwaFirmy}” wróciła do poprawki. Właściciel dostał Twój komentarz.`,
+  };
+}
+
+export async function zmienStatusFirmy(
+  _poprzedni: StanFormularza,
+  dane: FormData,
+): Promise<StanFormularza> {
+  const wejscie = Object.fromEntries(dane.entries());
+  const wynik = daneZmianyStatusuFirmy.safeParse(wejscie);
+  if (!wynik.success) return bledyZod(wynik.error, wejscie);
+
+  const widz = await widzZZadania(await headers());
+  const zmienione = await zmienStatusFirmyModerator(widz, wynik.data.companyId, wynik.data.akcja);
+  if (!zmienione.ok) {
+    return {
+      status: "informacja",
+      waga: "ostrzezenie",
+      tresc: "Brak uprawnień lub firma nie istnieje.",
+    };
+  }
+
+  revalidatePath("/moderacja");
+  revalidatePath("/lokale");
+  revalidatePath("/uslugodawcy");
+  revalidatePath(`/f/${zmienione.dane.slug}`);
+
+  const komunikat =
+    wynik.data.akcja === "zatwierdz"
+      ? `„${zmienione.dane.nazwa}” zatwierdzona i widoczna w katalogu.`
+      : wynik.data.akcja === "zawies"
+        ? `„${zmienione.dane.nazwa}” została zawieszona i ukryta z katalogu.`
+        : `„${zmienione.dane.nazwa}” została przywrócona do katalogu.`;
+
+  return { status: "informacja", tresc: komunikat };
+}
+
+export async function dodajOgloszenieModeratora(
+  _poprzedni: StanFormularza,
+  dane: FormData,
+): Promise<StanFormularza> {
+  const wejscie = Object.fromEntries(dane.entries());
+  const wynik = daneNowegoOgloszeniaModeratora.safeParse(wejscie);
+  if (!wynik.success) return bledyZod(wynik.error, wejscie);
+
+  const widz = await widzZZadania(await headers());
+  const zapis = await utworzOgloszenieModeratora(widz, wynik.data);
+  if (!zapis.ok) {
+    const komunikat =
+      zapis.powod === "nieznany-wlasciciel"
+        ? "Nie znaleziono użytkownika o podanym adresie e-mail."
+        : zapis.powod === "miejscowosc-bez-wspolrzednych"
+          ? "Wybierz miejscowość z listy podpowiedzi."
+          : zapis.powod === "nieznana-kategoria"
+            ? "Wybierz poprawną kategorię."
+            : "Nie masz uprawnień do dodania ogłoszenia jako moderator.";
+    return { status: "bledy", bledy: { _: [komunikat] }, wartosci: {} };
+  }
+
+  revalidatePath("/moderacja");
+  revalidatePath("/lokale");
+  revalidatePath("/uslugodawcy");
+  revalidatePath(`/f/${zapis.dane.slug}`);
+
+  return {
+    status: "informacja",
+    tresc: `Dodano ogłoszenie „${zapis.dane.nazwa}”.`,
+    odnosnik: {
+      tekst: "Zobacz profil w katalogu",
+      adres: `/f/${zapis.dane.slug}`,
+    },
+  };
+}
+
+export async function dodajImprezeModeratora(
+  _poprzedni: StanFormularza,
+  dane: FormData,
+): Promise<StanFormularza> {
+  const wejscie = Object.fromEntries(dane.entries());
+  const wynik = daneNowejImprezyModeratora.safeParse(wejscie);
+  if (!wynik.success) return bledyZod(wynik.error, wejscie);
+
+  const widz = await widzZZadania(await headers());
+  const zapis = await utworzImprezeModeratora(widz, wynik.data);
+  if (!zapis.ok) {
+    return {
+      status: "bledy",
+      bledy: { _: ["Nie udało się dodać imprezy. Sprawdź wybrany lokal i datę."] },
+      wartosci: {},
+    };
+  }
+
+  revalidatePath("/moderacja");
+  revalidatePath("/imprezy");
+  revalidatePath(`/imprezy/${zapis.dane.slug}`);
+
+  return {
+    status: "informacja",
+    tresc: `Impreza „${zapis.dane.nazwa}” jest już widoczna w zapowiedziach.`,
+    odnosnik: {
+      tekst: "Zobacz imprezę",
+      adres: `/imprezy/${zapis.dane.slug}`,
+    },
+  };
+}
+
+export async function dodajZlecenieModeratora(
+  _poprzedni: StanFormularza,
+  dane: FormData,
+): Promise<StanFormularza> {
+  const wejscie = Object.fromEntries(dane.entries());
+  const wynik = daneNowegoZlecenia.safeParse(wejscie);
+  if (!wynik.success) return bledyZod(wynik.error, wejscie);
+
+  const widz = await widzZZadania(await headers());
+  const zapis = await utworzZlecenieModeratora(widz, wynik.data);
+  if (!zapis.ok) {
+    return {
+      status: "bledy",
+      bledy: { _: ["Nie udało się dodać zlecenia. Sprawdź miejscowość i okazję."] },
+      wartosci: {},
+    };
+  }
+
+  revalidatePath("/moderacja");
+  revalidatePath("/zlecenia");
+
+  return {
+    status: "informacja",
+    tresc: "Zlecenie zostało dodane i zatwierdzone na giełdzie.",
+    odnosnik: {
+      tekst: "Zobacz zlecenie",
+      adres: `/zlecenia/${zapis.dane.id}`,
+    },
   };
 }

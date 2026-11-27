@@ -17,6 +17,8 @@ interface HeaderProps {
    * zalogował, i nie dawał żadnej drogi do wylogowania.
    */
   zalogowany?: boolean;
+  /** Czy zalogowany użytkownik ma rolę moderatora. */
+  moderator?: boolean;
 }
 
 /**
@@ -32,7 +34,7 @@ function wariantZeSciezki(sciezka: string): NonNullable<HeaderProps["variant"]> 
   return "public";
 }
 
-export function Header({ variant, zalogowany = false }: HeaderProps) {
+export function Header({ variant, zalogowany = false, moderator = false }: HeaderProps) {
   const sciezka = usePathname();
   const uzytyWariant = variant ?? wariantZeSciezki(sciezka);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -375,6 +377,14 @@ export function Header({ variant, zalogowany = false }: HeaderProps) {
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           {zalogowany ? (
             <>
+              {moderator && (
+                <Link
+                  href="/moderacja"
+                  className="text-[14px] font-bold text-[#8A5405] bg-[#FEF4E4] hover:bg-[#FDE6BF] rounded-full px-3.5 py-1.5 transition-colors hidden sm:inline"
+                >
+                  Moderacja
+                </Link>
+              )}
               <Link
                 href="/panel"
                 className="text-[15px] text-[#4A3D50] hover:text-[#241C2B] cursor-pointer bg-transparent border-0 hidden sm:inline"

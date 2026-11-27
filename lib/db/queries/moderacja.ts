@@ -8,12 +8,22 @@
  * KAŻDA FUNKCJA PRZYJMUJE WIDZA JAKO PIERWSZY ARGUMENT i odmawia, zanim
  * dotknie pozostałych. Konwencji pilnuje tests/konwencja-zapytan.test.ts.
  */
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
+import { OKAZJA_INNA } from "@/content/okazje";
+import { czyRodzajLokalu } from "@/content/rodzaje-lokali";
 import { db } from "@/lib/db";
+import { plans, subscriptions } from "@/lib/db/schema/abonament";
 import { cities } from "@/lib/db/schema/geografia";
 import { requests } from "@/lib/db/schema/gielda";
 import { events } from "@/lib/db/schema/imprezy";
-import { companies, eventTypes } from "@/lib/db/schema/katalog";
+import {
+  categories,
+  companies,
+  companyCategories,
+  companyMembers,
+  companyVerification,
+  eventTypes,
+} from "@/lib/db/schema/katalog";
 import { type ModerationSubmission, moderationSubmissions } from "@/lib/db/schema/moderacja";
 import { users } from "@/lib/db/schema/tozsamosc";
 import {
@@ -22,6 +32,12 @@ import {
   upewnijSieZeGalazUprawnienIstnieje,
   type Widz,
 } from "@/lib/permissions";
+import { DARMOWY_DOSTEP_DO } from "@/lib/serwis";
+import type {
+  DaneNowegoOgloszeniaModeratora,
+  DaneNowejImprezyModeratora,
+} from "@/lib/validators/moderacja";
+import type { DaneNowegoZlecenia } from "@/lib/validators/zlecenia";
 
 /** Co podlega moderacji. Odpowiada typowi `moderation_subject` w bazie. */
 export type RodzajPrzedmiotu = (typeof moderationSubmissions.subjectKind.enumValues)[number];
@@ -55,6 +71,8 @@ export type PozycjaKolejki = {
    * bo moderator klika go raz i przestaje ufać całej liście.
    */
   adresPodgladu: string | null;
+  /** Dodatkowy kontekst do podglądu w kolejce (np. dla imprez bez publicznego linku). */
+  szczegoly?: string | null;
 };
 
 /**
@@ -200,14 +218,31 @@ export async function pobierzKolejke(widz: Widz): Promise<WynikModeracji<Pozycja
 
   const idImprez = zgloszenia.filter((z) => z.rodzaj === "event").map((z) => z.przedmiotId);
 
-  const imprezy = new Map<string, { nazwa: string; slug: string }>();
+  const imprezy = new Map<
+    string,
+    { nazwa: string; slug: string; data: string; lokal: string; opis: string }
+  >();
   if (idImprez.length > 0) {
     const wiersze = await db
-      .select({ id: events.id, nazwa: events.name, slug: events.slug })
+      .select({
+        id: events.id,
+        nazwa: events.name,
+        slug: events.slug,
+        data: events.eventDate,
+        lokal: companies.name,
+        opis: events.description,
+      })
       .from(events)
+      .innerJoin(companies, eq(companies.id, events.companyId))
       .where(inArray(events.id, idImprez));
     for (const wiersz of wiersze) {
-      imprezy.set(wiersz.id, { nazwa: wiersz.nazwa, slug: wiersz.slug });
+      imprezy.set(wiersz.id, {
+        nazwa: wiersz.nazwa,
+        slug: wiersz.slug,
+        data: wiersz.data,
+        lokal: wiersz.lokal,
+        opis: wiersz.opis,
+      });
     }
   }
 
@@ -216,37 +251,30 @@ export async function pobierzKolejke(widz: Widz): Promise<WynikModeracji<Pozycja
     dane: zgloszenia.map((z) => {
       const firma = firmy.get(z.przedmiotId);
       if (firma) {
-        return { ...z, nazwa: firma.nazwa, adresPodgladu: `/f/${firma.slug}` };
+        return { ...z, nazwa: firma.nazwa, adresPodgladu: `/f/${firma.slug}`, szczegoly: null };
       }
 
       const impreza = imprezy.get(z.przedmiotId);
       if (impreza) {
-        /*
-         * Podgląd imprezy przed akceptacją prowadzi pod jej publiczny
-         * adres, a ten dla niezaakceptowanej zwraca 404. To jest celowe
-         * i nie jest to błąd: moderator ma zobaczyć, co ocenia, więc
-         * zamiast martwego linku dajemy mu nazwę i treść w kolejce,
-         * a adres dopiero wtedy, gdy impreza jest już widoczna.
-         */
-        return { ...z, nazwa: impreza.nazwa, adresPodgladu: null };
+        return {
+          ...z,
+          nazwa: impreza.nazwa,
+          adresPodgladu: null,
+          szczegoly: `${impreza.data} • ${impreza.lokal} — ${impreza.opis.slice(0, 180)}`,
+        };
       }
 
       const zlecenie = zlecenia.get(z.przedmiotId);
       if (zlecenie) {
-        /*
-         * Zlecenie opisujemy okazją, liczbą gości i powiatem, a nie
-         * opisem klienta. Moderator i tak zobaczy całość po wejściu
-         * w zlecenie, a kolejka ma dać się przejrzeć wzrokiem: dwadzieścia
-         * akapitów pod sobą czyta się gorzej niż dwadzieścia jednolinijkowców.
-         */
         return {
           ...z,
           nazwa: `${zlecenie.okazja}, ${zlecenie.goscie} osób, powiat ${zlecenie.powiat}`,
           adresPodgladu: `/zlecenia/${z.przedmiotId}`,
+          szczegoly: null,
         };
       }
 
-      return { ...z, nazwa: null, adresPodgladu: null };
+      return { ...z, nazwa: null, adresPodgladu: null, szczegoly: null };
     }),
   };
 }
@@ -490,4 +518,531 @@ export async function pobierzStanWpisuFirmy(
       powod: ostatnie.powod ?? "Bez podanego powodu. Napisz do nas, wyjaśnimy.",
     },
   };
+}
+
+export type StatystykiModeracji = {
+  doDecyzji: number;
+  aktywneFirmy: number;
+  szkiceFirm: number;
+  zawieszoneFirmy: number;
+  zleceniaOtwarte: number;
+  imprezy: number;
+  uzytkownicy: number;
+};
+
+/** Liczby poglądowe na górę panelu moderatora. */
+export async function pobierzStatystykiModeracji(
+  widz: Widz,
+): Promise<WynikModeracji<StatystykiModeracji>> {
+  const rozstrzygniecie = mozeModerowac(widz);
+  if (!rozstrzygniecie.wolno) return { ok: false, powod: rozstrzygniecie.powod };
+
+  const [wiersz] = await db
+    .select({
+      doDecyzji: sql<number>`(select count(*)::int from ${moderationSubmissions} where ${moderationSubmissions.status} = 'pending')`,
+      aktywneFirmy: sql<number>`(select count(*)::int from ${companies} where ${companies.status} = 'active')`,
+      szkiceFirm: sql<number>`(select count(*)::int from ${companies} where ${companies.status} = 'draft')`,
+      zawieszoneFirmy: sql<number>`(select count(*)::int from ${companies} where ${companies.status} = 'suspended')`,
+      zleceniaOtwarte: sql<number>`(select count(*)::int from ${requests} where ${requests.status} = 'open')`,
+      imprezy: sql<number>`(select count(*)::int from ${events})`,
+      uzytkownicy: sql<number>`(select count(*)::int from ${users})`,
+    })
+    .from(sql`(select 1) as _`);
+
+  return {
+    ok: true,
+    dane: wiersz ?? {
+      doDecyzji: 0,
+      aktywneFirmy: 0,
+      szkiceFirm: 0,
+      zawieszoneFirmy: 0,
+      zleceniaOtwarte: 0,
+      imprezy: 0,
+      uzytkownicy: 0,
+    },
+  };
+}
+
+export type FirmaDlaModeratora = {
+  id: string;
+  nazwa: string;
+  slug: string;
+  status: "draft" | "active" | "visitcard" | "suspended";
+  rodzaj: "venue" | "service" | null;
+  kategoria: string | null;
+  miejscowosc: string;
+  wlascicielEmail: string;
+  zaakceptowana: boolean;
+  maAktywnyAbonament: boolean;
+  utworzono: Date;
+};
+
+/** Lista wszystkich firm w serwisie, do zarządzania przez moderatora. */
+export async function pobierzWszystkieFirmyModeratora(
+  widz: Widz,
+  filtry: { status?: string; szukaj?: string } = {},
+): Promise<WynikModeracji<FirmaDlaModeratora[]>> {
+  const rozstrzygniecie = mozeModerowac(widz);
+  if (!rozstrzygniecie.wolno) return { ok: false, powod: rozstrzygniecie.powod };
+
+  const warunki = [];
+  if (
+    filtry.status === "draft" ||
+    filtry.status === "active" ||
+    filtry.status === "visitcard" ||
+    filtry.status === "suspended"
+  ) {
+    warunki.push(eq(companies.status, filtry.status));
+  }
+  const fraza = filtry.szukaj?.trim();
+  if (fraza) {
+    warunki.push(ilike(companies.name, `%${fraza}%`));
+  }
+
+  const wiersze = await db
+    .select({
+      id: companies.id,
+      nazwa: companies.name,
+      slug: companies.slug,
+      status: companies.status,
+      rodzaj: companies.kind,
+      kategoria: categories.name,
+      miejscowosc: cities.name,
+      wlascicielEmail: users.email,
+      zaakceptowana: sql<boolean>`exists (
+        select 1 from ${moderationSubmissions}
+        where ${moderationSubmissions.subjectKind} = 'company'
+          and ${moderationSubmissions.subjectId} = ${companies.id}
+          and ${moderationSubmissions.status} = 'approved'
+      )`,
+      maAktywnyAbonament: sql<boolean>`exists (
+        select 1 from ${subscriptions}
+        where ${subscriptions.companyId} = ${companies.id}
+          and ${subscriptions.status} = 'active'
+          and ${subscriptions.expiresAt} > now()
+      )`,
+      utworzono: companies.createdAt,
+    })
+    .from(companies)
+    .innerJoin(cities, eq(cities.id, companies.cityId))
+    .innerJoin(users, eq(users.id, companies.ownerUserId))
+    .leftJoin(
+      companyCategories,
+      and(eq(companyCategories.companyId, companies.id), isNull(companyCategories.archivedAt)),
+    )
+    .leftJoin(categories, eq(categories.id, companyCategories.categoryId))
+    .where(warunki.length > 0 ? and(...warunki) : undefined)
+    .orderBy(desc(companies.createdAt))
+    .limit(100);
+
+  return { ok: true, dane: wiersze };
+}
+
+/** Szybka zmiana statusu firmy przez moderatora (zatwierdź, zawieś, przywróć). */
+export async function zmienStatusFirmyModerator(
+  widz: Widz,
+  companyId: string,
+  akcja: "zatwierdz" | "zawies" | "przywroc",
+): Promise<WynikModeracji<{ nazwa: string; slug: string }>> {
+  const rozstrzygniecie = mozeModerowac(widz);
+  if (!rozstrzygniecie.wolno) return { ok: false, powod: rozstrzygniecie.powod };
+  if (widz.rodzaj !== "moderator") return { ok: false, powod: "brak-dostepu" };
+
+  const [firma] = await db
+    .select({ id: companies.id, nazwa: companies.name, slug: companies.slug })
+    .from(companies)
+    .where(eq(companies.id, companyId))
+    .limit(1);
+
+  if (!firma) return { ok: false, powod: "brak-dostepu" };
+
+  if (akcja === "zawies") {
+    await db
+      .update(companies)
+      .set({ status: "suspended", updatedAt: new Date() })
+      .where(eq(companies.id, companyId));
+    return { ok: true, dane: { nazwa: firma.nazwa, slug: firma.slug } };
+  }
+
+  if (akcja === "przywroc") {
+    await db
+      .update(companies)
+      .set({ status: "active", updatedAt: new Date() })
+      .where(eq(companies.id, companyId));
+    return { ok: true, dane: { nazwa: firma.nazwa, slug: firma.slug } };
+  }
+
+  // akcja === "zatwierdz": aktywuj, nadaj darmowy abonament jeśli brak, zatwierdź w moderacji
+  const [plan] = await db
+    .select({ id: plans.id })
+    .from(companyCategories)
+    .innerJoin(plans, eq(plans.categoryId, companyCategories.categoryId))
+    .where(
+      and(
+        eq(companyCategories.companyId, companyId),
+        isNull(companyCategories.archivedAt),
+        eq(plans.code, "start"),
+      ),
+    )
+    .limit(1);
+
+  await db.transaction(async (tx) => {
+    const teraz = new Date();
+    await tx
+      .update(companies)
+      .set({ status: "active", updatedAt: teraz })
+      .where(eq(companies.id, companyId));
+
+    const [maAbonament] = await tx
+      .select({ id: subscriptions.id })
+      .from(subscriptions)
+      .where(
+        and(
+          eq(subscriptions.companyId, companyId),
+          eq(subscriptions.status, "active"),
+          sql`${subscriptions.expiresAt} > now()`,
+        ),
+      )
+      .limit(1);
+
+    if (!maAbonament && plan) {
+      await tx.insert(subscriptions).values({
+        companyId,
+        planId: plan.id,
+        status: "active",
+        expiresAt: DARMOWY_DOSTEP_DO,
+      });
+    }
+
+    const [oczekujace] = await tx
+      .select({ id: moderationSubmissions.id })
+      .from(moderationSubmissions)
+      .where(
+        and(
+          inArray(moderationSubmissions.subjectKind, ["company", "company_change"]),
+          eq(moderationSubmissions.subjectId, companyId),
+          eq(moderationSubmissions.status, "pending"),
+        ),
+      )
+      .limit(1);
+
+    if (oczekujace) {
+      await tx
+        .update(moderationSubmissions)
+        .set({
+          status: "approved",
+          reason: null,
+          decidedByUserId: widz.userId,
+          decidedAt: teraz,
+          updatedAt: teraz,
+        })
+        .where(eq(moderationSubmissions.id, oczekujace.id));
+    } else {
+      await tx
+        .insert(moderationSubmissions)
+        .values({
+          subjectKind: "company",
+          subjectId: companyId,
+          status: "approved",
+          decidedByUserId: widz.userId,
+          decidedAt: teraz,
+        })
+        .onConflictDoNothing();
+    }
+  });
+
+  return { ok: true, dane: { nazwa: firma.nazwa, slug: firma.slug } };
+}
+
+function doSluguModerator(nazwa: string): string {
+  return nazwa
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ł/g, "l")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+async function wolnySlugFirmyModerator(nazwa: string): Promise<string> {
+  const podstawa = doSluguModerator(nazwa) || "firma";
+  const kandydaci = [podstawa, ...Array.from({ length: 50 }, (_, i) => `${podstawa}-${i + 2}`)];
+  const zajete = await db
+    .select({ slug: companies.slug })
+    .from(companies)
+    .where(inArray(companies.slug, kandydaci));
+  const zajeteSet = new Set(zajete.map((z) => z.slug));
+  const wolny = kandydaci.find((k) => !zajeteSet.has(k));
+  if (!wolny) throw new Error(`Brak wolnego sluga dla „${nazwa}”.`);
+  return wolny;
+}
+
+async function wolnySlugImprezyModerator(nazwa: string, data: string): Promise<string> {
+  const podstawa = `${doSluguModerator(nazwa) || "impreza"}-${data}`;
+  const kandydaci = [podstawa, ...Array.from({ length: 50 }, (_, i) => `${podstawa}-${i + 2}`)];
+  const zajete = await db
+    .select({ slug: events.slug })
+    .from(events)
+    .where(inArray(events.slug, kandydaci));
+  const zajeteSet = new Set(zajete.map((z) => z.slug));
+  const wolny = kandydaci.find((k) => !zajeteSet.has(k));
+  if (!wolny) throw new Error(`Brak wolnego sluga imprezy dla „${nazwa}”.`);
+  return wolny;
+}
+
+export type OdmowaTworzeniaModeratora =
+  | PowodOdmowy
+  | "nieznana-kategoria"
+  | "miejscowosc-bez-wspolrzednych"
+  | "nieznany-wlasciciel"
+  | "nie-lokal"
+  | "nieznana-okazja"
+  | "niezgodna-wlasna-okazja";
+
+/** Bezpośrednie dodanie firmy/lokalu/usługodawcy przez moderatora. */
+export async function utworzOgloszenieModeratora(
+  widz: Widz,
+  dane: DaneNowegoOgloszeniaModeratora,
+): Promise<
+  | { ok: true; dane: { id: string; slug: string; nazwa: string } }
+  | { ok: false; powod: OdmowaTworzeniaModeratora }
+> {
+  const rozstrzygniecie = mozeModerowac(widz);
+  if (!rozstrzygniecie.wolno) return { ok: false, powod: rozstrzygniecie.powod };
+  if (widz.rodzaj !== "moderator") return { ok: false, powod: "brak-dostepu" };
+
+  const [kategoria] = await db
+    .select({ id: categories.id })
+    .from(categories)
+    .where(eq(categories.slug, dane.kategoria))
+    .limit(1);
+  if (!kategoria) return { ok: false, powod: "nieznana-kategoria" };
+
+  const [miejscowosc] = await db
+    .select({ id: cities.id, maPunkt: sql<boolean>`${cities.point} is not null` })
+    .from(cities)
+    .where(eq(cities.id, dane.cityId))
+    .limit(1);
+  if (!miejscowosc?.maPunkt) {
+    return { ok: false, powod: "miejscowosc-bez-wspolrzednych" };
+  }
+
+  let ownerUserId = widz.userId;
+  if (dane.wlascicielEmail) {
+    const [wlasciciel] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, dane.wlascicielEmail.toLowerCase()))
+      .limit(1);
+    if (!wlasciciel) return { ok: false, powod: "nieznany-wlasciciel" };
+    ownerUserId = wlasciciel.id;
+  }
+
+  const slug = await wolnySlugFirmyModerator(dane.nazwa);
+  const rodzaj = czyRodzajLokalu(dane.kategoria) ? "venue" : "service";
+
+  const [plan] = await db
+    .select({ id: plans.id })
+    .from(plans)
+    .where(and(eq(plans.categoryId, kategoria.id), eq(plans.code, "start")))
+    .limit(1);
+
+  const teraz = new Date();
+  const utworzona = await db.transaction(async (tx) => {
+    const [firma] = await tx
+      .insert(companies)
+      .values({
+        ownerUserId,
+        name: dane.nazwa,
+        slug,
+        cityId: miejscowosc.id,
+        point: sql`(select ${cities.point} from ${cities} where ${cities.id} = ${miejscowosc.id})`,
+        description: dane.opis,
+        priceFrom: dane.cenaOd,
+        capacityMin: dane.pojemnoscMin,
+        capacityMax: dane.pojemnoscMax,
+        status: dane.opublikujOdRazu ? "active" : "draft",
+        kind: rodzaj,
+      })
+      .returning({ id: companies.id, slug: companies.slug, nazwa: companies.name });
+
+    if (!firma) throw new Error("utworzOgloszenieModeratora: brak wiersza.");
+
+    await tx.insert(companyMembers).values({
+      companyId: firma.id,
+      userId: ownerUserId,
+      role: "owner",
+    });
+
+    await tx.insert(companyCategories).values({
+      companyId: firma.id,
+      categoryId: kategoria.id,
+    });
+
+    if (dane.nip && dane.telefon) {
+      await tx.insert(companyVerification).values({
+        companyId: firma.id,
+        nip: dane.nip.replace(/[\s-]/g, ""),
+        telefon: dane.telefon.replace(/[\s-]/g, "").replace(/^(\+48|0048)/, ""),
+      });
+    }
+
+    if (dane.opublikujOdRazu) {
+      if (plan) {
+        await tx.insert(subscriptions).values({
+          companyId: firma.id,
+          planId: plan.id,
+          status: "active",
+          expiresAt: DARMOWY_DOSTEP_DO,
+        });
+      }
+      await tx.insert(moderationSubmissions).values({
+        subjectKind: "company",
+        subjectId: firma.id,
+        status: "approved",
+        decidedByUserId: widz.userId,
+        decidedAt: teraz,
+      });
+    }
+
+    return firma;
+  });
+
+  return { ok: true, dane: utworzona };
+}
+
+/** Bezpośrednie dodanie imprezy dla wybranego lokalu przez moderatora. */
+export async function utworzImprezeModeratora(
+  widz: Widz,
+  dane: DaneNowejImprezyModeratora,
+): Promise<
+  | { ok: true; dane: { id: string; slug: string; nazwa: string } }
+  | { ok: false; powod: OdmowaTworzeniaModeratora }
+> {
+  const rozstrzygniecie = mozeModerowac(widz);
+  if (!rozstrzygniecie.wolno) return { ok: false, powod: rozstrzygniecie.powod };
+  if (widz.rodzaj !== "moderator") return { ok: false, powod: "brak-dostepu" };
+
+  const [firma] = await db
+    .select({ id: companies.id, kind: companies.kind })
+    .from(companies)
+    .where(eq(companies.id, dane.companyId))
+    .limit(1);
+  if (firma?.kind !== "venue") return { ok: false, powod: "nie-lokal" };
+
+  const [okazja] = await db
+    .select({ id: eventTypes.id })
+    .from(eventTypes)
+    .where(eq(eventTypes.slug, dane.okazja))
+    .limit(1);
+  if (!okazja) return { ok: false, powod: "nieznana-okazja" };
+
+  const wlasnaNazwa = dane.innaOkazja?.trim() || null;
+  if ((dane.okazja === OKAZJA_INNA.slug) !== (wlasnaNazwa !== null)) {
+    return { ok: false, powod: "niezgodna-wlasna-okazja" };
+  }
+
+  const slug = await wolnySlugImprezyModerator(dane.nazwa, dane.data);
+  const teraz = new Date();
+
+  const wstawiona = await db.transaction(async (tx) => {
+    const [impreza] = await tx
+      .insert(events)
+      .values({
+        companyId: firma.id,
+        slug,
+        name: dane.nazwa,
+        eventTypeId: okazja.id,
+        customEventName: wlasnaNazwa,
+        eventDate: dane.data,
+        startsAt: dane.godzinaOd,
+        endsAt: dane.godzinaDo,
+        ticketPrice: dane.cenaBiletu,
+        description: dane.opis,
+        adultsOnly: dane.dlaDoroslych,
+      })
+      .returning({ id: events.id, slug: events.slug, nazwa: events.name });
+
+    if (!impreza) throw new Error("utworzImprezeModeratora: brak wiersza.");
+
+    await tx.insert(moderationSubmissions).values({
+      subjectKind: "event",
+      subjectId: impreza.id,
+      status: "approved",
+      decidedByUserId: widz.userId,
+      decidedAt: teraz,
+    });
+
+    return impreza;
+  });
+
+  return { ok: true, dane: wstawiona };
+}
+
+/** Bezpośrednie wystawienie zlecenia przez moderatora (od razu zatwierdzone). */
+export async function utworzZlecenieModeratora(
+  widz: Widz,
+  dane: DaneNowegoZlecenia,
+): Promise<{ ok: true; dane: { id: string } } | { ok: false; powod: OdmowaTworzeniaModeratora }> {
+  const rozstrzygniecie = mozeModerowac(widz);
+  if (!rozstrzygniecie.wolno) return { ok: false, powod: rozstrzygniecie.powod };
+  if (widz.rodzaj !== "moderator") return { ok: false, powod: "brak-dostepu" };
+
+  const [okazja] = await db
+    .select({ id: eventTypes.id })
+    .from(eventTypes)
+    .where(eq(eventTypes.slug, dane.okazja))
+    .limit(1);
+  if (!okazja) return { ok: false, powod: "nieznana-okazja" };
+
+  const wlasnaNazwa = dane.innaOkazja?.trim() || null;
+  if ((dane.okazja === OKAZJA_INNA.slug) !== (wlasnaNazwa !== null)) {
+    return { ok: false, powod: "niezgodna-wlasna-okazja" };
+  }
+
+  const [miejscowosc] = await db
+    .select({ id: cities.id, maPunkt: sql<boolean>`${cities.point} is not null` })
+    .from(cities)
+    .where(eq(cities.id, dane.cityId))
+    .limit(1);
+  if (!miejscowosc?.maPunkt) {
+    return { ok: false, powod: "miejscowosc-bez-wspolrzednych" };
+  }
+
+  const teraz = new Date();
+  const wstawione = await db.transaction(async (tx) => {
+    const [zlecenie] = await tx
+      .insert(requests)
+      .values({
+        authorUserId: widz.userId,
+        eventTypeId: okazja.id,
+        customEventName: wlasnaNazwa,
+        eventDate: dane.dataWydarzenia,
+        guests: dane.liczbaOsob,
+        cityId: miejscowosc.id,
+        point: sql`(select ${cities.point} from ${cities} where ${cities.id} = ${miejscowosc.id})`,
+        description: dane.opis,
+        budgetMin: dane.budzetMin,
+        budgetMax: dane.budzetMax,
+        expiresAt: sql`least(
+          (${dane.dataWydarzenia}::date + interval '1 day')::timestamptz,
+          now() + interval '30 days'
+        )`,
+      })
+      .returning({ id: requests.id });
+
+    if (!zlecenie) throw new Error("utworzZlecenieModeratora: brak wiersza.");
+
+    await tx.insert(moderationSubmissions).values({
+      subjectKind: "request",
+      subjectId: zlecenie.id,
+      status: "approved",
+      decidedByUserId: widz.userId,
+      decidedAt: teraz,
+    });
+
+    return zlecenie;
+  });
+
+  return { ok: true, dane: wstawione };
 }

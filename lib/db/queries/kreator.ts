@@ -153,11 +153,16 @@ export async function firmaDoZapisu(
  * odświeżenie między krokami zaczynało zakładanie od nowa i zostawiało
  * w bazie drugi szkic.
  */
-export async function pobierzSzkicFirmy(widz: Widz): Promise<SzkicFirmy | null> {
+export async function pobierzSzkicFirmy(
+  widz: Widz,
+  tylkoSzkic = false,
+): Promise<SzkicFirmy | null> {
   upewnijSieZeGalazUprawnienIstnieje(widz, "pobierzSzkicFirmy");
 
   const userId = userIdWidza(widz);
   if (!userId) return null;
+
+  const dozwoloneStatusy = tylkoSzkic ? (["draft"] as const) : (["draft", "active"] as const);
 
   const [firma] = await db
     .select({
@@ -198,7 +203,7 @@ export async function pobierzSzkicFirmy(widz: Widz): Promise<SzkicFirmy | null> 
      * się tu znaleźć. Szkic ma pierwszeństwo: kto zaczął nową firmę, wraca do
      * niej, a nie do starej.
      */
-    .where(and(eq(companyMembers.userId, userId), inArray(companies.status, ["draft", "active"])))
+    .where(and(eq(companyMembers.userId, userId), inArray(companies.status, [...dozwoloneStatusy])))
     .orderBy(sql`${companies.status} = 'draft' desc`, asc(companies.createdAt))
     .limit(1);
 
@@ -228,6 +233,7 @@ export type NowySzkic = { companyId: string };
 export async function zapiszKategorieSzkicu(
   widz: Widz,
   slugKategorii: string,
+  nowa = false,
 ): Promise<Wynik<NowySzkic>> {
   upewnijSieZeGalazUprawnienIstnieje(widz, "zapiszKategorieSzkicu");
 
@@ -245,7 +251,7 @@ export async function zapiszKategorieSzkicu(
   // kategorii nie pojawia się w katalogu, więc cicha zgoda byłaby gorsza.
   if (!kategoria) return { ok: false, powod: "brak-dostepu" };
 
-  const istniejacy = await pobierzSzkicFirmy(widz);
+  const istniejacy = await pobierzSzkicFirmy(widz, nowa);
 
   /*
    * Rodzaj firmy bierzemy ze slugu, nie z formularza.
